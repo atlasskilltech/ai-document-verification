@@ -73,7 +73,9 @@ app.get('/v1/result/:system_reference_id', apiKeyAuth, async (req, res) => {
         if (['accepted', 'processing'].includes(request.status)) {
             return res.json({ system_reference_id: request.system_reference_id, status: request.status, message: 'Document is still being processed.' });
         }
-        res.json({
+        const aiResponse = request.ai_response || {};
+        const wrongDocument = aiResponse.document_type_match === false;
+        const result = {
             system_reference_id: request.system_reference_id,
             client_reference_id: request.client_reference_id,
             document_type: request.document_type,
@@ -84,7 +86,13 @@ app.get('/v1/result/:system_reference_id', apiKeyAuth, async (req, res) => {
             issues: request.issues,
             created_at: request.created_at,
             processed_at: request.processed_at
-        });
+        };
+        if (wrongDocument) {
+            result.wrong_document = true;
+            result.detected_document_type = aiResponse.detected_document_type || 'Unknown';
+            result.expected_document_type = aiResponse.expected_document_type || request.document_type;
+        }
+        res.json(result);
     } catch (error) {
         res.status(500).json({ error: 'Internal server error' });
     }

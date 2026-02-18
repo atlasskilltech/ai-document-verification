@@ -65,33 +65,52 @@ class VerificationProcessor {
 
             // 6. Update request with results
             const finalStatus = ruleResult.status === 'verified' ? 'verified' : 'rejected';
+
+            // Include document type match info in AI response for debugging
+            const enrichedAiResponse = {
+                ...aiResult,
+                document_type_match: aiResult.document_type_match,
+                detected_document_type: aiResult.detected_document_type,
+                expected_document_type: aiResult.expected_document_type
+            };
+
             await V1VerificationRequestModel.updateStatus(requestId, {
                 status: finalStatus,
                 confidence: ruleResult.confidence,
                 riskScore: ruleResult.risk_score,
-                extractedData: aiResult.extracted_data,
-                aiResponse: aiResult,
+                extractedData: ruleResult.wrong_document ? {} : aiResult.extracted_data,
+                aiResponse: enrichedAiResponse,
                 issues: ruleResult.issues
             });
 
             // 7. Audit log
+            const auditDetails = {
+                status: finalStatus,
+                confidence: ruleResult.confidence,
+                risk_score: ruleResult.risk_score,
+                issues_count: ruleResult.issues.length
+            };
+            if (ruleResult.wrong_document) {
+                auditDetails.wrong_document = true;
+                auditDetails.detected_type = ruleResult.detected_document_type;
+                auditDetails.expected_type = ruleResult.expected_document_type;
+            }
             await V1AuditModel.log({
                 userId: request.user_id,
-                action: 'document.processed',
+                action: ruleResult.wrong_document ? 'document.wrong_type' : 'document.processed',
                 resourceType: 'verification_request',
                 resourceId: request.system_reference_id,
-                details: {
-                    status: finalStatus,
-                    confidence: ruleResult.confidence,
-                    risk_score: ruleResult.risk_score,
-                    issues_count: ruleResult.issues.length
-                }
+                details: auditDetails
             });
 
             // 8. Trigger webhooks
             const updatedRequest = await V1VerificationRequestModel.findBySystemRefId(request.system_reference_id);
             const webhookEvent = finalStatus === 'verified' ? 'document.verified' : 'document.rejected';
-            WebhookService.trigger(request.user_id, webhookEvent, updatedRequest).catch(err => {
+            WebhookService.trigger(request.user_id, webhookEvent, {
+                ...updatedRequest,
+                wrong_document: ruleResult.wrong_document || false,
+                detected_document_type: ruleResult.detected_document_type || null
+            }).catch(err => {
                 console.error('[VerificationProcessor] Webhook trigger error:', err.message);
             });
 

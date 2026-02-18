@@ -29,6 +29,34 @@ class RuleEngineService {
 
         const validationResults = {};
 
+        // 0. Check document type match (wrong document detection)
+        if (aiResult.document_type_match === false) {
+            const detected = aiResult.detected_document_type || 'Unknown';
+            const expected = aiResult.expected_document_type || documentTypeCode;
+            const mismatchReason = aiResult.document_type_mismatch_reason || `Expected "${expected}" but received "${detected}"`;
+
+            issues.push(`Wrong document submitted: ${mismatchReason}`);
+
+            return {
+                status: 'rejected',
+                confidence: 0,
+                risk_score: 1.0,
+                issues,
+                validation_results: {
+                    document_type_check: {
+                        status: 'failed',
+                        expected: expected,
+                        detected: detected,
+                        message: mismatchReason
+                    }
+                },
+                fraud_indicators: aiResult.fraud_indicators || [],
+                wrong_document: true,
+                detected_document_type: detected,
+                expected_document_type: expected
+            };
+        }
+
         // 1. Check required fields are present
         const requiredFields = docMaster.required_fields || [];
         for (const field of requiredFields) {
@@ -106,7 +134,10 @@ class RuleEngineService {
             risk_score: parseFloat(finalRiskScore.toFixed(4)),
             issues,
             validation_results: validationResults,
-            fraud_indicators: aiResult.fraud_indicators || []
+            fraud_indicators: aiResult.fraud_indicators || [],
+            wrong_document: false,
+            detected_document_type: aiResult.detected_document_type || null,
+            expected_document_type: aiResult.expected_document_type || documentTypeCode
         };
     }
 }
