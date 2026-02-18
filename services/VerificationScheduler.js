@@ -64,6 +64,12 @@ class VerificationScheduler {
                 return await fn();
             } catch (err) {
                 lastError = err;
+                // Don't retry on quota/billing errors (429) or auth errors (401/403)
+                const errMsg = err.message || '';
+                if (errMsg.includes('429') || errMsg.includes('quota') || errMsg.includes('401') || errMsg.includes('403')) {
+                    this.log('error', `${label} failed with non-retryable error: ${errMsg}`);
+                    throw err;
+                }
                 if (attempt < this.config.retryAttempts) {
                     const delay = this.config.retryDelayMs * Math.pow(2, attempt - 1);
                     this.log('warn', `${label} failed (attempt ${attempt}/${this.config.retryAttempts}), retrying in ${delay}ms: ${err.message}`);
@@ -81,6 +87,18 @@ class VerificationScheduler {
     // ===================== SINGLE DOCUMENT VERIFICATION =====================
 
     async verifyDocument(doc) {
+        // Skip documents that have no file uploaded
+        if (!doc.file_url || !doc.file_url.trim()) {
+            this.log('info', `Skipping ${doc.document_label}: No file uploaded`);
+            return {
+                status: 'skip',
+                confidence: 0,
+                remark: 'Document not uploaded - skipped',
+                issues: ['No file uploaded'],
+                extracted_data: {}
+            };
+        }
+
         return this.withRetry(async () => {
             const { buffer, contentType } = await this.atlasClient.downloadDocument(doc.file_url);
             const result = await this.verificationService.verify(buffer, {
@@ -188,6 +206,33 @@ class VerificationScheduler {
 
                     if (result.status === 'fulfilled') {
                         const verification = result.value;
+
+                        // Handle skipped documents (not uploaded)
+                        if (verification.status === 'skip') {
+                            studentResult.skipped++;
+                            studentResult.documents.push({
+                                document_type_id: doc.document_type_id,
+                                document_label: doc.document_label,
+                                document_type_name: doc.document_type_name,
+                                filename: doc.filename,
+                                file_url: doc.file_url,
+                                ai_status: 'skipped',
+                                confidence: 0,
+                                remark: verification.remark,
+                                issues: verification.issues,
+                                extracted_data: {}
+                            });
+                            const allDocEntry = studentResult.allDocuments.find(
+                                d => d.document_type_id === doc.document_type_id
+                            );
+                            if (allDocEntry) {
+                                allDocEntry.ai_status = 'skipped';
+                                allDocEntry.remark = verification.remark;
+                            }
+                            this.log('info', `${applnID} - ${doc.document_label}: Skipped (not uploaded)`);
+                            continue;
+                        }
+
                         const aiStatus = verification.status === 'approve' ? 'Verified' : 'reject';
 
                         statusUpdates.push({

@@ -142,14 +142,30 @@
         <!-- Student List Table -->
         <div id="studentListSection" class="mb-6">
             <div class="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
-                <div class="px-4 py-3 border-b border-gray-800 flex justify-between items-center">
+                <div class="px-4 py-3 border-b border-gray-800 flex justify-between items-center flex-wrap gap-2">
                     <h3 class="font-semibold text-sm"><i class="fas fa-users text-blue-400 mr-2"></i>Student List</h3>
+                    <!-- Filter Tabs -->
+                    <div class="flex items-center gap-1" id="filterTabs">
+                        <button onclick="setFilter('all')" id="filter-all" class="px-3 py-1 rounded-full text-xs font-medium transition bg-blue-600 text-white">
+                            All <span id="filterCountAll" class="ml-1 opacity-75"></span>
+                        </button>
+                        <button onclick="setFilter('completed')" id="filter-completed" class="px-3 py-1 rounded-full text-xs font-medium transition bg-gray-800 text-gray-400 hover:bg-gray-700">
+                            <i class="fas fa-check-circle mr-1 text-green-400"></i>Completed <span id="filterCountCompleted" class="ml-1 opacity-75"></span>
+                        </button>
+                        <button onclick="setFilter('pending')" id="filter-pending" class="px-3 py-1 rounded-full text-xs font-medium transition bg-gray-800 text-gray-400 hover:bg-gray-700">
+                            <i class="fas fa-clock mr-1 text-gray-400"></i>Not Completed <span id="filterCountPending" class="ml-1 opacity-75"></span>
+                        </button>
+                        <button onclick="setFilter('error')" id="filter-error" class="px-3 py-1 rounded-full text-xs font-medium transition bg-gray-800 text-gray-400 hover:bg-gray-700">
+                            <i class="fas fa-exclamation-triangle mr-1 text-red-400"></i>Errors <span id="filterCountError" class="ml-1 opacity-75"></span>
+                        </button>
+                    </div>
                     <span class="text-xs text-gray-500" id="studentCount"></span>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
                         <thead class="bg-gray-800/50 text-xs text-gray-400">
                             <tr>
+                                <th class="px-4 py-2.5 text-left">#</th>
                                 <th class="px-4 py-2.5 text-left">Application ID</th>
                                 <th class="px-4 py-2.5 text-left">Student Name</th>
                                 <th class="px-4 py-2.5 text-center">Total Docs</th>
@@ -161,7 +177,7 @@
                             </tr>
                         </thead>
                         <tbody id="studentListBody">
-                            <tr><td colspan="8" class="text-center py-8 text-gray-600">Click "Fetch Student List" to load students</td></tr>
+                            <tr><td colspan="9" class="text-center py-8 text-gray-600">Loading students...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -268,6 +284,8 @@ const API = '/api/verification';
 let pollInterval = null;
 let lastLogCount = 0;
 let studentsCache = [];
+let resultsMapCache = {};         // cached verification results
+let currentFilter = 'all';       // 'all', 'completed', 'pending', 'error'
 let wasRunning = false;           // track if batch was running on last poll
 let lastProcessedCount = -1;      // track processed count for live table refresh
 let studentListLoaded = false;    // whether we have fetched from Atlas at least once
@@ -339,67 +357,126 @@ async function refreshStudentResults() {
 }
 
 function renderStudentTable(studentArr, resultsMap) {
-    let completedCount = 0;
-    let totalApproved = 0;
-    let totalRejected = 0;
-    let totalErrors = 0;
+    // Save to cache for filtering
+    resultsMapCache = resultsMap;
 
-    const rows = studentArr.map((s, idx) => {
+    // Count categories
+    let completedCount = 0;
+    let pendingCount = 0;
+    let errorCount = 0;
+
+    const enriched = studentArr.map((s, idx) => {
         const id = s.applnID || s.id || s.application_id;
         const name = [s.first_name, s.last_name].filter(Boolean).join(' ') || s.name || s.studentName || '-';
         const r = resultsMap[id];
 
-        const totalDocs = r ? r.totalDocs : '-';
-        const uploaded = r ? r.uploaded : '-';
-        const approved = r ? r.approved : '-';
-        const rejected = r ? r.rejected : '-';
-
-        if (r) {
-            totalApproved += r.approved || 0;
-            totalRejected += r.rejected || 0;
-            totalErrors += r.errors || 0;
-            if (r.status === 'completed' || r.status === 'partial') completedCount++;
-        }
-
-        let statusBadge;
+        let category; // 'completed', 'pending', 'error'
         if (!r) {
-            statusBadge = '<span class="px-2 py-0.5 rounded text-xs badge-pending">Not Verified</span>';
-        } else if (r.status === 'completed') {
-            statusBadge = '<span class="px-2 py-0.5 rounded text-xs badge-verified"><i class="fas fa-check mr-1"></i>Completed</span>';
-        } else if (r.status === 'partial') {
-            statusBadge = '<span class="px-2 py-0.5 rounded text-xs badge-error"><i class="fas fa-exclamation-triangle mr-1"></i>Partial</span>';
-        } else if (r.status === 'error') {
-            statusBadge = '<span class="px-2 py-0.5 rounded text-xs badge-reject"><i class="fas fa-times mr-1"></i>Error</span>';
-        } else if (r.status === 'skipped') {
-            statusBadge = '<span class="px-2 py-0.5 rounded text-xs badge-pending"><i class="fas fa-forward mr-1"></i>Skipped</span>';
+            category = 'pending';
+            pendingCount++;
+        } else if (r.status === 'completed' || r.status === 'skipped') {
+            category = 'completed';
+            completedCount++;
+        } else if (r.status === 'error' || r.status === 'partial') {
+            category = 'error';
+            errorCount++;
         } else if (r.status === 'processing') {
-            statusBadge = '<span class="px-2 py-0.5 rounded text-xs bg-blue-900/50 text-blue-300 pulse"><i class="fas fa-spinner fa-spin mr-1"></i>Processing</span>';
+            category = 'pending';
+            pendingCount++;
         } else {
-            statusBadge = `<span class="px-2 py-0.5 rounded text-xs badge-pending">${esc(r.status)}</span>`;
+            category = 'pending';
+            pendingCount++;
         }
 
-        const rowNum = `<span class="text-gray-600 mr-2">${idx + 1}.</span>`;
-
-        return `<tr class="border-b border-gray-800/50 hover:bg-gray-800/30 transition cursor-pointer" onclick="viewStudentDocs('${id}')">
-            <td class="px-4 py-2.5 font-mono text-blue-400 text-xs">${rowNum}${id}</td>
-            <td class="px-4 py-2.5 font-medium text-white">${esc(name)}</td>
-            <td class="px-4 py-2.5 text-center">${totalDocs}</td>
-            <td class="px-4 py-2.5 text-center">${uploaded}</td>
-            <td class="px-4 py-2.5 text-center text-green-400 font-medium">${approved}</td>
-            <td class="px-4 py-2.5 text-center text-red-400 font-medium">${rejected}</td>
-            <td class="px-4 py-2.5 text-center">${statusBadge}</td>
-            <td class="px-4 py-2.5 text-center" onclick="event.stopPropagation()">
-                <button onclick="viewStudentDocs('${id}')" class="text-blue-400 hover:text-blue-300 text-xs mr-2" title="View Documents"><i class="fas fa-eye"></i></button>
-                <button onclick="verifySingleFromList('${id}')" class="text-green-400 hover:text-green-300 text-xs" title="Verify"><i class="fas fa-check-circle"></i></button>
-            </td>
-        </tr>`;
+        return { id, name, r, idx, category };
     });
 
-    document.getElementById('studentListBody').innerHTML = rows.join('');
+    // Update filter counts
+    document.getElementById('filterCountAll').textContent = `(${studentArr.length})`;
+    document.getElementById('filterCountCompleted').textContent = `(${completedCount})`;
+    document.getElementById('filterCountPending').textContent = `(${pendingCount})`;
+    document.getElementById('filterCountError').textContent = `(${errorCount})`;
+
+    // Apply filter
+    const filtered = currentFilter === 'all' ? enriched : enriched.filter(s => s.category === currentFilter);
+
+    if (filtered.length === 0) {
+        const msgs = {
+            all: 'No students found',
+            completed: 'No completed students yet',
+            pending: 'All students have been processed!',
+            error: 'No errors found'
+        };
+        document.getElementById('studentListBody').innerHTML = `<tr><td colspan="9" class="text-center py-8 text-gray-500">${msgs[currentFilter]}</td></tr>`;
+    } else {
+        const rows = filtered.map((s, filteredIdx) => {
+            const { id, name, r, idx } = s;
+
+            const totalDocs = r ? r.totalDocs : '-';
+            const uploaded = r ? r.uploaded : '-';
+            const approved = r ? r.approved : '-';
+            const rejected = r ? r.rejected : '-';
+
+            let statusBadge;
+            if (!r) {
+                statusBadge = '<span class="px-2 py-0.5 rounded text-xs badge-pending"><i class="fas fa-clock mr-1"></i>Not Verified</span>';
+            } else if (r.status === 'completed') {
+                statusBadge = '<span class="px-2 py-0.5 rounded text-xs badge-verified"><i class="fas fa-check mr-1"></i>Completed</span>';
+            } else if (r.status === 'partial') {
+                statusBadge = '<span class="px-2 py-0.5 rounded text-xs badge-error"><i class="fas fa-exclamation-triangle mr-1"></i>Partial</span>';
+            } else if (r.status === 'error') {
+                statusBadge = '<span class="px-2 py-0.5 rounded text-xs badge-reject"><i class="fas fa-times mr-1"></i>Error</span>';
+            } else if (r.status === 'skipped') {
+                statusBadge = '<span class="px-2 py-0.5 rounded text-xs badge-pending"><i class="fas fa-forward mr-1"></i>Skipped</span>';
+            } else if (r.status === 'processing') {
+                statusBadge = '<span class="px-2 py-0.5 rounded text-xs bg-blue-900/50 text-blue-300 pulse"><i class="fas fa-spinner fa-spin mr-1"></i>Processing</span>';
+            } else {
+                statusBadge = `<span class="px-2 py-0.5 rounded text-xs badge-pending">${esc(r.status)}</span>`;
+            }
+
+            // Row highlight based on status
+            const rowBg = !r ? '' : r.status === 'completed' ? 'bg-green-900/5' : r.status === 'error' || r.status === 'partial' ? 'bg-red-900/5' : '';
+
+            return `<tr class="border-b border-gray-800/50 hover:bg-gray-800/30 transition cursor-pointer ${rowBg}" onclick="viewStudentDocs('${id}')">
+                <td class="px-4 py-2.5 text-gray-500 text-xs">${filteredIdx + 1}</td>
+                <td class="px-4 py-2.5 font-mono text-blue-400 text-xs">${id}</td>
+                <td class="px-4 py-2.5 font-medium text-white">${esc(name)}</td>
+                <td class="px-4 py-2.5 text-center">${totalDocs}</td>
+                <td class="px-4 py-2.5 text-center">${uploaded}</td>
+                <td class="px-4 py-2.5 text-center text-green-400 font-medium">${approved}</td>
+                <td class="px-4 py-2.5 text-center text-red-400 font-medium">${rejected}</td>
+                <td class="px-4 py-2.5 text-center">${statusBadge}</td>
+                <td class="px-4 py-2.5 text-center" onclick="event.stopPropagation()">
+                    <button onclick="viewStudentDocs('${id}')" class="text-blue-400 hover:text-blue-300 text-xs mr-2" title="View Documents"><i class="fas fa-eye"></i></button>
+                    <button onclick="verifySingleFromList('${id}')" class="text-green-400 hover:text-green-300 text-xs" title="Verify"><i class="fas fa-check-circle"></i></button>
+                </td>
+            </tr>`;
+        });
+
+        document.getElementById('studentListBody').innerHTML = rows.join('');
+    }
 
     // Update header count
-    const verifiedCount = Object.keys(resultsMap).length;
-    document.getElementById('studentCount').textContent = `${studentArr.length} students | ${verifiedCount} verified`;
+    const verifiedCount = completedCount;
+    document.getElementById('studentCount').textContent = `${filtered.length} of ${studentArr.length} shown | ${verifiedCount} completed`;
+}
+
+// ==================== FILTER ====================
+function setFilter(filter) {
+    currentFilter = filter;
+    // Update active tab style
+    ['all', 'completed', 'pending', 'error'].forEach(f => {
+        const btn = document.getElementById(`filter-${f}`);
+        if (f === filter) {
+            btn.className = 'px-3 py-1 rounded-full text-xs font-medium transition bg-blue-600 text-white';
+        } else {
+            btn.className = 'px-3 py-1 rounded-full text-xs font-medium transition bg-gray-800 text-gray-400 hover:bg-gray-700';
+        }
+    });
+    // Re-render with current cached data
+    if (studentListLoaded && studentsCache.length > 0) {
+        renderStudentTable(studentsCache, resultsMapCache);
+    }
 }
 
 // ==================== VIEW STUDENT DOCUMENTS ====================
