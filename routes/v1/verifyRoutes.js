@@ -155,6 +155,12 @@ router.get('/result/:system_reference_id', async (req, res) => {
             result.expected_document_type = aiResponse.expected_document_type || request.document_type;
         }
 
+        // Include authenticity verification results
+        result.is_genuine = aiResponse.is_genuine !== false;
+        result.authenticity_checks = aiResponse.authenticity_checks || {};
+        result.fraud_indicators = aiResponse.fraud_indicators || [];
+        result.data_consistency = aiResponse.data_consistency || {};
+
         res.json(result);
     } catch (error) {
         console.error('Result endpoint error:', error);

@@ -88,16 +88,30 @@ class VerificationProcessor {
                 status: finalStatus,
                 confidence: ruleResult.confidence,
                 risk_score: ruleResult.risk_score,
-                issues_count: ruleResult.issues.length
+                issues_count: ruleResult.issues.length,
+                is_genuine: ruleResult.is_genuine !== false
             };
             if (ruleResult.wrong_document) {
                 auditDetails.wrong_document = true;
                 auditDetails.detected_type = ruleResult.detected_document_type;
                 auditDetails.expected_type = ruleResult.expected_document_type;
             }
+            if (ruleResult.is_genuine === false) {
+                auditDetails.fake_document = true;
+                auditDetails.fraud_indicators = ruleResult.fraud_indicators;
+            }
+            if (ruleResult.authenticity_checks?.tampering_detected) {
+                auditDetails.tampering_detected = true;
+            }
+
+            let auditAction = 'document.processed';
+            if (ruleResult.wrong_document) auditAction = 'document.wrong_type';
+            else if (ruleResult.is_genuine === false) auditAction = 'document.fake_detected';
+            else if (ruleResult.authenticity_checks?.tampering_detected) auditAction = 'document.tampering_detected';
+
             await V1AuditModel.log({
                 userId: request.user_id,
-                action: ruleResult.wrong_document ? 'document.wrong_type' : 'document.processed',
+                action: auditAction,
                 resourceType: 'verification_request',
                 resourceId: request.system_reference_id,
                 details: auditDetails
@@ -109,7 +123,10 @@ class VerificationProcessor {
             WebhookService.trigger(request.user_id, webhookEvent, {
                 ...updatedRequest,
                 wrong_document: ruleResult.wrong_document || false,
-                detected_document_type: ruleResult.detected_document_type || null
+                detected_document_type: ruleResult.detected_document_type || null,
+                is_genuine: ruleResult.is_genuine !== false,
+                authenticity_checks: ruleResult.authenticity_checks || {},
+                fraud_indicators: ruleResult.fraud_indicators || []
             }).catch(err => {
                 console.error('[VerificationProcessor] Webhook trigger error:', err.message);
             });

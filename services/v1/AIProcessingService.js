@@ -24,19 +24,48 @@ class AIProcessingService {
      * Build the system prompt for document verification
      */
     getSystemPrompt() {
-        return `You are an expert document verification AI. Your job is to:
-1. FIRST identify what type of document is actually shown in the image
-2. Compare the actual document type with the expected/claimed document type
-3. If the document does NOT match the expected type, immediately flag it as a wrong document
-4. If it matches, extract all relevant structured data
-5. Verify the document's authenticity indicators
-6. Check for signs of tampering or fraud
-7. Provide a confidence score and risk assessment
+        return `You are an expert forensic document verification AI with zero tolerance for fake, tampered, or incorrect documents. Your job is to ensure ONLY 100% genuine, authentic documents pass verification.
 
-CRITICAL: You must ALWAYS verify that the submitted document actually matches the expected document type. For example:
-- If expected type is "aadhaar" but the image shows a PAN card, flag as wrong document
-- If expected type is "passport" but the image shows a driving license, flag as wrong document
-- If the image is not a document at all (random photo, blank page, etc.), flag as wrong document
+VERIFICATION PIPELINE (follow in strict order):
+
+PHASE 1 - DOCUMENT TYPE IDENTIFICATION:
+- Identify what type of document is ACTUALLY in the image
+- Compare against the claimed/expected document type
+- If mismatch, immediately reject (document_type_match = false)
+- If image is not a document (random photo, blank page, screenshot of text, etc.), reject
+
+PHASE 2 - AUTHENTICITY & FRAUD DETECTION (CRITICAL):
+Examine the document for ALL of the following:
+a) IMAGE QUALITY: Is it a photo of a real document or a digitally created/edited image?
+b) TAMPERING SIGNS: Look for inconsistent fonts, misaligned text, different text colors/sizes within same field, pixelation around text, copy-paste artifacts, blur inconsistencies (some parts sharp, some blurry)
+c) LAYOUT VERIFICATION: Does the layout match known official formats for this document type? Are logos, headers, watermarks in correct positions?
+d) SECURITY FEATURES: Check for expected security features (holograms, watermarks, microprint, QR codes, official seals, embossed stamps, government emblems)
+e) PRINT QUALITY: Is this a scan of an original document or a printout of a digital fake?
+f) DATA CONSISTENCY: Do all fields on the document look internally consistent? (same font family, consistent formatting, no overlapping text)
+g) PHOTO INTEGRITY: If the document has a photo, does it look naturally integrated or pasted/overlaid?
+h) DOCUMENT CONDITION: Is this a photograph of a real physical document, or a digitally generated document?
+
+PHASE 3 - DATA EXTRACTION & VALIDATION:
+- Extract all required fields
+- Cross-verify extracted data against provided metadata
+- Check ID numbers, dates, and patterns against known formats
+- Verify logical consistency (e.g., DOB makes person reasonable age, dates are in valid ranges, expiry after issue date)
+
+SCORING RULES:
+- Confidence 90-100: Document appears fully genuine with all security features present
+- Confidence 70-89: Document appears genuine but minor quality issues (blur, angle, etc.)
+- Confidence 50-69: Some concerns but no clear evidence of fraud
+- Confidence 0-49: Significant fraud indicators or missing security features - MUST REJECT
+- Risk score > 0.5: MUST REJECT the document
+- Any fraud indicator found: reduce confidence by at least 20 points per indicator
+
+CRITICAL RULES:
+- If expected type is "aadhaar" but image shows PAN card = wrong document, reject
+- If the image is not a document at all = reject
+- If you detect ANY tampering evidence = reject with fraud_indicators
+- If the document looks like a photocopy of a photocopy (very degraded) = flag as low quality
+- If text appears digitally overlaid on a template = reject as fake
+- When in doubt, REJECT. False positives (accepting fake docs) are far worse than false negatives.
 
 You MUST respond in valid JSON format only. No markdown, no extra text.`;
     }
@@ -49,16 +78,60 @@ You MUST respond in valid JSON format only. No markdown, no extra text.`;
      */
     getDocumentTypeDescriptions() {
         return {
-            aadhaar: { name: 'Aadhaar Card', description: 'Indian unique identity card issued by UIDAI with 12-digit Aadhaar number, photo, QR code, and Government of India emblem' },
-            pan: { name: 'PAN Card', description: 'Indian Permanent Account Number card issued by Income Tax Dept with 10-character alphanumeric PAN, photo, and Income Tax Dept logo' },
-            passport: { name: 'Passport', description: 'International travel passport document with passport number, photo, nationality, and machine-readable zone (MRZ)' },
-            driving_license: { name: 'Driving License', description: 'Driving license/permit issued by transport authority with license number, vehicle classes, and photo' },
-            voter_id: { name: 'Voter ID / EPIC', description: 'Indian Election Photo ID Card (EPIC) issued by Election Commission with voter ID number and photo' },
-            bank_statement: { name: 'Bank Statement', description: 'Bank account statement showing account number, account holder name, bank logo, and transaction history' },
-            utility_bill: { name: 'Utility Bill', description: 'Utility bill (electricity, water, gas, phone) showing name, address, and bill amount' },
-            marksheet_10: { name: '10th Class Marksheet', description: 'Class 10 / SSC / Secondary School examination marksheet with roll number, subjects, marks, and board name' },
-            marksheet_12: { name: '12th Class Marksheet', description: 'Class 12 / HSC / Higher Secondary examination marksheet with roll number, subjects, marks, and board name' },
-            graduation_cert: { name: 'Graduation Certificate', description: 'University degree/graduation certificate with degree name, university name, student name, and year of passing' }
+            aadhaar: {
+                name: 'Aadhaar Card',
+                description: 'Indian unique identity card issued by UIDAI with 12-digit Aadhaar number, photo, QR code, and Government of India emblem',
+                confusable_with: []
+            },
+            pan: {
+                name: 'PAN Card',
+                description: 'Indian Permanent Account Number card issued by Income Tax Dept with 10-character alphanumeric PAN, photo, and Income Tax Dept logo',
+                confusable_with: []
+            },
+            passport: {
+                name: 'Passport',
+                description: 'International travel passport document with passport number, photo, nationality, and machine-readable zone (MRZ)',
+                confusable_with: []
+            },
+            driving_license: {
+                name: 'Driving License',
+                description: 'Driving license/permit issued by transport authority with license number, vehicle classes, and photo',
+                confusable_with: []
+            },
+            voter_id: {
+                name: 'Voter ID / EPIC',
+                description: 'Indian Election Photo ID Card (EPIC) issued by Election Commission with voter ID number and photo',
+                confusable_with: []
+            },
+            bank_statement: {
+                name: 'Bank Statement',
+                description: 'Bank account statement showing account number, account holder name, bank logo, and transaction history',
+                confusable_with: []
+            },
+            utility_bill: {
+                name: 'Utility Bill',
+                description: 'Utility bill (electricity, water, gas, phone) showing name, address, and bill amount',
+                confusable_with: []
+            },
+            marksheet_10: {
+                name: '10th Class Marksheet (SSC / Secondary School)',
+                description: 'Class 10 / SSC / SSLC / Secondary School Certificate examination marksheet. This is the 10th standard / Class X exam. It will contain keywords like "Secondary School Certificate", "SSC", "SSLC", "Class X", "10th", "Matriculation", or "Secondary Education". It must NOT contain "Higher Secondary", "HSC", "Senior Secondary", "Class XII", "12th", or "Intermediate".',
+                must_have_keywords: ['Secondary', 'SSC', 'SSLC', 'Class X', '10th', 'Matriculation', 'Class-X', 'Xth'],
+                must_not_have_keywords: ['Higher Secondary', 'HSC', 'Senior Secondary', 'Class XII', '12th', 'Intermediate', 'Class-XII', 'XIIth', 'Plus Two'],
+                confusable_with: ['marksheet_12']
+            },
+            marksheet_12: {
+                name: '12th Class Marksheet (HSC / Higher Secondary)',
+                description: 'Class 12 / HSC / Higher Secondary Certificate / Senior Secondary examination marksheet. This is the 12th standard / Class XII exam. It will contain keywords like "Higher Secondary", "HSC", "Senior Secondary", "Class XII", "12th", "Intermediate", or "Plus Two". It must NOT be a 10th / SSC / Secondary School Certificate.',
+                must_have_keywords: ['Higher Secondary', 'HSC', 'Senior Secondary', 'Class XII', '12th', 'Intermediate', 'Class-XII', 'XIIth', 'Plus Two'],
+                must_not_have_keywords: ['Secondary School Certificate', 'SSC Examination', 'SSLC', 'Class X Exam', 'Matriculation Exam'],
+                confusable_with: ['marksheet_10']
+            },
+            graduation_cert: {
+                name: 'Graduation Certificate',
+                description: 'University degree/graduation certificate with degree name (B.A., B.Sc., B.Tech, etc.), university name, student name, and year of passing',
+                confusable_with: ['marksheet_12']
+            }
         };
     }
 
@@ -68,23 +141,68 @@ You MUST respond in valid JSON format only. No markdown, no extra text.`;
         const expectedName = expectedDoc ? expectedDoc.name : documentType;
         const expectedDescription = expectedDoc ? expectedDoc.description : `A document of type "${documentType}"`;
 
-        let prompt = `STEP 1 - DOCUMENT TYPE VERIFICATION (MANDATORY):
+        let prompt = `STEP 1 - DOCUMENT TYPE VERIFICATION (MANDATORY - DO THIS FIRST):
 The user claims this is a "${expectedName}" (code: ${documentType}).
 Expected document: ${expectedDescription}
 
 You MUST first determine what type of document is ACTUALLY shown in this image.
-- Look at the document layout, logos, headers, format, and content
-- Determine the actual document type
+- Carefully read ALL text on the document including headers, titles, board names, and exam names
+- Determine the actual document type based on the content, NOT just the layout
 - Compare it against the expected type "${expectedName}"
 - If the actual document does NOT match the expected type, set document_type_match to false
 - If the image is blurry, blank, a random photo, or not a valid document, set document_type_match to false
+`;
 
-STEP 2 - DATA EXTRACTION (only if document type matches):
+        // Add keyword-based identification rules
+        if (expectedDoc?.must_have_keywords?.length) {
+            prompt += `\nKEYWORD CHECK - The document SHOULD contain at least one of these keywords/phrases to be a valid "${expectedName}":
+${expectedDoc.must_have_keywords.map(k => `  - "${k}"`).join('\n')}
+If NONE of these keywords are found on the document, it is likely NOT a ${expectedName}.\n`;
+        }
+
+        if (expectedDoc?.must_not_have_keywords?.length) {
+            prompt += `\nREJECTION KEYWORDS - If the document contains ANY of these keywords, it is NOT a "${expectedName}" and must be REJECTED:
+${expectedDoc.must_not_have_keywords.map(k => `  - "${k}"`).join('\n')}
+These keywords indicate a DIFFERENT document type.\n`;
+        }
+
+        // Warn about confusable types
+        if (expectedDoc?.confusable_with?.length) {
+            const confusableNames = expectedDoc.confusable_with.map(code => {
+                const desc = docDescriptions[code];
+                return desc ? `"${desc.name}" (${code})` : code;
+            }).join(', ');
+            prompt += `\nWARNING - COMMONLY CONFUSED DOCUMENTS:
+This document type is frequently confused with: ${confusableNames}.
+You MUST carefully distinguish between them. Pay close attention to:
+- The exact exam/certificate name printed on the document
+- Whether it says "Secondary" vs "Higher Secondary"
+- Whether it says "Class X" vs "Class XII"
+- Whether it says "10th" vs "12th"
+- The board/examination authority name and what exam level they indicate
+Do NOT assume the document matches just because it looks like a marksheet or certificate.\n`;
+        }
+
+        prompt += `\nSTEP 2 - DATA EXTRACTION (only if document type matches):
 `;
         prompt += `Extract the following fields from the ${expectedName}:\n`;
-        if (requiredFields && requiredFields.length > 0) {
-            requiredFields.forEach(field => {
-                prompt += `- ${field}\n`;
+        // Always ask for exam_class on marksheet-type docs
+        const fieldsToExtract = [...(requiredFields || [])];
+        if (documentType.startsWith('marksheet_') && !fieldsToExtract.includes('exam_class')) {
+            fieldsToExtract.push('exam_class');
+        }
+        if (documentType.startsWith('marksheet_') && !fieldsToExtract.includes('exam_name')) {
+            fieldsToExtract.push('exam_name');
+        }
+        if (fieldsToExtract && fieldsToExtract.length > 0) {
+            fieldsToExtract.forEach(field => {
+                if (field === 'exam_class') {
+                    prompt += `- exam_class (IMPORTANT: Extract the exact class/standard, e.g. "10th", "12th", "Class X", "Class XII")\n`;
+                } else if (field === 'exam_name') {
+                    prompt += `- exam_name (IMPORTANT: Extract the full exam name, e.g. "Secondary School Certificate", "Higher Secondary Certificate")\n`;
+                } else {
+                    prompt += `- ${field}\n`;
+                }
             });
         } else {
             prompt += `- Any visible text fields, names, dates, ID numbers\n`;
@@ -111,23 +229,46 @@ Return ONLY a JSON object with this exact structure:
   "document_type_match": true/false,
   "detected_document_type": "<what document is actually shown, e.g. 'PAN Card', 'Aadhaar Card', 'Random Photo', 'Blank Page', etc.>",
   "expected_document_type": "${expectedName}",
-  "document_type_mismatch_reason": "<if document_type_match is false, explain why. e.g. 'Expected Aadhaar Card but received PAN Card'. Empty string if match is true>",
+  "document_type_mismatch_reason": "<if document_type_match is false, explain why. Empty string if match is true>",
+  "is_genuine": true/false,
+  "authenticity_checks": {
+    "is_original_document": true/false,
+    "has_security_features": true/false,
+    "tampering_detected": true/false,
+    "image_quality": "good" | "acceptable" | "poor" | "suspicious",
+    "font_consistency": true/false,
+    "layout_matches_official": true/false,
+    "photo_integrity": true/false | null,
+    "details": "<explain authenticity assessment in 1-2 sentences>"
+  },
   "status": "verified" or "rejected",
-  "confidence": <number between 0 and 100. Set to 0 if wrong document>,
-  "risk_score": <number between 0 and 1. Set to 1.0 if wrong document>,
+  "confidence": <number 0-100. 0 if wrong doc. Below 50 if fraud suspected. Only 80+ if fully genuine>,
+  "risk_score": <number 0-1. 1.0 if wrong doc. Above 0.5 if fraud suspected. Below 0.2 only if fully clean>,
   "extracted_data": {
-    <field_name>: <extracted_value or null if wrong document>,
+    <field_name>: <extracted_value or null if wrong/fake document>,
     ...
   },
-  "issues": [<list of any issues found. MUST include "Wrong document type: Expected X but received Y" if mismatch>],
-  "fraud_indicators": [<list of fraud indicators if any, empty array if clean>],
+  "issues": [<list of ALL issues found. Include wrong doc type, missing fields, tampering, quality problems>],
+  "fraud_indicators": [<MUST list ALL detected fraud signs. Examples: "Text appears digitally overlaid", "Inconsistent fonts detected", "Missing official watermark", "Photo appears pasted", "Document layout does not match known official format", "Pixelation around text fields suggests editing", "QR code missing or unreadable". Empty array ONLY if document is 100% clean>],
   "metadata_match": {
     <field>: {"matches": true/false, "extracted": "value", "expected": "value"}
+  },
+  "data_consistency": {
+    "dates_valid": true/false,
+    "id_format_valid": true/false,
+    "logical_checks_passed": true/false,
+    "details": "<explain any inconsistencies found>"
   },
   "remarks": "Brief summary of the verification result"
 }
 
-IMPORTANT: If document_type_match is false, you MUST set status to "rejected", confidence to 0, risk_score to 1.0, and include the mismatch in issues.`;
+IMPORTANT RULES:
+- If document_type_match is false: status="rejected", confidence=0, risk_score=1.0
+- If is_genuine is false: status="rejected", confidence must be below 30, risk_score above 0.7
+- If ANY fraud_indicator is found: status="rejected", reduce confidence significantly
+- If tampering_detected is true: status="rejected", risk_score must be above 0.8
+- ONLY set status="verified" and confidence above 80 if the document is GENUINELY authentic with no concerns
+- When unsure about authenticity, REJECT rather than accept`;
         return prompt;
     }
 
@@ -280,10 +421,28 @@ IMPORTANT: If document_type_match is false, you MUST set status to "rejected", c
             issues.unshift(`Wrong document type: Expected "${expected}" but received "${detected}"`);
         }
 
+        // If AI says document is not genuine, force rejection
+        const isNotGenuine = result.is_genuine === false;
+        const isTampered = result.authenticity_checks?.tampering_detected === true;
+
+        let finalStatus = result.status || 'verified';
+        let finalConfidence = parseFloat(result.confidence) || 0;
+        let finalRiskScore = parseFloat(result.risk_score) || 0;
+
+        if (isWrongDoc) {
+            finalStatus = 'rejected';
+            finalConfidence = 0;
+            finalRiskScore = 1.0;
+        } else if (isNotGenuine || isTampered) {
+            finalStatus = 'rejected';
+            finalConfidence = Math.min(finalConfidence, 25);
+            finalRiskScore = Math.max(finalRiskScore, 0.8);
+        }
+
         return {
-            status: isWrongDoc ? 'rejected' : (result.status || 'verified'),
-            confidence: isWrongDoc ? 0 : (parseFloat(result.confidence) || 0),
-            risk_score: isWrongDoc ? 1.0 : (parseFloat(result.risk_score) || 0),
+            status: finalStatus,
+            confidence: finalConfidence,
+            risk_score: finalRiskScore,
             extracted_data: result.extracted_data || {},
             issues,
             fraud_indicators: result.fraud_indicators || [],
@@ -292,7 +451,10 @@ IMPORTANT: If document_type_match is false, you MUST set status to "rejected", c
             document_type_match: result.document_type_match !== false,
             detected_document_type: result.detected_document_type || null,
             expected_document_type: result.expected_document_type || documentType,
-            document_type_mismatch_reason: result.document_type_mismatch_reason || ''
+            document_type_mismatch_reason: result.document_type_mismatch_reason || '',
+            is_genuine: isWrongDoc ? false : (result.is_genuine !== false),
+            authenticity_checks: result.authenticity_checks || {},
+            data_consistency: result.data_consistency || {}
         };
     }
 }

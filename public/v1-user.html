@@ -23,6 +23,10 @@
         .badge-accepted { background: rgba(234, 179, 8, 0.15); color: #facc15; }
         .badge-failed { background: rgba(156, 163, 175, 0.15); color: #9ca3af; }
         .wrong-doc-banner { background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); }
+        .fake-doc-banner { background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); }
+        .auth-check-pass { color: #4ade80; }
+        .auth-check-fail { color: #f87171; }
+        .auth-check-warn { color: #facc15; }
         .slide-in { animation: slideIn 0.3s ease-out; }
         @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         .modal-overlay { background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
@@ -631,6 +635,18 @@
                     </div>
                 </div>`;
             }
+            let fakeDocBanner = '';
+            if (r.is_genuine === false && !r.wrong_document) {
+                fakeDocBanner = `<div class="fake-doc-banner rounded-lg p-3 flex items-start gap-2">
+                    <i class="fas fa-skull-crossbones text-red-400 mt-0.5"></i>
+                    <div>
+                        <p class="text-sm font-semibold text-red-300">Fake / Tampered Document Detected</p>
+                        <p class="text-xs text-red-400/80 mt-0.5">This document failed authenticity verification.</p>
+                        ${r.fraud_indicators?.length ? `<p class="text-[10px] text-gray-400 mt-1">${r.fraud_indicators.join('; ')}</p>` : ''}
+                    </div>
+                </div>`;
+            }
+            let authSection = renderAuthChecksCompact(r);
             container.innerHTML = `
                 <div class="bg-gray-800/30 rounded-lg p-4 space-y-2">
                     <div class="flex justify-between items-center">
@@ -638,12 +654,40 @@
                         ${statusBadge(r.status)}
                     </div>
                     ${wrongDocBanner}
+                    ${fakeDocBanner}
                     ${r.confidence != null ? `<div class="flex justify-between text-xs"><span class="text-gray-400">Confidence</span><span class="text-white">${r.confidence}%</span></div>` : ''}
                     ${r.risk_score != null ? `<div class="flex justify-between text-xs"><span class="text-gray-400">Risk Score</span>${riskBadge(r.risk_score)}</div>` : ''}
+                    ${r.is_genuine !== undefined ? `<div class="flex justify-between text-xs"><span class="text-gray-400">Genuine</span><span class="${r.is_genuine ? 'auth-check-pass' : 'auth-check-fail'}">${r.is_genuine ? 'Yes' : 'No'}</span></div>` : ''}
                     ${r.message ? `<p class="text-xs text-gray-400">${r.message}</p>` : ''}
+                    ${authSection}
                     ${extracted}
                     ${r.issues && r.issues.length ? `<div class="mt-2"><p class="text-[10px] text-gray-500 uppercase mb-1">Issues</p>${r.issues.map(i => `<p class="text-xs text-red-300"><i class="fas fa-triangle-exclamation mr-1"></i>${i}</p>`).join('')}</div>` : ''}
                 </div>`;
+        }
+
+        function renderAuthChecksCompact(r) {
+            const ac = r.authenticity_checks;
+            if (!ac || !Object.keys(ac).length) return '';
+            const checks = [
+                { label: 'Original', val: ac.is_original_document },
+                { label: 'Security Features', val: ac.has_security_features },
+                { label: 'Tampering', val: ac.tampering_detected, invert: true },
+                { label: 'Font Consistency', val: ac.font_consistency },
+                { label: 'Layout Match', val: ac.layout_matches_official },
+                { label: 'Photo Integrity', val: ac.photo_integrity },
+            ].filter(c => c.val !== undefined && c.val !== null);
+            if (!checks.length) return '';
+            return `<div class="mt-2"><p class="text-[10px] text-gray-500 uppercase mb-1">Authenticity Checks</p>
+                <div class="flex flex-wrap gap-1.5">${checks.map(c => {
+                    const pass = c.invert ? c.val === false : c.val === true;
+                    return `<span class="px-1.5 py-0.5 rounded text-[10px] ${pass ? 'bg-green-500/15 text-green-400' : 'bg-red-500/15 text-red-400'}">
+                        <i class="fas fa-${pass ? 'check' : 'xmark'} mr-0.5"></i>${c.label}
+                    </span>`;
+                }).join('')}
+                ${ac.image_quality ? `<span class="px-1.5 py-0.5 rounded text-[10px] ${ac.image_quality === 'good' ? 'bg-green-500/15 text-green-400' : ac.image_quality === 'suspicious' ? 'bg-red-500/15 text-red-400' : 'bg-yellow-500/15 text-yellow-400'}">
+                    <i class="fas fa-image mr-0.5"></i>Quality: ${ac.image_quality}
+                </span>` : ''}
+                </div></div>`;
         }
 
         async function viewResult(ref) {
@@ -684,18 +728,100 @@
                 </div>`;
             }
 
+            // Fake document banner
+            let fakeDocBanner = '';
+            if (data.is_genuine === false && !data.wrong_document) {
+                fakeDocBanner = `<div class="fake-doc-banner rounded-xl p-4 flex items-start gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-lg bg-red-600/20 flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-skull-crossbones text-red-400 text-lg"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-bold text-red-300">Fake / Tampered Document Detected</p>
+                        <p class="text-xs text-gray-300 mt-1">This document failed authenticity verification and appears to be fake or tampered.</p>
+                        ${data.fraud_indicators?.length ? `<div class="mt-2 space-y-0.5">${data.fraud_indicators.map(f => `<p class="text-xs text-red-400"><i class="fas fa-exclamation-circle mr-1"></i>${f}</p>`).join('')}</div>` : ''}
+                    </div>
+                </div>`;
+            }
+
+            // Authenticity checks section
+            let authSection = '';
+            const ac = data.authenticity_checks;
+            if (ac && Object.keys(ac).length) {
+                const checkItems = [
+                    { label: 'Original Document', val: ac.is_original_document, icon: 'file-shield' },
+                    { label: 'Security Features', val: ac.has_security_features, icon: 'shield-halved' },
+                    { label: 'Tampering Detection', val: ac.tampering_detected, icon: 'fingerprint', invert: true },
+                    { label: 'Font Consistency', val: ac.font_consistency, icon: 'font' },
+                    { label: 'Official Layout Match', val: ac.layout_matches_official, icon: 'table-columns' },
+                    { label: 'Photo Integrity', val: ac.photo_integrity, icon: 'user-shield' },
+                ].filter(c => c.val !== undefined && c.val !== null);
+
+                if (checkItems.length) {
+                    authSection = `<div class="mt-4"><h4 class="text-sm font-medium text-gray-300 mb-2"><i class="fas fa-shield-halved mr-1 text-blue-400"></i>Authenticity Verification</h4>
+                        <div class="grid grid-cols-2 gap-2">
+                        ${checkItems.map(c => {
+                            const pass = c.invert ? c.val === false : c.val === true;
+                            return `<div class="bg-gray-800/50 rounded-lg p-2.5 flex items-center gap-2">
+                                <i class="fas fa-${c.icon} text-xs ${pass ? 'text-green-400' : 'text-red-400'}"></i>
+                                <span class="text-xs text-gray-300 flex-1">${c.label}</span>
+                                <span class="text-xs font-medium ${pass ? 'auth-check-pass' : 'auth-check-fail'}"><i class="fas fa-${pass ? 'check-circle' : 'times-circle'}"></i></span>
+                            </div>`;
+                        }).join('')}
+                        ${ac.image_quality ? `<div class="bg-gray-800/50 rounded-lg p-2.5 flex items-center gap-2">
+                            <i class="fas fa-image text-xs ${ac.image_quality === 'good' ? 'text-green-400' : ac.image_quality === 'suspicious' ? 'text-red-400' : 'text-yellow-400'}"></i>
+                            <span class="text-xs text-gray-300 flex-1">Image Quality</span>
+                            <span class="text-xs font-medium ${ac.image_quality === 'good' ? 'auth-check-pass' : ac.image_quality === 'suspicious' ? 'auth-check-fail' : 'auth-check-warn'}">${ac.image_quality}</span>
+                        </div>` : ''}
+                        </div>
+                        ${ac.details ? `<p class="text-xs text-gray-400 mt-2 italic">${ac.details}</p>` : ''}
+                    </div>`;
+                }
+            }
+
+            // Data consistency section
+            let consistencySection = '';
+            const dc = data.data_consistency;
+            if (dc && Object.keys(dc).length) {
+                const dcItems = [
+                    { label: 'Dates Valid', val: dc.dates_valid },
+                    { label: 'ID Format Valid', val: dc.id_format_valid },
+                    { label: 'Logical Checks', val: dc.logical_checks_passed },
+                ].filter(c => c.val !== undefined && c.val !== null);
+                if (dcItems.length) {
+                    consistencySection = `<div class="mt-3"><h4 class="text-sm font-medium text-gray-300 mb-2"><i class="fas fa-check-double mr-1 text-purple-400"></i>Data Consistency</h4>
+                        <div class="flex flex-wrap gap-2">${dcItems.map(c => {
+                            return `<span class="px-2 py-1 rounded text-xs ${c.val ? 'bg-green-500/15 text-green-400' : 'bg-red-500/15 text-red-400'}">
+                                <i class="fas fa-${c.val ? 'check' : 'xmark'} mr-1"></i>${c.label}
+                            </span>`;
+                        }).join('')}</div>
+                        ${dc.details ? `<p class="text-xs text-gray-400 mt-2 italic">${dc.details}</p>` : ''}
+                    </div>`;
+                }
+            }
+
+            // Fraud indicators
+            let fraudSection = '';
+            if (data.fraud_indicators?.length && !data.wrong_document) {
+                fraudSection = `<div class="mt-3"><h4 class="text-sm font-medium text-red-300 mb-2"><i class="fas fa-bug mr-1"></i>Fraud Indicators</h4>
+                    <div class="space-y-1">${data.fraud_indicators.map(f => `<p class="text-xs text-red-400 bg-red-500/10 rounded px-2 py-1"><i class="fas fa-exclamation-triangle mr-1"></i>${f}</p>`).join('')}</div></div>`;
+            }
+
             container.innerHTML = `
                 <div class="space-y-3">
                     ${wrongDocBanner}
+                    ${fakeDocBanner}
                     <div class="grid grid-cols-2 gap-3">
                         <div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500">System Ref</p><p class="text-sm text-blue-300 font-mono">${data.system_reference_id}</p></div>
                         <div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500">Status</p><p class="mt-1">${statusBadge(data.status)}</p></div>
                         ${data.confidence != null ? `<div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500">Confidence</p><p class="text-sm text-white">${data.confidence}%</p></div>` : ''}
                         ${data.risk_score != null ? `<div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500">Risk Score</p><p class="text-sm">${riskBadge(data.risk_score)}</p></div>` : ''}
                         ${data.document_type ? `<div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500">Doc Type</p><p class="text-sm text-white capitalize">${data.document_type}</p></div>` : ''}
-                        <div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500">Created</p><p class="text-sm text-white">${fmtDate(data.created_at)}</p></div>
+                        <div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500">Genuine</p><p class="text-sm font-medium ${data.is_genuine !== false ? 'auth-check-pass' : 'auth-check-fail'}">${data.is_genuine !== false ? 'Yes - Authentic' : 'No - Suspicious'}</p></div>
                     </div>
+                    ${authSection}
+                    ${consistencySection}
                     ${extracted}
+                    ${fraudSection}
                     ${data.issues && data.issues.length ? `<div class="mt-3"><h4 class="text-sm font-medium text-gray-300 mb-2">Issues</h4><ul class="space-y-1">${data.issues.map(i => `<li class="text-xs text-red-300"><i class="fas fa-triangle-exclamation mr-1"></i>${i}</li>`).join('')}</ul></div>` : ''}
                 </div>`;
             document.getElementById('resultModal').classList.remove('hidden');

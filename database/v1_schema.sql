@@ -198,6 +198,6 @@ INSERT INTO v1_document_master (name, code, allowed_formats, max_size_mb, requir
 ('Voter ID', 'voter_id', '["jpg","png","pdf"]', 5, '["name","voter_id_number","dob"]', NULL),
 ('Bank Statement', 'bank_statement', '["pdf"]', 10, '["account_holder_name","account_number","bank_name"]', NULL),
 ('Utility Bill', 'utility_bill', '["jpg","png","pdf"]', 5, '["name","address","bill_date"]', NULL),
-('10th Marksheet', 'marksheet_10', '["jpg","png","pdf"]', 5, '["name","roll_number","percentage","board"]', NULL),
-('12th Marksheet', 'marksheet_12', '["jpg","png","pdf"]', 5, '["name","roll_number","percentage","board"]', NULL),
+('10th Marksheet', 'marksheet_10', '["jpg","png","pdf"]', 5, '["name","roll_number","percentage","board","exam_class","exam_name"]', '{"exam_class": "^.*(10|[Xx]|tenth|ssc|sslc|matriculation|secondary).*$"}'),
+('12th Marksheet', 'marksheet_12', '["jpg","png","pdf"]', 5, '["name","roll_number","percentage","board","exam_class","exam_name"]', '{"exam_class": "^.*(12|[Xx][Ii][Ii]|twelfth|hsc|higher|intermediate|senior|plus.two).*$"}'),
 ('Graduation Certificate', 'graduation_cert', '["jpg","png","pdf"]', 5, '["name","degree","university","year_of_passing"]', NULL);
