@@ -49,6 +49,9 @@
     <button onclick="switchTab('students')" id="tab-students" class="py-3 text-sm font-medium text-gray-400 hover:text-white transition tab-active">
         <i class="fas fa-users mr-1"></i> Students & Documents
     </button>
+    <button onclick="switchTab('docSettings')" id="tab-docSettings" class="py-3 text-sm font-medium text-gray-400 hover:text-white transition">
+        <i class="fas fa-file-alt mr-1"></i> Document Settings
+    </button>
     <button onclick="switchTab('automation')" id="tab-automation" class="py-3 text-sm font-medium text-gray-400 hover:text-white transition">
         <i class="fas fa-cog mr-1"></i> Automation & Logs
     </button>
@@ -196,6 +199,79 @@
         </div>
     </div>
 
+    <!-- ==================== TAB: DOCUMENT SETTINGS ==================== -->
+    <div id="panel-docSettings" class="hidden">
+
+        <!-- Action Bar -->
+        <div class="flex flex-wrap gap-3 mb-6 items-center">
+            <button onclick="loadDocumentTypes()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+            <button onclick="openDocTypeModal()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                <i class="fas fa-plus"></i> Add Document Type
+            </button>
+        </div>
+
+        <!-- Document Types Table -->
+        <div class="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden mb-6">
+            <div class="px-4 py-3 border-b border-gray-800 flex justify-between items-center">
+                <h3 class="font-semibold text-sm"><i class="fas fa-file-alt text-blue-400 mr-2"></i>Document Types</h3>
+                <span class="text-xs text-gray-500" id="docTypeCount"></span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-800/50 text-xs text-gray-400">
+                        <tr>
+                            <th class="px-4 py-2.5 text-left">ID</th>
+                            <th class="px-4 py-2.5 text-left">Name</th>
+                            <th class="px-4 py-2.5 text-left">Category</th>
+                            <th class="px-4 py-2.5 text-left">Description</th>
+                            <th class="px-4 py-2.5 text-center">Formats</th>
+                            <th class="px-4 py-2.5 text-center">Max Size</th>
+                            <th class="px-4 py-2.5 text-center">Expiry</th>
+                            <th class="px-4 py-2.5 text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="docTypeListBody">
+                        <tr><td colspan="8" class="text-center py-8 text-gray-600">Click "Refresh" to load document types</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Program Checklist Section -->
+        <div class="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+            <div class="px-4 py-3 border-b border-gray-800 flex justify-between items-center flex-wrap gap-2">
+                <h3 class="font-semibold text-sm"><i class="fas fa-list-check text-green-400 mr-2"></i>Program Document Checklist</h3>
+                <div class="flex items-center gap-2">
+                    <select id="programSelect" onchange="loadProgramChecklist()" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+                        <option value="">Select Program</option>
+                    </select>
+                    <button onclick="openChecklistModal()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-xs font-medium transition">
+                        <i class="fas fa-plus mr-1"></i> Add to Checklist
+                    </button>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-800/50 text-xs text-gray-400">
+                        <tr>
+                            <th class="px-4 py-2.5 text-left">Document</th>
+                            <th class="px-4 py-2.5 text-left">Category</th>
+                            <th class="px-4 py-2.5 text-left">Description</th>
+                            <th class="px-4 py-2.5 text-center">Requirement</th>
+                            <th class="px-4 py-2.5 text-center">Sensitivity</th>
+                            <th class="px-4 py-2.5 text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="checklistBody">
+                        <tr><td colspan="6" class="text-center py-8 text-gray-600">Select a program to view its checklist</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <!-- ==================== TAB: AUTOMATION & LOGS ==================== -->
     <div id="panel-automation" class="hidden">
 
@@ -279,6 +355,82 @@
     </div>
 </div>
 
+<!-- Document Type Modal (Add/Edit) -->
+<div id="docTypeModal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center">
+    <div class="bg-gray-900 rounded-2xl border border-gray-700 p-6 w-full max-w-lg slide-in max-h-[85vh] overflow-auto">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-white" id="docTypeModalTitle"><i class="fas fa-file-alt mr-2"></i>Add Document Type</h3>
+            <button onclick="closeDocTypeModal()" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+        </div>
+        <input type="hidden" id="dtEditId">
+        <div class="space-y-4">
+            <div>
+                <label class="text-xs text-gray-400 block mb-1">Document Name *</label>
+                <input type="text" id="dtName" placeholder="e.g. 10th Marksheet" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+            </div>
+            <div>
+                <label class="text-xs text-gray-400 block mb-1">Category *</label>
+                <select id="dtCategory" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+                    <option value="Academic">Academic</option>
+                    <option value="ID Proof">ID Proof</option>
+                    <option value="Migration">Migration</option>
+                    <option value="Financial">Financial</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div>
+                <label class="text-xs text-gray-400 block mb-1">Document Description</label>
+                <textarea id="dtDescription" rows="3" placeholder="Describe the requirements for this document..." class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 resize-y"></textarea>
+                <p class="text-xs text-gray-600 mt-1">This description will be shown to users and used by AI for verification</p>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="text-xs text-gray-400 block mb-1">Allowed Formats</label>
+                    <input type="text" id="dtFormats" value="pdf,jpg,jpeg,png" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-400 block mb-1">Max File Size (MB)</label>
+                    <input type="number" id="dtMaxSize" value="5" min="1" max="50" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <input type="checkbox" id="dtHasExpiry" class="rounded">
+                <label for="dtHasExpiry" class="text-sm text-gray-300">Has expiry date</label>
+            </div>
+            <button onclick="saveDocType()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-medium transition">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- Checklist Add Modal -->
+<div id="checklistModal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center">
+    <div class="bg-gray-900 rounded-2xl border border-gray-700 p-6 w-full max-w-md slide-in">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-white"><i class="fas fa-list-check mr-2"></i>Add to Checklist</h3>
+            <button onclick="closeChecklistModal()" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="space-y-4">
+            <div>
+                <label class="text-xs text-gray-400 block mb-1">Document Type *</label>
+                <select id="clDocType" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"></select>
+            </div>
+            <div>
+                <label class="text-xs text-gray-400 block mb-1">Requirement Type</label>
+                <select id="clReqType" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+                    <option value="Mandatory">Mandatory</option>
+                    <option value="Conditional">Conditional</option>
+                    <option value="Optional">Optional</option>
+                </select>
+            </div>
+            <div>
+                <label class="text-xs text-gray-400 block mb-1">Sensitivity if Missing (1-10)</label>
+                <input type="number" id="clSensitivity" value="5" min="1" max="10" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+            </div>
+            <button onclick="saveChecklist()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-medium transition">Add</button>
+        </div>
+    </div>
+</div>
+
 <script>
 const API = '/api/verification';
 let pollInterval = null;
@@ -298,10 +450,15 @@ async function apiFetch(url, opts = {}) {
 
 // ==================== TABS ====================
 function switchTab(tab) {
-    document.getElementById('panel-students').classList.toggle('hidden', tab !== 'students');
-    document.getElementById('panel-automation').classList.toggle('hidden', tab !== 'automation');
-    document.getElementById('tab-students').classList.toggle('tab-active', tab === 'students');
-    document.getElementById('tab-automation').classList.toggle('tab-active', tab === 'automation');
+    const tabs = ['students', 'docSettings', 'automation'];
+    tabs.forEach(t => {
+        document.getElementById(`panel-${t}`).classList.toggle('hidden', tab !== t);
+        document.getElementById(`tab-${t}`).classList.toggle('tab-active', tab === t);
+    });
+    if (tab === 'docSettings') {
+        loadDocumentTypes();
+        loadPrograms();
+    }
 }
 
 // ==================== STUDENT LIST ====================
@@ -860,6 +1017,204 @@ function clearLogs() { document.getElementById('logContainer').innerHTML = ''; l
 // ==================== HELPERS ====================
 function esc(t) { const d = document.createElement('div'); d.textContent = t || ''; return d.innerHTML; }
 function formatKey(k) { return k.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()); }
+
+// ==================== DOCUMENT SETTINGS ====================
+const APIC = '/api/applicants';
+let docTypesCache = [];
+
+async function apiAppFetch(url, opts = {}) {
+    const res = await fetch(APIC + url, { headers: { 'Content-Type': 'application/json' }, ...opts });
+    return res.json();
+}
+
+async function loadDocumentTypes() {
+    document.getElementById('docTypeListBody').innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Loading...</td></tr>';
+    try {
+        const res = await apiAppFetch('/config/document-types');
+        if (!res.success) throw new Error(res.message);
+        docTypesCache = res.data;
+        document.getElementById('docTypeCount').textContent = `${res.data.length} document types`;
+        renderDocTypeTable(res.data);
+    } catch (err) {
+        document.getElementById('docTypeListBody').innerHTML = `<tr><td colspan="8" class="text-center py-8 text-red-400">Error: ${esc(err.message)}</td></tr>`;
+    }
+}
+
+function renderDocTypeTable(types) {
+    if (!types.length) {
+        document.getElementById('docTypeListBody').innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-600">No document types found</td></tr>';
+        return;
+    }
+    const rows = types.map(dt => {
+        const desc = dt.description ? esc(dt.description.substring(0, 80)) + (dt.description.length > 80 ? '...' : '') : '<span class="text-gray-600 italic">No description</span>';
+        const catColors = { Academic: 'text-blue-400', 'ID Proof': 'text-green-400', Migration: 'text-yellow-400', Financial: 'text-purple-400', Other: 'text-gray-400' };
+        return `<tr class="border-b border-gray-800/50 hover:bg-gray-800/30 transition">
+            <td class="px-4 py-2.5 text-gray-500 text-xs">${dt.id}</td>
+            <td class="px-4 py-2.5 font-medium text-white">${esc(dt.name)}</td>
+            <td class="px-4 py-2.5 text-xs ${catColors[dt.category] || 'text-gray-400'}">${esc(dt.category)}</td>
+            <td class="px-4 py-2.5 text-xs text-gray-400 max-w-xs">${desc}</td>
+            <td class="px-4 py-2.5 text-center text-xs text-gray-400">${esc(dt.allowed_formats)}</td>
+            <td class="px-4 py-2.5 text-center text-xs">${dt.max_file_size_mb}MB</td>
+            <td class="px-4 py-2.5 text-center text-xs">${dt.has_expiry ? '<span class="text-yellow-400">Yes</span>' : '<span class="text-gray-600">No</span>'}</td>
+            <td class="px-4 py-2.5 text-center">
+                <button onclick="editDocType(${dt.id})" class="text-blue-400 hover:text-blue-300 text-xs mr-2" title="Edit"><i class="fas fa-edit"></i></button>
+                <button onclick="deleteDocType(${dt.id}, '${esc(dt.name)}')" class="text-red-400 hover:text-red-300 text-xs" title="Delete"><i class="fas fa-trash"></i></button>
+            </td>
+        </tr>`;
+    });
+    document.getElementById('docTypeListBody').innerHTML = rows.join('');
+}
+
+function openDocTypeModal(editData) {
+    document.getElementById('dtEditId').value = editData ? editData.id : '';
+    document.getElementById('dtName').value = editData ? editData.name : '';
+    document.getElementById('dtCategory').value = editData ? editData.category : 'Academic';
+    document.getElementById('dtDescription').value = editData ? (editData.description || '') : '';
+    document.getElementById('dtFormats').value = editData ? editData.allowed_formats : 'pdf,jpg,jpeg,png';
+    document.getElementById('dtMaxSize').value = editData ? editData.max_file_size_mb : 5;
+    document.getElementById('dtHasExpiry').checked = editData ? !!editData.has_expiry : false;
+    document.getElementById('docTypeModalTitle').innerHTML = editData
+        ? '<i class="fas fa-edit mr-2"></i>Edit Document Type'
+        : '<i class="fas fa-plus mr-2"></i>Add Document Type';
+    document.getElementById('docTypeModal').classList.remove('hidden');
+}
+
+function closeDocTypeModal() { document.getElementById('docTypeModal').classList.add('hidden'); }
+
+async function editDocType(id) {
+    try {
+        const res = await apiAppFetch(`/config/document-types/${id}`);
+        if (res.success) openDocTypeModal(res.data);
+    } catch (err) { alert('Failed to load document type'); }
+}
+
+async function saveDocType() {
+    const id = document.getElementById('dtEditId').value;
+    const data = {
+        name: document.getElementById('dtName').value.trim(),
+        category: document.getElementById('dtCategory').value,
+        description: document.getElementById('dtDescription').value.trim() || null,
+        allowed_formats: document.getElementById('dtFormats').value.trim(),
+        max_file_size_mb: parseInt(document.getElementById('dtMaxSize').value) || 5,
+        has_expiry: document.getElementById('dtHasExpiry').checked ? 1 : 0
+    };
+    if (!data.name) return alert('Document name is required');
+
+    try {
+        let res;
+        if (id) {
+            res = await apiAppFetch(`/config/document-types/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+        } else {
+            res = await apiAppFetch('/config/document-types', { method: 'POST', body: JSON.stringify(data) });
+        }
+        if (!res.success) throw new Error(res.message);
+        closeDocTypeModal();
+        loadDocumentTypes();
+    } catch (err) { alert('Error: ' + err.message); }
+}
+
+async function deleteDocType(id, name) {
+    if (!confirm(`Delete document type "${name}"? This cannot be undone.`)) return;
+    try {
+        const res = await apiAppFetch(`/config/document-types/${id}`, { method: 'DELETE' });
+        if (!res.success) throw new Error(res.message);
+        loadDocumentTypes();
+    } catch (err) { alert('Error: ' + err.message); }
+}
+
+// ==================== PROGRAM CHECKLIST ====================
+async function loadPrograms() {
+    try {
+        const res = await apiAppFetch('/config/programs');
+        if (!res.success) return;
+        const sel = document.getElementById('programSelect');
+        const current = sel.value;
+        sel.innerHTML = '<option value="">Select Program</option>';
+        res.data.forEach(p => {
+            sel.innerHTML += `<option value="${p.id}">${esc(p.name)} (${esc(p.code)})</option>`;
+        });
+        if (current) sel.value = current;
+    } catch (err) {}
+}
+
+async function loadProgramChecklist() {
+    const programId = document.getElementById('programSelect').value;
+    if (!programId) {
+        document.getElementById('checklistBody').innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-600">Select a program to view its checklist</td></tr>';
+        return;
+    }
+    document.getElementById('checklistBody').innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Loading...</td></tr>';
+    try {
+        const res = await apiAppFetch(`/config/checklist/${programId}`);
+        if (!res.success) throw new Error(res.message);
+        renderChecklist(res.data, programId);
+    } catch (err) {
+        document.getElementById('checklistBody').innerHTML = `<tr><td colspan="6" class="text-center py-8 text-red-400">Error: ${esc(err.message)}</td></tr>`;
+    }
+}
+
+function renderChecklist(items, programId) {
+    if (!items.length) {
+        document.getElementById('checklistBody').innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-600">No documents in this program checklist</td></tr>';
+        return;
+    }
+    const reqColors = { Mandatory: 'text-red-400', Conditional: 'text-yellow-400', Optional: 'text-gray-400' };
+    const rows = items.map(item => {
+        const desc = item.description ? esc(item.description.substring(0, 60)) + (item.description.length > 60 ? '...' : '') : '<span class="text-gray-600 italic">-</span>';
+        return `<tr class="border-b border-gray-800/50 hover:bg-gray-800/30 transition">
+            <td class="px-4 py-2.5 font-medium text-white text-sm">${esc(item.document_name)}</td>
+            <td class="px-4 py-2.5 text-xs text-gray-400">${esc(item.category)}</td>
+            <td class="px-4 py-2.5 text-xs text-gray-400 max-w-xs">${desc}</td>
+            <td class="px-4 py-2.5 text-center text-xs ${reqColors[item.requirement_type] || ''} font-medium">${esc(item.requirement_type)}</td>
+            <td class="px-4 py-2.5 text-center text-xs">${item.sensitivity_if_missing}/10</td>
+            <td class="px-4 py-2.5 text-center">
+                <button onclick="removeFromChecklist(${programId}, ${item.document_type_id}, '${esc(item.document_name)}')" class="text-red-400 hover:text-red-300 text-xs" title="Remove"><i class="fas fa-trash"></i></button>
+            </td>
+        </tr>`;
+    });
+    document.getElementById('checklistBody').innerHTML = rows.join('');
+}
+
+function openChecklistModal() {
+    const programId = document.getElementById('programSelect').value;
+    if (!programId) return alert('Select a program first');
+    // Populate doc type dropdown
+    const sel = document.getElementById('clDocType');
+    sel.innerHTML = '';
+    docTypesCache.forEach(dt => {
+        sel.innerHTML += `<option value="${dt.id}">${esc(dt.name)} (${esc(dt.category)})</option>`;
+    });
+    document.getElementById('clReqType').value = 'Mandatory';
+    document.getElementById('clSensitivity').value = 5;
+    document.getElementById('checklistModal').classList.remove('hidden');
+}
+
+function closeChecklistModal() { document.getElementById('checklistModal').classList.add('hidden'); }
+
+async function saveChecklist() {
+    const programId = document.getElementById('programSelect').value;
+    const data = {
+        program_id: parseInt(programId),
+        document_type_id: parseInt(document.getElementById('clDocType').value),
+        requirement_type: document.getElementById('clReqType').value,
+        sensitivity_if_missing: parseInt(document.getElementById('clSensitivity').value) || 5
+    };
+    try {
+        const res = await apiAppFetch('/config/checklist', { method: 'POST', body: JSON.stringify(data) });
+        if (!res.success) throw new Error(res.message);
+        closeChecklistModal();
+        loadProgramChecklist();
+    } catch (err) { alert('Error: ' + err.message); }
+}
+
+async function removeFromChecklist(programId, docTypeId, name) {
+    if (!confirm(`Remove "${name}" from this program's checklist?`)) return;
+    try {
+        const res = await apiAppFetch(`/config/checklist/${programId}/${docTypeId}`, { method: 'DELETE' });
+        if (!res.success) throw new Error(res.message);
+        loadProgramChecklist();
+    } catch (err) { alert('Error: ' + err.message); }
+}
 
 // ==================== INIT ====================
 async function init() {

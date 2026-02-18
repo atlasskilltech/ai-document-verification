@@ -73,13 +73,98 @@ class DocumentModel {
 
     // Get document by ID
     static async getDocumentById(docId) {
-        const sql = `SELECT ad.*, dt.name as document_name, dt.category, 
+        const sql = `SELECT ad.*, dt.name as document_name, dt.category,
                      dt.allowed_formats, dt.max_file_size_mb, dt.has_expiry
                      FROM applicant_documents ad
                      JOIN document_types dt ON ad.document_type_id = dt.id
                      WHERE ad.id = ?`;
         const [rows] = await db.execute(sql, [docId]);
         return rows[0] || null;
+    }
+
+    // Get a single document type by ID
+    static async getTypeById(id) {
+        const [rows] = await db.execute('SELECT * FROM document_types WHERE id = ?', [id]);
+        return rows[0] || null;
+    }
+
+    // Create a document type
+    static async createType(data) {
+        const sql = `INSERT INTO document_types (name, category, allowed_formats, max_file_size_mb, has_expiry, description)
+                     VALUES (?, ?, ?, ?, ?, ?)`;
+        const [result] = await db.execute(sql, [
+            data.name,
+            data.category || 'Other',
+            data.allowed_formats || 'pdf,jpg,jpeg,png',
+            data.max_file_size_mb || 5,
+            data.has_expiry || 0,
+            data.description || null
+        ]);
+        return { id: result.insertId };
+    }
+
+    // Update a document type
+    static async updateType(id, data) {
+        const fields = [];
+        const values = [];
+        const allowed = ['name', 'category', 'allowed_formats', 'max_file_size_mb', 'has_expiry', 'description'];
+
+        for (const key of allowed) {
+            if (data[key] !== undefined) {
+                fields.push(`${key} = ?`);
+                values.push(data[key]);
+            }
+        }
+
+        if (fields.length === 0) return false;
+
+        values.push(id);
+        const sql = `UPDATE document_types SET ${fields.join(', ')} WHERE id = ?`;
+        const [result] = await db.execute(sql, values);
+        return result.affectedRows > 0;
+    }
+
+    // Delete a document type
+    static async deleteType(id) {
+        const [result] = await db.execute('DELETE FROM document_types WHERE id = ?', [id]);
+        return result.affectedRows > 0;
+    }
+
+    // Get checklist items for a program (with document type details)
+    static async getChecklistWithDetails(programId) {
+        const sql = `SELECT pdc.*, dt.name as document_name, dt.category, dt.description,
+                     dt.allowed_formats, dt.max_file_size_mb, dt.has_expiry
+                     FROM program_document_checklist pdc
+                     JOIN document_types dt ON pdc.document_type_id = dt.id
+                     WHERE pdc.program_id = ?
+                     ORDER BY dt.category, pdc.requirement_type`;
+        const [rows] = await db.execute(sql, [programId]);
+        return rows;
+    }
+
+    // Add a document type to a program checklist
+    static async addToChecklist(data) {
+        const sql = `INSERT INTO program_document_checklist (program_id, document_type_id, requirement_type, condition_rule, sensitivity_if_missing)
+                     VALUES (?, ?, ?, ?, ?)
+                     ON DUPLICATE KEY UPDATE requirement_type = VALUES(requirement_type),
+                     condition_rule = VALUES(condition_rule), sensitivity_if_missing = VALUES(sensitivity_if_missing)`;
+        const [result] = await db.execute(sql, [
+            data.program_id,
+            data.document_type_id,
+            data.requirement_type || 'Mandatory',
+            data.condition_rule ? JSON.stringify(data.condition_rule) : null,
+            data.sensitivity_if_missing || 5
+        ]);
+        return { id: result.insertId };
+    }
+
+    // Remove a document type from a program checklist
+    static async removeFromChecklist(programId, documentTypeId) {
+        const [result] = await db.execute(
+            'DELETE FROM program_document_checklist WHERE program_id = ? AND document_type_id = ?',
+            [programId, documentTypeId]
+        );
+        return result.affectedRows > 0;
     }
 }
 

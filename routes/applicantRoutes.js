@@ -145,8 +145,84 @@ router.get('/config/document-types', async (req, res) => {
 // Get checklist for a program
 router.get('/config/checklist/:programId', async (req, res) => {
     try {
-        const checklist = await DocumentModel.getChecklist(req.params.programId);
+        const checklist = await DocumentModel.getChecklistWithDetails(req.params.programId);
         res.json({ success: true, data: checklist });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// ===================== DOCUMENT TYPE CRUD =====================
+
+// Create document type
+router.post('/config/document-types', async (req, res) => {
+    try {
+        const { name, category, allowed_formats, max_file_size_mb, has_expiry, description } = req.body;
+        if (!name || !category) {
+            return res.status(400).json({ success: false, message: 'name and category are required' });
+        }
+        const result = await DocumentModel.createType({ name, category, allowed_formats, max_file_size_mb, has_expiry, description });
+        res.json({ success: true, data: result });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// Get single document type
+router.get('/config/document-types/:id', async (req, res) => {
+    try {
+        const type = await DocumentModel.getTypeById(req.params.id);
+        if (!type) return res.status(404).json({ success: false, message: 'Document type not found' });
+        res.json({ success: true, data: type });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// Update document type
+router.put('/config/document-types/:id', async (req, res) => {
+    try {
+        const updated = await DocumentModel.updateType(req.params.id, req.body);
+        if (!updated) return res.status(404).json({ success: false, message: 'Document type not found or no changes' });
+        res.json({ success: true, message: 'Document type updated' });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// Delete document type
+router.delete('/config/document-types/:id', async (req, res) => {
+    try {
+        const deleted = await DocumentModel.deleteType(req.params.id);
+        if (!deleted) return res.status(404).json({ success: false, message: 'Document type not found' });
+        res.json({ success: true, message: 'Document type deleted' });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// ===================== PROGRAM CHECKLIST CRUD =====================
+
+// Add document type to program checklist
+router.post('/config/checklist', async (req, res) => {
+    try {
+        const { program_id, document_type_id, requirement_type, condition_rule, sensitivity_if_missing } = req.body;
+        if (!program_id || !document_type_id) {
+            return res.status(400).json({ success: false, message: 'program_id and document_type_id are required' });
+        }
+        const result = await DocumentModel.addToChecklist({ program_id, document_type_id, requirement_type, condition_rule, sensitivity_if_missing });
+        res.json({ success: true, data: result });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// Remove document type from program checklist
+router.delete('/config/checklist/:programId/:documentTypeId', async (req, res) => {
+    try {
+        const deleted = await DocumentModel.removeFromChecklist(req.params.programId, req.params.documentTypeId);
+        if (!deleted) return res.status(404).json({ success: false, message: 'Checklist entry not found' });
+        res.json({ success: true, message: 'Removed from checklist' });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
