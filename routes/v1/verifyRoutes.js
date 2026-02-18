@@ -131,7 +131,11 @@ router.get('/result/:system_reference_id', async (req, res) => {
             });
         }
 
-        res.json({
+        // Extract wrong document info from AI response if available
+        const aiResponse = request.ai_response || {};
+        const wrongDocument = aiResponse.document_type_match === false;
+
+        const result = {
             system_reference_id: request.system_reference_id,
             client_reference_id: request.client_reference_id,
             document_type: request.document_type,
@@ -142,7 +146,16 @@ router.get('/result/:system_reference_id', async (req, res) => {
             issues: request.issues,
             created_at: request.created_at,
             processed_at: request.processed_at
-        });
+        };
+
+        // If wrong document detected, include clear info in response
+        if (wrongDocument) {
+            result.wrong_document = true;
+            result.detected_document_type = aiResponse.detected_document_type || 'Unknown';
+            result.expected_document_type = aiResponse.expected_document_type || request.document_type;
+        }
+
+        res.json(result);
     } catch (error) {
         console.error('Result endpoint error:', error);
         res.status(500).json({ error: 'Internal server error', message: 'Failed to fetch result' });

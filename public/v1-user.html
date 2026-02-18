@@ -22,6 +22,7 @@
         .badge-processing { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
         .badge-accepted { background: rgba(234, 179, 8, 0.15); color: #facc15; }
         .badge-failed { background: rgba(156, 163, 175, 0.15); color: #9ca3af; }
+        .wrong-doc-banner { background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); }
         .slide-in { animation: slideIn 0.3s ease-out; }
         @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         .modal-overlay { background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
@@ -618,12 +619,25 @@
                         `<div class="flex justify-between text-xs"><span class="text-gray-400">${k}</span><span class="text-white">${v}</span></div>`
                     ).join('')}</div></div>`;
             }
+            let wrongDocBanner = '';
+            if (r.wrong_document) {
+                wrongDocBanner = `<div class="wrong-doc-banner rounded-lg p-3 flex items-start gap-2">
+                    <i class="fas fa-file-circle-xmark text-red-400 mt-0.5"></i>
+                    <div>
+                        <p class="text-sm font-semibold text-red-300">Wrong Document Submitted</p>
+                        <p class="text-xs text-red-400/80 mt-0.5">Expected: <strong class="text-red-300">${r.expected_document_type || r.document_type}</strong></p>
+                        <p class="text-xs text-red-400/80">Detected: <strong class="text-red-300">${r.detected_document_type || 'Unknown'}</strong></p>
+                        <p class="text-[10px] text-gray-500 mt-1">Please upload the correct document type and try again.</p>
+                    </div>
+                </div>`;
+            }
             container.innerHTML = `
                 <div class="bg-gray-800/30 rounded-lg p-4 space-y-2">
                     <div class="flex justify-between items-center">
                         <span class="font-mono text-xs text-blue-300">${r.system_reference_id}</span>
                         ${statusBadge(r.status)}
                     </div>
+                    ${wrongDocBanner}
                     ${r.confidence != null ? `<div class="flex justify-between text-xs"><span class="text-gray-400">Confidence</span><span class="text-white">${r.confidence}%</span></div>` : ''}
                     ${r.risk_score != null ? `<div class="flex justify-between text-xs"><span class="text-gray-400">Risk Score</span>${riskBadge(r.risk_score)}</div>` : ''}
                     ${r.message ? `<p class="text-xs text-gray-400">${r.message}</p>` : ''}
@@ -645,8 +659,34 @@
                     ).join('')}</div></div>`;
             }
 
+            // Wrong document banner
+            let wrongDocBanner = '';
+            if (data.wrong_document) {
+                wrongDocBanner = `<div class="wrong-doc-banner rounded-xl p-4 flex items-start gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-lg bg-red-600/20 flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-file-circle-xmark text-red-400 text-lg"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-bold text-red-300">Wrong Document Submitted</p>
+                        <p class="text-xs text-gray-300 mt-1">The uploaded document does not match the expected type.</p>
+                        <div class="grid grid-cols-2 gap-3 mt-3">
+                            <div class="bg-gray-900/50 rounded-lg p-2">
+                                <p class="text-[10px] text-gray-500 uppercase">Expected</p>
+                                <p class="text-sm text-white font-medium capitalize">${data.expected_document_type || data.document_type}</p>
+                            </div>
+                            <div class="bg-gray-900/50 rounded-lg p-2">
+                                <p class="text-[10px] text-gray-500 uppercase">Detected</p>
+                                <p class="text-sm text-red-300 font-medium">${data.detected_document_type || 'Unknown'}</p>
+                            </div>
+                        </div>
+                        <p class="text-[10px] text-gray-500 mt-2"><i class="fas fa-info-circle mr-1"></i>Please upload the correct document and submit again.</p>
+                    </div>
+                </div>`;
+            }
+
             container.innerHTML = `
                 <div class="space-y-3">
+                    ${wrongDocBanner}
                     <div class="grid grid-cols-2 gap-3">
                         <div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500">System Ref</p><p class="text-sm text-blue-300 font-mono">${data.system_reference_id}</p></div>
                         <div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500">Status</p><p class="mt-1">${statusBadge(data.status)}</p></div>

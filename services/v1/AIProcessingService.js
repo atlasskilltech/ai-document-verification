@@ -25,11 +25,18 @@ class AIProcessingService {
      */
     getSystemPrompt() {
         return `You are an expert document verification AI. Your job is to:
-1. Analyze the provided document image/PDF
-2. Extract all relevant structured data
-3. Verify the document's authenticity indicators
-4. Check for signs of tampering or fraud
-5. Provide a confidence score and risk assessment
+1. FIRST identify what type of document is actually shown in the image
+2. Compare the actual document type with the expected/claimed document type
+3. If the document does NOT match the expected type, immediately flag it as a wrong document
+4. If it matches, extract all relevant structured data
+5. Verify the document's authenticity indicators
+6. Check for signs of tampering or fraud
+7. Provide a confidence score and risk assessment
+
+CRITICAL: You must ALWAYS verify that the submitted document actually matches the expected document type. For example:
+- If expected type is "aadhaar" but the image shows a PAN card, flag as wrong document
+- If expected type is "passport" but the image shows a driving license, flag as wrong document
+- If the image is not a document at all (random photo, blank page, etc.), flag as wrong document
 
 You MUST respond in valid JSON format only. No markdown, no extra text.`;
     }
@@ -37,9 +44,44 @@ You MUST respond in valid JSON format only. No markdown, no extra text.`;
     /**
      * Build the extraction prompt based on document type config
      */
+    /**
+     * Map of document type codes to human-readable names and identifying features
+     */
+    getDocumentTypeDescriptions() {
+        return {
+            aadhaar: { name: 'Aadhaar Card', description: 'Indian unique identity card issued by UIDAI with 12-digit Aadhaar number, photo, QR code, and Government of India emblem' },
+            pan: { name: 'PAN Card', description: 'Indian Permanent Account Number card issued by Income Tax Dept with 10-character alphanumeric PAN, photo, and Income Tax Dept logo' },
+            passport: { name: 'Passport', description: 'International travel passport document with passport number, photo, nationality, and machine-readable zone (MRZ)' },
+            driving_license: { name: 'Driving License', description: 'Driving license/permit issued by transport authority with license number, vehicle classes, and photo' },
+            voter_id: { name: 'Voter ID / EPIC', description: 'Indian Election Photo ID Card (EPIC) issued by Election Commission with voter ID number and photo' },
+            bank_statement: { name: 'Bank Statement', description: 'Bank account statement showing account number, account holder name, bank logo, and transaction history' },
+            utility_bill: { name: 'Utility Bill', description: 'Utility bill (electricity, water, gas, phone) showing name, address, and bill amount' },
+            marksheet_10: { name: '10th Class Marksheet', description: 'Class 10 / SSC / Secondary School examination marksheet with roll number, subjects, marks, and board name' },
+            marksheet_12: { name: '12th Class Marksheet', description: 'Class 12 / HSC / Higher Secondary examination marksheet with roll number, subjects, marks, and board name' },
+            graduation_cert: { name: 'Graduation Certificate', description: 'University degree/graduation certificate with degree name, university name, student name, and year of passing' }
+        };
+    }
+
     buildExtractionPrompt(documentType, requiredFields, validationRules, metadata) {
-        let prompt = `Analyze this ${documentType} document and extract the following information.\n\n`;
-        prompt += `Required fields:\n`;
+        const docDescriptions = this.getDocumentTypeDescriptions();
+        const expectedDoc = docDescriptions[documentType];
+        const expectedName = expectedDoc ? expectedDoc.name : documentType;
+        const expectedDescription = expectedDoc ? expectedDoc.description : `A document of type "${documentType}"`;
+
+        let prompt = `STEP 1 - DOCUMENT TYPE VERIFICATION (MANDATORY):
+The user claims this is a "${expectedName}" (code: ${documentType}).
+Expected document: ${expectedDescription}
+
+You MUST first determine what type of document is ACTUALLY shown in this image.
+- Look at the document layout, logos, headers, format, and content
+- Determine the actual document type
+- Compare it against the expected type "${expectedName}"
+- If the actual document does NOT match the expected type, set document_type_match to false
+- If the image is blurry, blank, a random photo, or not a valid document, set document_type_match to false
+
+STEP 2 - DATA EXTRACTION (only if document type matches):
+`;
+        prompt += `Extract the following fields from the ${expectedName}:\n`;
         if (requiredFields && requiredFields.length > 0) {
             requiredFields.forEach(field => {
                 prompt += `- ${field}\n`;
@@ -66,20 +108,26 @@ You MUST respond in valid JSON format only. No markdown, no extra text.`;
         prompt += `
 Return ONLY a JSON object with this exact structure:
 {
+  "document_type_match": true/false,
+  "detected_document_type": "<what document is actually shown, e.g. 'PAN Card', 'Aadhaar Card', 'Random Photo', 'Blank Page', etc.>",
+  "expected_document_type": "${expectedName}",
+  "document_type_mismatch_reason": "<if document_type_match is false, explain why. e.g. 'Expected Aadhaar Card but received PAN Card'. Empty string if match is true>",
   "status": "verified" or "rejected",
-  "confidence": <number between 0 and 100>,
-  "risk_score": <number between 0 and 1, where 0 is lowest risk>,
+  "confidence": <number between 0 and 100. Set to 0 if wrong document>,
+  "risk_score": <number between 0 and 1. Set to 1.0 if wrong document>,
   "extracted_data": {
-    <field_name>: <extracted_value>,
+    <field_name>: <extracted_value or null if wrong document>,
     ...
   },
-  "issues": [<list of any issues found, empty array if none>],
+  "issues": [<list of any issues found. MUST include "Wrong document type: Expected X but received Y" if mismatch>],
   "fraud_indicators": [<list of fraud indicators if any, empty array if clean>],
   "metadata_match": {
     <field>: {"matches": true/false, "extracted": "value", "expected": "value"}
   },
   "remarks": "Brief summary of the verification result"
-}`;
+}
+
+IMPORTANT: If document_type_match is false, you MUST set status to "rejected", confidence to 0, risk_score to 1.0, and include the mismatch in issues.`;
         return prompt;
     }
 
@@ -223,15 +271,28 @@ Return ONLY a JSON object with this exact structure:
         // Process with OpenAI
         const result = await this.processWithOpenAI(base64Data, mediaType, systemPrompt, userPrompt);
 
+        // If AI detected wrong document type, force rejection
+        const isWrongDoc = result.document_type_match === false;
+        const issues = result.issues || [];
+        if (isWrongDoc && !issues.some(i => i.toLowerCase().includes('wrong document'))) {
+            const detected = result.detected_document_type || 'Unknown';
+            const expected = result.expected_document_type || documentType;
+            issues.unshift(`Wrong document type: Expected "${expected}" but received "${detected}"`);
+        }
+
         return {
-            status: result.status || 'verified',
-            confidence: parseFloat(result.confidence) || 0,
-            risk_score: parseFloat(result.risk_score) || 0,
+            status: isWrongDoc ? 'rejected' : (result.status || 'verified'),
+            confidence: isWrongDoc ? 0 : (parseFloat(result.confidence) || 0),
+            risk_score: isWrongDoc ? 1.0 : (parseFloat(result.risk_score) || 0),
             extracted_data: result.extracted_data || {},
-            issues: result.issues || [],
+            issues,
             fraud_indicators: result.fraud_indicators || [],
             metadata_match: result.metadata_match || {},
-            remarks: result.remarks || ''
+            remarks: result.remarks || '',
+            document_type_match: result.document_type_match !== false,
+            detected_document_type: result.detected_document_type || null,
+            expected_document_type: result.expected_document_type || documentType,
+            document_type_mismatch_reason: result.document_type_mismatch_reason || ''
         };
     }
 }
