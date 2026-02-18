@@ -49,6 +49,8 @@
                     <i class="fas fa-file-circle-check w-5 text-center"></i> Verify Document</a></li>
                 <li><a href="#" onclick="showSection('requests')" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm" id="nav-requests">
                     <i class="fas fa-file-lines w-5 text-center"></i> My Requests</a></li>
+                <li><a href="#" onclick="showSection('doctypes')" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm" id="nav-doctypes">
+                    <i class="fas fa-folder-open w-5 text-center"></i> Document Setup</a></li>
                 <li><a href="#" onclick="showSection('apikeys')" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm" id="nav-apikeys">
                     <i class="fas fa-key w-5 text-center"></i> API Keys</a></li>
                 <li><a href="#" onclick="showSection('webhooks')" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm" id="nav-webhooks">
@@ -187,6 +189,40 @@
             </div>
         </div>
 
+        <!-- Document Setup Section -->
+        <div id="sec-doctypes" class="hidden slide-in">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-xl font-bold text-white">Document Setup</h2>
+                    <p class="text-sm text-gray-400">Configure your custom document types and validation rules</p>
+                </div>
+                <button onclick="openDocTypeModal()" class="px-4 py-2 rounded-lg btn-primary text-white text-sm font-medium">
+                    <i class="fas fa-plus mr-2"></i>Add Document Type
+                </button>
+            </div>
+
+            <!-- Info banner -->
+            <div class="glass rounded-xl p-4 mb-6 flex items-start gap-3">
+                <i class="fas fa-info-circle text-blue-400 mt-0.5"></i>
+                <div class="text-sm text-gray-300">
+                    <p class="font-medium text-white mb-1">How Document Setup Works</p>
+                    <p class="text-gray-400 text-xs">Define your own document types with custom fields and validation rules. Your custom types will appear alongside the default system types when submitting documents for verification. The AI will use your configured <strong class="text-gray-300">required fields</strong> and <strong class="text-gray-300">validation rules</strong> to extract and verify data.</p>
+                </div>
+            </div>
+
+            <!-- Global system types -->
+            <div class="mb-6">
+                <h3 class="text-sm font-medium text-gray-400 mb-3"><i class="fas fa-globe mr-2"></i>System Document Types (Read-only)</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3" id="globalDocTypeGrid"></div>
+            </div>
+
+            <!-- User's custom types -->
+            <div>
+                <h3 class="text-sm font-medium text-gray-400 mb-3"><i class="fas fa-user mr-2"></i>My Custom Document Types</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3" id="userDocTypeGrid"></div>
+            </div>
+        </div>
+
         <!-- API Keys Section -->
         <div id="sec-apikeys" class="hidden slide-in">
             <div class="flex items-center justify-between mb-6">
@@ -246,6 +282,54 @@
                 <div id="newKeyResult" class="hidden"></div>
                 <button type="submit" class="w-full py-2.5 rounded-lg btn-primary text-white font-medium text-sm">
                     <i class="fas fa-plus mr-2"></i>Generate
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Document Type Modal -->
+    <div id="docTypeModal" class="fixed inset-0 z-50 hidden flex items-center justify-center modal-overlay">
+        <div class="bg-gray-900 rounded-2xl border border-gray-700 w-full max-w-lg max-h-[85vh] overflow-y-auto slide-in m-4">
+            <div class="flex justify-between items-center px-6 py-4 border-b border-gray-800">
+                <h3 class="font-bold text-white" id="docTypeModalTitle"><i class="fas fa-file-circle-plus mr-2 text-blue-400"></i>Add Document Type</h3>
+                <button onclick="closeModal('docTypeModal')" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+            </div>
+            <form onsubmit="saveDocType(event)" class="p-6 space-y-4">
+                <input type="hidden" id="dtEditId">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Document Name <span class="text-red-400">*</span></label>
+                        <input type="text" id="dtName" required class="w-full px-3 py-2 rounded-lg input-dark text-sm" placeholder="e.g. Employment Letter">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Code <span class="text-red-400">*</span></label>
+                        <input type="text" id="dtCode" required pattern="[a-z0-9_-]+" class="w-full px-3 py-2 rounded-lg input-dark text-sm font-mono" placeholder="e.g. employment_letter">
+                        <p class="text-[10px] text-gray-500 mt-0.5">Lowercase, underscores, hyphens only</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Allowed Formats</label>
+                        <input type="text" id="dtFormats" class="w-full px-3 py-2 rounded-lg input-dark text-sm" placeholder="jpg,png,pdf" value="jpg,png,pdf">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Max File Size (MB)</label>
+                        <input type="number" id="dtMaxSize" class="w-full px-3 py-2 rounded-lg input-dark text-sm" value="5" min="1" max="50">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Required Fields <span class="text-[10px] text-gray-500">(fields AI should extract)</span></label>
+                    <input type="text" id="dtFields" class="w-full px-3 py-2 rounded-lg input-dark text-sm" placeholder="name, dob, id_number, address">
+                    <p class="text-[10px] text-gray-500 mt-0.5">Comma-separated list of field names</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Validation Rules <span class="text-[10px] text-gray-500">(regex patterns, JSON)</span></label>
+                    <textarea id="dtRules" rows="3" class="w-full px-3 py-2 rounded-lg input-dark text-sm font-mono" placeholder='{"id_number": "^[A-Z0-9]{10}$"}'></textarea>
+                    <p class="text-[10px] text-gray-500 mt-0.5">JSON object mapping field names to regex patterns</p>
+                </div>
+                <div id="dtError" class="hidden p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm"></div>
+                <button type="submit" id="dtSaveBtn" class="w-full py-2.5 rounded-lg btn-primary text-white font-medium text-sm">
+                    <i class="fas fa-save mr-2"></i>Save Document Type
                 </button>
             </form>
         </div>
@@ -313,13 +397,14 @@
         }
 
         function showSection(name) {
-            ['dashboard', 'verify', 'requests', 'apikeys', 'webhooks'].forEach(s => {
+            ['dashboard', 'verify', 'requests', 'doctypes', 'apikeys', 'webhooks'].forEach(s => {
                 document.getElementById('sec-' + s).classList.toggle('hidden', s !== name);
                 document.getElementById('nav-' + s).classList.toggle('active', s === name);
             });
             if (name === 'dashboard') loadUserDashboard();
             if (name === 'verify') loadDocTypes();
             if (name === 'requests') loadMyRequests();
+            if (name === 'doctypes') loadDocSetup();
             if (name === 'apikeys') loadApiKeys();
             if (name === 'webhooks') loadWebhooks();
         }
@@ -368,14 +453,21 @@
             const data = await apiFetch('/v1/verify/document-types');
             if (!data?.success) return;
             const select = document.getElementById('verifyDocType');
-            select.innerHTML = '<option value="">Select document type...</option>' +
-                data.data.map(d => `<option value="${d.code}">${d.name} (${d.code})</option>`).join('');
+            const globalTypes = data.data.filter(d => d.is_global);
+            const myTypes = data.data.filter(d => d.is_own);
+            let optionsHtml = '<option value="">Select document type...</option>';
+            if (myTypes.length) {
+                optionsHtml += '<optgroup label="My Custom Types">' + myTypes.map(d => `<option value="${d.code}">${d.name} (${d.code})</option>`).join('') + '</optgroup>';
+            }
+            optionsHtml += '<optgroup label="System Types">' + globalTypes.map(d => `<option value="${d.code}">${d.name} (${d.code})</option>`).join('') + '</optgroup>';
+            select.innerHTML = optionsHtml;
 
             document.getElementById('docTypeList').innerHTML = data.data.map(d => `
                 <div class="bg-gray-800/50 rounded-lg p-3 flex justify-between items-center">
                     <div>
                         <span class="text-sm text-white">${d.name}</span>
                         <span class="text-xs text-gray-500 ml-2 font-mono">${d.code}</span>
+                        ${d.is_own ? '<span class="ml-2 px-1.5 py-0.5 rounded bg-blue-600/20 text-blue-300 text-[10px]">Custom</span>' : ''}
                     </div>
                     <span class="text-[10px] text-gray-400">${(d.allowed_formats || []).join(', ')}</span>
                 </div>`).join('');
@@ -590,6 +682,140 @@
             document.getElementById('newKeyResult').classList.add('hidden');
             document.getElementById('keyName').value = '';
             document.getElementById('keyModal').classList.remove('hidden');
+        }
+
+        // ========== DOCUMENT SETUP ==========
+        async function loadDocSetup() {
+            if (!apiKey) {
+                document.getElementById('globalDocTypeGrid').innerHTML = '<p class="text-gray-500 text-sm col-span-3">Set an API key first</p>';
+                document.getElementById('userDocTypeGrid').innerHTML = '';
+                return;
+            }
+            // Load all types (global + user)
+            const data = await apiFetch('/v1/verify/document-types');
+            if (!data?.success) return;
+
+            const globalTypes = data.data.filter(d => d.is_global);
+            const userTypes = data.data.filter(d => d.is_own);
+
+            document.getElementById('globalDocTypeGrid').innerHTML = globalTypes.map(d => {
+                const formats = d.allowed_formats || [];
+                const fields = d.required_fields || [];
+                return `<div class="glass rounded-xl p-4 opacity-75">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <h4 class="font-medium text-white text-sm">${d.name}</h4>
+                            <p class="text-[10px] text-gray-500 font-mono">${d.code}</p>
+                        </div>
+                        <span class="px-1.5 py-0.5 rounded text-[10px] bg-gray-700 text-gray-400">System</span>
+                    </div>
+                    <div class="space-y-1.5 text-xs">
+                        <div class="flex gap-1 flex-wrap">${formats.map(f => `<span class="px-1.5 py-0.5 rounded bg-gray-800 text-gray-300">${f}</span>`).join('')}</div>
+                        <p class="text-gray-400">Max: ${d.max_size_mb}MB</p>
+                        ${fields.length ? `<p class="text-gray-400">Fields: ${fields.join(', ')}</p>` : ''}
+                    </div>
+                </div>`;
+            }).join('') || '<p class="text-gray-500 text-sm col-span-3">No system document types available</p>';
+
+            document.getElementById('userDocTypeGrid').innerHTML = userTypes.map(d => {
+                const formats = d.allowed_formats || [];
+                const fields = d.required_fields || [];
+                const rules = d.validation_rules || {};
+                return `<div class="glass rounded-xl p-4 border-blue-500/20">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <h4 class="font-medium text-white text-sm">${d.name}</h4>
+                            <p class="text-[10px] text-gray-500 font-mono">${d.code}</p>
+                        </div>
+                        <div class="flex gap-1">
+                            <button onclick='editDocType(${JSON.stringify({id:d.id,name:d.name,code:d.code,allowed_formats:d.allowed_formats,max_size_mb:d.max_size_mb,required_fields:d.required_fields,validation_rules:d.validation_rules})})' class="text-blue-400 hover:text-blue-300 text-xs p-1" title="Edit"><i class="fas fa-edit"></i></button>
+                            <button onclick="deleteDocType(${d.id})" class="text-red-400 hover:text-red-300 text-xs p-1" title="Delete"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                    <div class="space-y-1.5 text-xs">
+                        <div class="flex gap-1 flex-wrap">${formats.map(f => `<span class="px-1.5 py-0.5 rounded bg-gray-800 text-gray-300">${f}</span>`).join('')}</div>
+                        <p class="text-gray-400">Max: ${d.max_size_mb}MB</p>
+                        ${fields.length ? `<p class="text-gray-400"><span class="text-gray-500">Fields:</span> ${fields.join(', ')}</p>` : '<p class="text-gray-500 italic">No required fields set</p>'}
+                        ${Object.keys(rules).length ? `<p class="text-gray-400"><span class="text-gray-500">Rules:</span> ${Object.keys(rules).join(', ')}</p>` : ''}
+                    </div>
+                </div>`;
+            }).join('') || `<div class="col-span-3 glass rounded-xl p-8 text-center">
+                <i class="fas fa-folder-open text-3xl text-gray-600 mb-3"></i>
+                <p class="text-gray-400 text-sm">No custom document types yet</p>
+                <p class="text-gray-500 text-xs mt-1">Click "Add Document Type" to create your first custom type</p>
+            </div>`;
+        }
+
+        function openDocTypeModal(doc = null) {
+            document.getElementById('dtEditId').value = doc?.id || '';
+            document.getElementById('dtName').value = doc?.name || '';
+            document.getElementById('dtCode').value = doc?.code || '';
+            document.getElementById('dtCode').readOnly = !!doc;
+            const formats = doc?.allowed_formats || [];
+            document.getElementById('dtFormats').value = formats.length ? formats.join(',') : 'jpg,png,pdf';
+            document.getElementById('dtMaxSize').value = doc?.max_size_mb || 5;
+            const fields = doc?.required_fields || [];
+            document.getElementById('dtFields').value = fields.join(', ');
+            const rules = doc?.validation_rules || {};
+            document.getElementById('dtRules').value = Object.keys(rules).length ? JSON.stringify(rules, null, 2) : '';
+            document.getElementById('dtError').classList.add('hidden');
+            document.getElementById('docTypeModalTitle').innerHTML = doc
+                ? '<i class="fas fa-edit mr-2 text-blue-400"></i>Edit Document Type'
+                : '<i class="fas fa-file-circle-plus mr-2 text-blue-400"></i>Add Document Type';
+            document.getElementById('docTypeModal').classList.remove('hidden');
+        }
+
+        function editDocType(doc) { openDocTypeModal(doc); }
+
+        async function saveDocType(e) {
+            e.preventDefault();
+            const errDiv = document.getElementById('dtError');
+            errDiv.classList.add('hidden');
+
+            const id = document.getElementById('dtEditId').value;
+            let validationRules = {};
+            const rulesStr = document.getElementById('dtRules').value.trim();
+            if (rulesStr) {
+                try { validationRules = JSON.parse(rulesStr); }
+                catch (err) { errDiv.textContent = 'Invalid validation rules JSON'; errDiv.classList.remove('hidden'); return; }
+            }
+
+            const body = {
+                name: document.getElementById('dtName').value.trim(),
+                code: document.getElementById('dtCode').value.trim().toLowerCase(),
+                allowed_formats: document.getElementById('dtFormats').value.split(',').map(s => s.trim()).filter(Boolean),
+                max_size_mb: parseInt(document.getElementById('dtMaxSize').value) || 5,
+                required_fields: document.getElementById('dtFields').value.split(',').map(s => s.trim()).filter(Boolean),
+                validation_rules: validationRules
+            };
+
+            const btn = document.getElementById('dtSaveBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Saving...';
+
+            let data;
+            if (id) {
+                data = await apiFetch('/v1/verify/my-document-types/' + id, { method: 'PUT', body: JSON.stringify(body) });
+            } else {
+                data = await apiFetch('/v1/verify/my-document-types', { method: 'POST', body: JSON.stringify(body) });
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save mr-2"></i>Save Document Type';
+
+            if (data?.success) {
+                closeModal('docTypeModal');
+                loadDocSetup();
+            } else {
+                errDiv.textContent = data?.message || 'Failed to save';
+                errDiv.classList.remove('hidden');
+            }
+        }
+
+        async function deleteDocType(id) {
+            if (!confirm('Delete this document type? This cannot be undone.')) return;
+            const data = await apiFetch('/v1/verify/my-document-types/' + id, { method: 'DELETE' });
+            if (data?.success) loadDocSetup();
         }
 
         // ========== WEBHOOKS ==========

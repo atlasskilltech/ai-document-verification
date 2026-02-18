@@ -25,12 +25,12 @@ router.post('/', ssrfProtectionMiddleware, async (req, res) => {
             });
         }
 
-        // Validate document type exists
-        const docMaster = await V1DocumentMasterModel.findByCode(document_type);
+        // Validate document type exists (check user-specific first, then global)
+        const docMaster = await V1DocumentMasterModel.findByCodeForUser(document_type, req.apiUser.userId);
         if (!docMaster) {
             return res.status(400).json({
                 error: 'Bad request',
-                message: `Unknown document_type: '${document_type}'. Use GET /v1/document-types for valid types.`
+                message: `Unknown document_type: '${document_type}'. Use GET /v1/verify/document-types for valid types.`
             });
         }
 
@@ -167,24 +167,154 @@ router.get('/requests', async (req, res) => {
 });
 
 // ==========================================
-// GET /v1/document-types - List available document types
+// GET /v1/document-types - List available document types (global + user's own)
 // ==========================================
 router.get('/document-types', async (req, res) => {
     try {
-        const types = await V1DocumentMasterModel.getAll({ active: true });
+        const types = await V1DocumentMasterModel.getAllForUser(req.apiUser.userId, { active: true });
         res.json({
             success: true,
             data: types.map(t => ({
+                id: t.id,
                 code: t.code,
                 name: t.name,
                 allowed_formats: t.allowed_formats,
                 max_size_mb: t.max_size_mb,
-                required_fields: t.required_fields
+                required_fields: t.required_fields,
+                validation_rules: t.validation_rules,
+                is_global: t.user_id === null,
+                is_own: t.user_id === req.apiUser.userId
             }))
         });
     } catch (error) {
         console.error('Document types error:', error);
         res.status(500).json({ error: 'Internal server error', message: 'Failed to list document types' });
+    }
+});
+
+// ==========================================
+// User Document Type Management (My Document Setup)
+// ==========================================
+
+// GET /v1/verify/my-document-types - List user's own custom document types
+router.get('/my-document-types', async (req, res) => {
+    try {
+        const active = req.query.active !== 'false';
+        const types = await V1DocumentMasterModel.getByUserId(req.apiUser.userId, { active });
+        res.json({ success: true, data: types });
+    } catch (error) {
+        console.error('List user doc types error:', error);
+        res.status(500).json({ error: 'Internal server error', message: 'Failed to list document types' });
+    }
+});
+
+// POST /v1/verify/my-document-types - Create custom document type
+router.post('/my-document-types', async (req, res) => {
+    try {
+        const { name, code, allowed_formats, max_size_mb, required_fields, validation_rules } = req.body;
+
+        if (!name || !code) {
+            return res.status(400).json({ error: 'Bad request', message: 'Name and code are required' });
+        }
+
+        // Validate code format (lowercase, no spaces)
+        if (!/^[a-z0-9_-]+$/.test(code)) {
+            return res.status(400).json({ error: 'Bad request', message: 'Code must be lowercase alphanumeric with underscores/hyphens only' });
+        }
+
+        // Check if code already exists for this user
+        const existing = await V1DocumentMasterModel.findByCodeForUser(code, req.apiUser.userId);
+        if (existing && existing.user_id === req.apiUser.userId) {
+            return res.status(409).json({ error: 'Conflict', message: `You already have a document type with code '${code}'` });
+        }
+
+        const id = await V1DocumentMasterModel.create({
+            name,
+            code,
+            allowedFormats: allowed_formats || ['jpg', 'png', 'pdf'],
+            maxSizeMb: max_size_mb || 5,
+            requiredFields: required_fields || [],
+            validationRules: validation_rules || {},
+            userId: req.apiUser.userId,
+            createdBy: req.apiUser.userId
+        });
+
+        await V1AuditModel.log({
+            userId: req.apiUser.userId,
+            action: 'user_document_type.created',
+            resourceType: 'document_master',
+            resourceId: String(id),
+            details: { name, code },
+            ipAddress: req.ip
+        });
+
+        const doc = await V1DocumentMasterModel.findById(id);
+        res.status(201).json({ success: true, message: 'Document type created', data: doc });
+    } catch (error) {
+        console.error('Create user doc type error:', error);
+        res.status(500).json({ error: 'Internal server error', message: 'Failed to create document type' });
+    }
+});
+
+// PUT /v1/verify/my-document-types/:id - Update user's own document type
+router.put('/my-document-types/:id', async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const { name, code, allowed_formats, max_size_mb, required_fields, validation_rules, is_active } = req.body;
+
+        const existing = await V1DocumentMasterModel.findById(id);
+        if (!existing || existing.user_id !== req.apiUser.userId) {
+            return res.status(404).json({ error: 'Not found', message: 'Document type not found or you do not own it' });
+        }
+
+        await V1DocumentMasterModel.updateByUser(id, req.apiUser.userId, {
+            name,
+            code,
+            allowedFormats: allowed_formats,
+            maxSizeMb: max_size_mb,
+            requiredFields: required_fields,
+            validationRules: validation_rules,
+            isActive: is_active
+        });
+
+        await V1AuditModel.log({
+            userId: req.apiUser.userId,
+            action: 'user_document_type.updated',
+            resourceType: 'document_master',
+            resourceId: String(id),
+            details: req.body,
+            ipAddress: req.ip
+        });
+
+        const updated = await V1DocumentMasterModel.findById(id);
+        res.json({ success: true, message: 'Document type updated', data: updated });
+    } catch (error) {
+        console.error('Update user doc type error:', error);
+        res.status(500).json({ error: 'Internal server error', message: 'Failed to update document type' });
+    }
+});
+
+// DELETE /v1/verify/my-document-types/:id - Delete user's own document type
+router.delete('/my-document-types/:id', async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const deleted = await V1DocumentMasterModel.deleteByUser(id, req.apiUser.userId);
+        if (!deleted) {
+            return res.status(404).json({ error: 'Not found', message: 'Document type not found or you do not own it' });
+        }
+
+        await V1AuditModel.log({
+            userId: req.apiUser.userId,
+            action: 'user_document_type.deleted',
+            resourceType: 'document_master',
+            resourceId: String(id),
+            ipAddress: req.ip
+        });
+
+        res.json({ success: true, message: 'Document type deleted' });
+    } catch (error) {
+        console.error('Delete user doc type error:', error);
+        res.status(500).json({ error: 'Internal server error', message: 'Failed to delete document type' });
     }
 });
 

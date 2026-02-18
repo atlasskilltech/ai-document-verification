@@ -34,21 +34,24 @@ CREATE TABLE IF NOT EXISTS v1_api_keys (
 );
 
 -- =====================================================
--- 3. Document Master (admin-configured doc types)
+-- 3. Document Master (admin + user configured doc types)
 -- =====================================================
 CREATE TABLE IF NOT EXISTS v1_document_master (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    code VARCHAR(100) UNIQUE NOT NULL,
+    code VARCHAR(100) NOT NULL,
     allowed_formats JSON DEFAULT '["jpg","png","pdf"]',
     max_size_mb INT DEFAULT 5,
     required_fields JSON COMMENT 'Fields AI should extract',
     validation_rules JSON COMMENT 'Regex or rule sets for validation',
     is_active TINYINT(1) DEFAULT 1,
+    user_id BIGINT NULL COMMENT 'NULL = global/admin type, set = user-specific type',
     created_by BIGINT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (created_by) REFERENCES v1_users(id) ON DELETE SET NULL
+    FOREIGN KEY (user_id) REFERENCES v1_users(id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by) REFERENCES v1_users(id) ON DELETE SET NULL,
+    UNIQUE KEY unique_code_per_scope (code, user_id)
 );
 
 -- =====================================================

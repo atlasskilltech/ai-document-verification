@@ -36,8 +36,8 @@ class VerificationProcessor {
             // 2. Mark as processing
             await V1VerificationRequestModel.updateStatus(requestId, { status: 'processing' });
 
-            // 3. Get document master config
-            const docMaster = await V1DocumentMasterModel.findByCode(request.document_type);
+            // 3. Get document master config (user-specific first, then global)
+            const docMaster = await V1DocumentMasterModel.findByCodeForUser(request.document_type, request.user_id);
             const requiredFields = docMaster?.required_fields || [];
             const validationRules = docMaster?.validation_rules || {};
 
@@ -54,11 +54,12 @@ class VerificationProcessor {
                 metadata
             });
 
-            // 5. Apply rule engine
+            // 5. Apply rule engine (pass userId for user-scoped doc type lookup)
             const ruleResult = await RuleEngineService.validate(
                 request.document_type,
                 aiResult.extracted_data,
-                aiResult
+                aiResult,
+                request.user_id
             );
 
             // 6. Update request with results
