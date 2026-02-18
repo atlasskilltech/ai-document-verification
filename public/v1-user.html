@@ -47,6 +47,8 @@
                     <i class="fas fa-chart-pie w-5 text-center"></i> Dashboard</a></li>
                 <li><a href="#" onclick="showSection('verify')" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm" id="nav-verify">
                     <i class="fas fa-file-circle-check w-5 text-center"></i> Verify Document</a></li>
+                <li><a href="#" onclick="showSection('bulk')" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm" id="nav-bulk">
+                    <i class="fas fa-layer-group w-5 text-center"></i> Bulk Verify</a></li>
                 <li><a href="#" onclick="showSection('requests')" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm" id="nav-requests">
                     <i class="fas fa-file-lines w-5 text-center"></i> My Requests</a></li>
                 <li><a href="#" onclick="showSection('doctypes')" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm" id="nav-doctypes">
@@ -55,6 +57,8 @@
                     <i class="fas fa-key w-5 text-center"></i> API Keys</a></li>
                 <li><a href="#" onclick="showSection('webhooks')" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm" id="nav-webhooks">
                     <i class="fas fa-bolt w-5 text-center"></i> Webhooks</a></li>
+                <li><a href="/v1/api-docs" target="_blank" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm">
+                    <i class="fas fa-book w-5 text-center"></i> API Docs <i class="fas fa-external-link-alt text-[10px] ml-auto text-gray-600"></i></a></li>
             </ul>
         </nav>
         <div class="p-3 border-t border-gray-800">
@@ -152,6 +156,78 @@
                         <div id="docTypeList" class="space-y-2"></div>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Bulk Verify Section -->
+        <div id="sec-bulk" class="hidden slide-in">
+            <h2 class="text-xl font-bold text-white mb-6">Bulk Document Verification</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Bulk Submit Form -->
+                <div class="glass rounded-xl p-6">
+                    <h3 class="font-semibold text-white mb-4"><i class="fas fa-layer-group mr-2 text-purple-400"></i>Submit Bulk Documents</h3>
+                    <div id="bulkError" class="hidden mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm"></div>
+                    <div id="bulkSuccess" class="hidden mb-4 p-3 rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 text-sm"></div>
+
+                    <!-- Document entries -->
+                    <div id="bulkDocEntries" class="space-y-3 mb-4 max-h-[400px] overflow-y-auto pr-1"></div>
+
+                    <div class="flex gap-2 mb-4">
+                        <button type="button" onclick="addBulkDocEntry()" class="flex-1 py-2 rounded-lg border border-dashed border-gray-600 text-gray-400 hover:border-blue-500 hover:text-blue-400 text-sm transition">
+                            <i class="fas fa-plus mr-2"></i>Add Document
+                        </button>
+                        <button type="button" onclick="showBulkJsonInput()" class="px-4 py-2 rounded-lg border border-dashed border-gray-600 text-gray-400 hover:border-purple-500 hover:text-purple-400 text-sm transition" title="Paste JSON array">
+                            <i class="fas fa-code"></i>
+                        </button>
+                    </div>
+
+                    <!-- JSON Input (hidden by default) -->
+                    <div id="bulkJsonSection" class="hidden mb-4">
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Paste JSON Array</label>
+                        <textarea id="bulkJsonInput" rows="6" class="w-full px-3 py-2 rounded-lg input-dark text-sm font-mono"
+                            placeholder='[
+  {"document_type": "aadhaar", "file_url": "https://...jpg", "reference_id": "REF1"},
+  {"document_type": "pan", "file_url": "https://...png", "reference_id": "REF2"}
+]'></textarea>
+                        <div class="flex gap-2 mt-2">
+                            <button type="button" onclick="parseBulkJson()" class="px-3 py-1.5 rounded-lg btn-primary text-white text-xs">Parse & Load</button>
+                            <button type="button" onclick="document.getElementById('bulkJsonSection').classList.add('hidden')" class="px-3 py-1.5 rounded-lg bg-gray-700 text-gray-300 text-xs">Cancel</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Callback URL (optional)</label>
+                        <input type="url" id="bulkCallbackUrl" placeholder="https://your-server.com/bulk-callback"
+                            class="w-full px-3 py-2 rounded-lg input-dark text-sm">
+                        <p class="text-[10px] text-gray-500 mt-1">We'll POST the final summary to this URL when all docs are processed</p>
+                    </div>
+
+                    <button type="button" onclick="submitBulkVerification()" id="bulkSubmitBtn" class="w-full py-2.5 mt-4 rounded-lg btn-primary text-white font-medium text-sm">
+                        <i class="fas fa-paper-plane mr-2"></i>Submit Bulk Verification
+                    </button>
+                </div>
+
+                <!-- Bulk Jobs List -->
+                <div>
+                    <div class="glass rounded-xl overflow-hidden">
+                        <div class="px-5 py-4 border-b border-gray-700/50 flex justify-between items-center">
+                            <h3 class="font-semibold text-white"><i class="fas fa-clock mr-2 text-yellow-400"></i>Bulk Jobs</h3>
+                            <button onclick="loadBulkJobs()" class="text-blue-400 hover:text-blue-300 text-xs"><i class="fas fa-refresh mr-1"></i>Refresh</button>
+                        </div>
+                        <div id="bulkJobsList" class="divide-y divide-gray-800/50"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bulk Job Detail Modal -->
+        <div id="bulkDetailModal" class="fixed inset-0 z-50 hidden flex items-center justify-center modal-overlay">
+            <div class="bg-gray-900 rounded-2xl border border-gray-700 w-full max-w-3xl max-h-[85vh] overflow-y-auto slide-in m-4">
+                <div class="flex justify-between items-center px-6 py-4 border-b border-gray-800 sticky top-0 bg-gray-900 z-10">
+                    <h3 class="font-bold text-white"><i class="fas fa-layer-group mr-2 text-purple-400"></i>Bulk Job Details</h3>
+                    <button onclick="closeModal('bulkDetailModal')" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+                </div>
+                <div id="bulkDetailContent" class="p-6"></div>
             </div>
         </div>
 
@@ -397,12 +473,13 @@
         }
 
         function showSection(name) {
-            ['dashboard', 'verify', 'requests', 'doctypes', 'apikeys', 'webhooks'].forEach(s => {
+            ['dashboard', 'verify', 'bulk', 'requests', 'doctypes', 'apikeys', 'webhooks'].forEach(s => {
                 document.getElementById('sec-' + s).classList.toggle('hidden', s !== name);
                 document.getElementById('nav-' + s).classList.toggle('active', s === name);
             });
             if (name === 'dashboard') loadUserDashboard();
             if (name === 'verify') loadDocTypes();
+            if (name === 'bulk') { loadBulkDocTypes(); loadBulkJobs(); }
             if (name === 'requests') loadMyRequests();
             if (name === 'doctypes') loadDocSetup();
             if (name === 'apikeys') loadApiKeys();
@@ -816,6 +893,208 @@
             if (!confirm('Delete this document type? This cannot be undone.')) return;
             const data = await apiFetch('/v1/verify/my-document-types/' + id, { method: 'DELETE' });
             if (data?.success) loadDocSetup();
+        }
+
+        // ========== BULK VERIFY ==========
+        let bulkDocTypes = [];
+        let bulkDocCount = 0;
+
+        async function loadBulkDocTypes() {
+            if (!apiKey) return;
+            const data = await apiFetch('/v1/verify/document-types');
+            if (data?.success) bulkDocTypes = data.data;
+            if (document.getElementById('bulkDocEntries').children.length === 0) addBulkDocEntry();
+        }
+
+        function addBulkDocEntry(prefill = {}) {
+            bulkDocCount++;
+            const idx = bulkDocCount;
+            const globalOpts = bulkDocTypes.filter(d => d.is_global).map(d => `<option value="${d.code}" ${prefill.document_type === d.code ? 'selected' : ''}>${d.name}</option>`).join('');
+            const myOpts = bulkDocTypes.filter(d => d.is_own).map(d => `<option value="${d.code}" ${prefill.document_type === d.code ? 'selected' : ''}>${d.name}</option>`).join('');
+            let optgroups = '<option value="">Select type...</option>';
+            if (myOpts) optgroups += `<optgroup label="My Types">${myOpts}</optgroup>`;
+            optgroups += `<optgroup label="System Types">${globalOpts}</optgroup>`;
+
+            const div = document.createElement('div');
+            div.className = 'bg-gray-800/40 rounded-lg p-3 border border-gray-700/50';
+            div.id = 'bulk-entry-' + idx;
+            div.innerHTML = `
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs font-medium text-gray-400">Document #${idx}</span>
+                    <button type="button" onclick="removeBulkEntry(${idx})" class="text-red-400 hover:text-red-300 text-xs"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="grid grid-cols-2 gap-2 mb-2">
+                    <select class="bulk-doc-type px-2 py-1.5 rounded-lg input-dark text-xs" required>${optgroups}</select>
+                    <input type="text" class="bulk-ref-id px-2 py-1.5 rounded-lg input-dark text-xs" placeholder="Reference ID (opt)" value="${prefill.reference_id || ''}">
+                </div>
+                <input type="url" class="bulk-file-url w-full px-2 py-1.5 rounded-lg input-dark text-xs" required placeholder="https://... document URL" value="${prefill.file_url || ''}">`;
+            document.getElementById('bulkDocEntries').appendChild(div);
+        }
+
+        function removeBulkEntry(idx) {
+            const el = document.getElementById('bulk-entry-' + idx);
+            if (el) el.remove();
+        }
+
+        function showBulkJsonInput() {
+            document.getElementById('bulkJsonSection').classList.toggle('hidden');
+        }
+
+        function parseBulkJson() {
+            const errDiv = document.getElementById('bulkError');
+            errDiv.classList.add('hidden');
+            try {
+                const arr = JSON.parse(document.getElementById('bulkJsonInput').value.trim());
+                if (!Array.isArray(arr)) throw new Error('Must be an array');
+                document.getElementById('bulkDocEntries').innerHTML = '';
+                bulkDocCount = 0;
+                arr.forEach(doc => addBulkDocEntry(doc));
+                document.getElementById('bulkJsonSection').classList.add('hidden');
+            } catch (e) {
+                errDiv.textContent = 'Invalid JSON: ' + e.message;
+                errDiv.classList.remove('hidden');
+            }
+        }
+
+        async function submitBulkVerification() {
+            const errDiv = document.getElementById('bulkError');
+            const sucDiv = document.getElementById('bulkSuccess');
+            errDiv.classList.add('hidden');
+            sucDiv.classList.add('hidden');
+
+            const entries = document.getElementById('bulkDocEntries').children;
+            if (entries.length === 0) {
+                errDiv.textContent = 'Add at least one document';
+                errDiv.classList.remove('hidden');
+                return;
+            }
+
+            const documents = [];
+            for (const entry of entries) {
+                const docType = entry.querySelector('.bulk-doc-type')?.value;
+                const fileUrl = entry.querySelector('.bulk-file-url')?.value;
+                const refId = entry.querySelector('.bulk-ref-id')?.value;
+                if (!docType || !fileUrl) {
+                    errDiv.textContent = 'All documents must have a type and file URL';
+                    errDiv.classList.remove('hidden');
+                    return;
+                }
+                const doc = { document_type: docType, file_url: fileUrl };
+                if (refId) doc.reference_id = refId;
+                documents.push(doc);
+            }
+
+            const btn = document.getElementById('bulkSubmitBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Submitting ' + documents.length + ' documents...';
+
+            const body = { documents };
+            const cbUrl = document.getElementById('bulkCallbackUrl').value.trim();
+            if (cbUrl) body.callback_url = cbUrl;
+
+            const data = await apiFetch('/v1/verify/bulk', { method: 'POST', body: JSON.stringify(body) });
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Submit Bulk Verification';
+
+            if (data?.status === 'accepted') {
+                sucDiv.innerHTML = `Bulk job accepted! <code class="bg-gray-800 px-2 py-0.5 rounded text-purple-300 font-mono">${data.bulk_id}</code> - ${data.total_documents} documents queued for processing.`;
+                sucDiv.classList.remove('hidden');
+                document.getElementById('bulkDocEntries').innerHTML = '';
+                bulkDocCount = 0;
+                addBulkDocEntry();
+                loadBulkJobs();
+            } else {
+                let msg = data?.message || 'Submission failed';
+                if (data?.errors) {
+                    msg += '<ul class="mt-1 ml-4 list-disc">' + data.errors.map(e => `<li>Doc #${e.index + 1}: ${e.message}</li>`).join('') + '</ul>';
+                }
+                errDiv.innerHTML = msg;
+                errDiv.classList.remove('hidden');
+            }
+        }
+
+        async function loadBulkJobs() {
+            if (!apiKey) {
+                document.getElementById('bulkJobsList').innerHTML = '<div class="p-6 text-center text-gray-500 text-sm">Set an API key first</div>';
+                return;
+            }
+            const data = await apiFetch('/v1/verify/bulk');
+            if (!data?.success) return;
+            const jobs = data.data.jobs || [];
+            document.getElementById('bulkJobsList').innerHTML = jobs.map(j => {
+                const pct = j.total_documents > 0 ? Math.round((j.completed / j.total_documents) * 100) : 0;
+                const statusColor = { completed: 'badge-verified', partial: 'badge-accepted', failed: 'badge-failed', processing: 'badge-processing', queued: 'badge-accepted' };
+                return `<div class="p-4 hover:bg-gray-800/30 transition cursor-pointer" onclick="viewBulkJob('${j.bulk_id}')">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-mono text-xs text-purple-300">${j.bulk_id}</span>
+                        <span class="px-2 py-0.5 rounded-full text-xs font-medium ${statusColor[j.status] || 'badge-failed'}">${j.status}</span>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-400 mb-2">
+                        <span>${j.total_documents} documents</span>
+                        <span>${fmtDate(j.created_at)}</span>
+                    </div>
+                    <div class="w-full bg-gray-800 rounded-full h-1.5">
+                        <div class="h-1.5 rounded-full ${j.status === 'completed' ? 'bg-green-500' : j.status === 'failed' ? 'bg-red-500' : 'bg-blue-500'}" style="width: ${pct}%"></div>
+                    </div>
+                    <div class="flex gap-3 mt-1.5 text-[10px] text-gray-500">
+                        <span class="text-green-400">${j.verified} verified</span>
+                        <span class="text-red-400">${j.rejected} rejected</span>
+                        <span class="text-gray-400">${j.failed} failed</span>
+                        <span class="ml-auto">${pct}%</span>
+                    </div>
+                </div>`;
+            }).join('') || '<div class="p-6 text-center text-gray-500 text-sm">No bulk jobs yet</div>';
+        }
+
+        async function viewBulkJob(bulkId) {
+            const data = await apiFetch('/v1/verify/bulk/' + bulkId);
+            if (!data?.success) return;
+            const d = data.data;
+            const pct = d.progress_percent;
+            const container = document.getElementById('bulkDetailContent');
+            container.innerHTML = `
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                    <div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500">Bulk ID</p><p class="text-sm text-purple-300 font-mono">${d.bulk_id}</p></div>
+                    <div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500">Status</p><p class="mt-1">${statusBadge(d.status)}</p></div>
+                    <div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500">Progress</p><p class="text-sm text-white">${d.completed}/${d.total_documents} (${pct}%)</p></div>
+                    <div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500">Created</p><p class="text-sm text-white">${fmtDate(d.created_at)}</p></div>
+                </div>
+                <div class="grid grid-cols-3 gap-3 mb-6">
+                    <div class="bg-green-500/10 rounded-lg p-3 text-center"><p class="text-[10px] text-green-400">Verified</p><p class="text-xl font-bold text-green-400">${d.verified}</p></div>
+                    <div class="bg-red-500/10 rounded-lg p-3 text-center"><p class="text-[10px] text-red-400">Rejected</p><p class="text-xl font-bold text-red-400">${d.rejected}</p></div>
+                    <div class="bg-gray-500/10 rounded-lg p-3 text-center"><p class="text-[10px] text-gray-400">Failed</p><p class="text-xl font-bold text-gray-400">${d.failed}</p></div>
+                </div>
+                <div class="w-full bg-gray-800 rounded-full h-2 mb-6">
+                    <div class="h-2 rounded-full transition-all ${d.status === 'completed' ? 'bg-green-500' : 'bg-blue-500'}" style="width: ${pct}%"></div>
+                </div>
+                <h4 class="text-sm font-medium text-gray-300 mb-3">Documents</h4>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-800/50 text-xs text-gray-400 uppercase">
+                            <tr>
+                                <th class="px-3 py-2 text-left">#</th>
+                                <th class="px-3 py-2 text-left">Reference</th>
+                                <th class="px-3 py-2 text-left">Doc Type</th>
+                                <th class="px-3 py-2 text-left">Status</th>
+                                <th class="px-3 py-2 text-left">Confidence</th>
+                                <th class="px-3 py-2 text-left">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-800/50">
+                            ${d.documents.map(doc => `
+                                <tr class="hover:bg-gray-800/30">
+                                    <td class="px-3 py-2 text-xs text-gray-500">${doc.item_index + 1}</td>
+                                    <td class="px-3 py-2 font-mono text-xs text-blue-300">${doc.system_reference_id}</td>
+                                    <td class="px-3 py-2 text-xs capitalize">${doc.document_type}</td>
+                                    <td class="px-3 py-2">${statusBadge(doc.status)}</td>
+                                    <td class="px-3 py-2 text-xs">${doc.confidence != null ? doc.confidence + '%' : '-'}</td>
+                                    <td class="px-3 py-2"><button onclick="closeModal('bulkDetailModal'); viewResult('${doc.system_reference_id}')" class="text-blue-400 hover:text-blue-300 text-xs"><i class="fas fa-eye"></i></button></td>
+                                </tr>`).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                ${['processing', 'queued'].includes(d.status) ? '<div class="mt-4 text-center"><button onclick="viewBulkJob(\'' + d.bulk_id + '\')" class="px-4 py-2 rounded-lg bg-blue-600/20 text-blue-400 text-sm hover:bg-blue-600/30"><i class="fas fa-refresh mr-2"></i>Refresh Progress</button></div>' : ''}`;
+            document.getElementById('bulkDetailModal').classList.remove('hidden');
         }
 
         // ========== WEBHOOKS ==========

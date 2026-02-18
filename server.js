@@ -116,6 +116,10 @@ app.get('/v1/user-dashboard', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'v1-user.html'));
 });
 
+app.get('/v1/api-docs', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'v1-api-docs.html'));
+});
+
 // ===================== ERROR HANDLING =====================
 app.use((err, req, res, next) => {
     console.error('Error:', err.message);

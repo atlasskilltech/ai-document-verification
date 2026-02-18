@@ -131,7 +131,43 @@ CREATE TABLE IF NOT EXISTS v1_rate_limit_log (
 );
 
 -- =====================================================
--- 8. Audit Log
+-- 8. Bulk Verification Jobs
+-- =====================================================
+CREATE TABLE IF NOT EXISTS v1_bulk_jobs (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    bulk_id VARCHAR(50) UNIQUE NOT NULL,
+    user_id BIGINT NOT NULL,
+    total_documents INT NOT NULL DEFAULT 0,
+    completed INT NOT NULL DEFAULT 0,
+    verified INT NOT NULL DEFAULT 0,
+    rejected INT NOT NULL DEFAULT 0,
+    failed INT NOT NULL DEFAULT 0,
+    status ENUM('queued', 'processing', 'completed', 'partial', 'failed') DEFAULT 'queued',
+    callback_url TEXT NULL COMMENT 'Optional URL to POST final summary',
+    metadata JSON NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES v1_users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_v1_bulk_user ON v1_bulk_jobs(user_id);
+CREATE INDEX idx_v1_bulk_status ON v1_bulk_jobs(status);
+
+-- Link table: connects bulk job to individual verification requests
+CREATE TABLE IF NOT EXISTS v1_bulk_job_items (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    bulk_job_id BIGINT NOT NULL,
+    verification_request_id BIGINT NOT NULL,
+    item_index INT NOT NULL COMMENT 'Ordering within the batch',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (bulk_job_id) REFERENCES v1_bulk_jobs(id) ON DELETE CASCADE,
+    FOREIGN KEY (verification_request_id) REFERENCES v1_verification_requests(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_bulk_item (bulk_job_id, verification_request_id)
+);
+
+-- =====================================================
+-- 9. Audit Log
 -- =====================================================
 CREATE TABLE IF NOT EXISTS v1_audit_log (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,

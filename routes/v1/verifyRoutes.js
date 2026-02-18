@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const { apiKeyAuth } = require('../../middleware/v1/apiKeyAuth');
-const { ssrfProtectionMiddleware } = require('../../middleware/v1/ssrfProtection');
+const { ssrfProtectionMiddleware, validateUrl } = require('../../middleware/v1/ssrfProtection');
 const V1VerificationRequestModel = require('../../models/v1/V1VerificationRequestModel');
 const V1DocumentMasterModel = require('../../models/v1/V1DocumentMasterModel');
+const V1BulkJobModel = require('../../models/v1/V1BulkJobModel');
 const V1AuditModel = require('../../models/v1/V1AuditModel');
 const QueueService = require('../../services/v1/QueueService');
 
@@ -189,6 +190,185 @@ router.get('/document-types', async (req, res) => {
     } catch (error) {
         console.error('Document types error:', error);
         res.status(500).json({ error: 'Internal server error', message: 'Failed to list document types' });
+    }
+});
+
+// ==========================================
+// POST /v1/verify/bulk - Bulk document verification
+// ==========================================
+router.post('/bulk', async (req, res) => {
+    try {
+        const { documents, callback_url, metadata } = req.body;
+
+        // Validate documents array
+        if (!Array.isArray(documents) || documents.length === 0) {
+            return res.status(400).json({
+                error: 'Bad request',
+                message: 'documents must be a non-empty array'
+            });
+        }
+
+        if (documents.length > 50) {
+            return res.status(400).json({
+                error: 'Bad request',
+                message: 'Maximum 50 documents per bulk request'
+            });
+        }
+
+        // Validate each document before processing any
+        const errors = [];
+        for (let i = 0; i < documents.length; i++) {
+            const doc = documents[i];
+            if (!doc.document_type || !doc.file_url) {
+                errors.push({ index: i, message: 'document_type and file_url are required' });
+                continue;
+            }
+
+            const docMaster = await V1DocumentMasterModel.findByCodeForUser(doc.document_type, req.apiUser.userId);
+            if (!docMaster) {
+                errors.push({ index: i, message: `Unknown document_type: '${doc.document_type}'` });
+                continue;
+            }
+
+            // SSRF protection check
+            const urlCheck = await validateUrl(doc.file_url);
+            if (!urlCheck.valid) {
+                errors.push({ index: i, message: `Invalid file_url: ${urlCheck.reason}` });
+                continue;
+            }
+
+            // Format check
+            const ext = doc.file_url.split('.').pop().split('?')[0].toLowerCase();
+            const allowed = docMaster.allowed_formats || ['jpg', 'png', 'pdf'];
+            if (!allowed.includes(ext) && !allowed.includes('*')) {
+                errors.push({ index: i, message: `File format '${ext}' not allowed for ${doc.document_type}` });
+            }
+        }
+
+        if (errors.length > 0) {
+            return res.status(400).json({
+                error: 'Validation failed',
+                message: `${errors.length} document(s) failed validation`,
+                errors
+            });
+        }
+
+        // Create bulk job
+        const bulkJob = await V1BulkJobModel.create({
+            userId: req.apiUser.userId,
+            totalDocuments: documents.length,
+            callbackUrl: callback_url || null,
+            metadata: metadata || {}
+        });
+
+        // Create individual verification requests and link to bulk job
+        const results = [];
+        for (let i = 0; i < documents.length; i++) {
+            const doc = documents[i];
+            const vr = await V1VerificationRequestModel.create({
+                userId: req.apiUser.userId,
+                referenceId: doc.reference_id || null,
+                documentType: doc.document_type,
+                fileUrl: doc.file_url,
+                metadata: doc.metadata || {}
+            });
+
+            // Link to bulk job
+            await V1BulkJobModel.addItem(bulkJob.id, vr.id, i);
+
+            // Queue for processing
+            await QueueService.addJob('verify_document', { requestId: vr.id });
+
+            results.push({
+                index: i,
+                system_reference_id: vr.system_reference_id,
+                document_type: doc.document_type,
+                status: 'accepted'
+            });
+        }
+
+        // Mark bulk job as processing
+        await V1BulkJobModel.setProcessing(bulkJob.id);
+
+        // Audit log
+        await V1AuditModel.log({
+            userId: req.apiUser.userId,
+            action: 'bulk_verification.submitted',
+            resourceType: 'bulk_job',
+            resourceId: bulkJob.bulk_id,
+            details: { total_documents: documents.length },
+            ipAddress: req.ip
+        });
+
+        res.status(202).json({
+            status: 'accepted',
+            bulk_id: bulkJob.bulk_id,
+            total_documents: documents.length,
+            documents: results
+        });
+    } catch (error) {
+        console.error('Bulk verify endpoint error:', error);
+        res.status(500).json({ error: 'Internal server error', message: 'Failed to submit bulk verification' });
+    }
+});
+
+// ==========================================
+// GET /v1/verify/bulk/:bulk_id - Get bulk job status
+// ==========================================
+router.get('/bulk/:bulk_id', async (req, res) => {
+    try {
+        const job = await V1BulkJobModel.findByBulkId(req.params.bulk_id);
+        if (!job) {
+            return res.status(404).json({ error: 'Not found', message: 'Bulk job not found' });
+        }
+        if (job.user_id !== req.apiUser.userId && req.apiUser.role !== 'admin') {
+            return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+        }
+
+        // Refresh progress
+        await V1BulkJobModel.updateProgress(job.id);
+        const updated = await V1BulkJobModel.findByBulkId(req.params.bulk_id);
+
+        // Get individual items
+        const items = await V1BulkJobModel.getItems(job.id);
+
+        res.json({
+            success: true,
+            data: {
+                bulk_id: updated.bulk_id,
+                status: updated.status,
+                total_documents: updated.total_documents,
+                completed: updated.completed,
+                verified: updated.verified,
+                rejected: updated.rejected,
+                failed: updated.failed,
+                progress_percent: updated.total_documents > 0
+                    ? Math.round((updated.completed / updated.total_documents) * 100) : 0,
+                created_at: updated.created_at,
+                completed_at: updated.completed_at,
+                documents: items
+            }
+        });
+    } catch (error) {
+        console.error('Bulk status error:', error);
+        res.status(500).json({ error: 'Internal server error', message: 'Failed to fetch bulk status' });
+    }
+});
+
+// ==========================================
+// GET /v1/verify/bulk - List user's bulk jobs
+// ==========================================
+router.get('/bulk', async (req, res) => {
+    try {
+        const { page, limit } = req.query;
+        const result = await V1BulkJobModel.getByUserId(req.apiUser.userId, {
+            page: parseInt(page) || 1,
+            limit: parseInt(limit) || 20
+        });
+        res.json({ success: true, data: result });
+    } catch (error) {
+        console.error('List bulk jobs error:', error);
+        res.status(500).json({ error: 'Internal server error', message: 'Failed to list bulk jobs' });
     }
 });
 
