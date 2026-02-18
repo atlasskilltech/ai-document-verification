@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Document Verification - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        .log-info { color: #2563eb; }
+        .log-warn { color: #d97706; }
+        .log-error { color: #dc2626; }
+        .pulse { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+        .slide-in { animation: slideIn .3s ease-out; }
+        @keyframes slideIn { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }
+        #logContainer { font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.6; }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        .status-dot.active { background: #22c55e; box-shadow: 0 0 6px #22c55e; }
+        .status-dot.inactive { background: #6b7280; }
+        .status-dot.running { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; animation: pulse 1s infinite; }
+    </style>
+</head>
+<body class="bg-gray-950 text-gray-200 min-h-screen">
+
+<!-- Top Navigation -->
+<nav class="bg-gray-900 border-b border-gray-800 px-6 py-3 flex justify-between items-center sticky top-0 z-50">
+    <div class="flex items-center gap-3">
+        <i class="fas fa-robot text-blue-400 text-xl"></i>
+        <h1 class="text-lg font-bold text-white">AI Document Verification</h1>
+        <span id="engineStatus" class="ml-4 flex items-center gap-2 text-sm">
+            <span class="status-dot inactive" id="statusDot"></span>
+            <span id="statusText">Idle</span>
+        </span>
+    </div>
+    <div class="flex items-center gap-3">
+        <span class="text-xs text-gray-500" id="providerBadge"></span>
+        <a href="/dashboard" class="text-sm text-gray-400 hover:text-white transition"><i class="fas fa-arrow-left mr-1"></i> Main Dashboard</a>
+    </div>
+</nav>
+
+<div class="max-w-7xl mx-auto p-6">
+
+    <!-- Action Bar -->
+    <div class="flex flex-wrap gap-3 mb-6">
+        <button onclick="runBatch()" id="btnRunAll" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition flex items-center gap-2">
+            <i class="fas fa-play"></i> Run All Students
+        </button>
+        <button onclick="stopBatch()" id="btnStop" class="bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition flex items-center gap-2 hidden">
+            <i class="fas fa-stop"></i> Stop
+        </button>
+        <div class="flex items-center gap-2">
+            <input type="text" id="singleStudentId" placeholder="Application ID (e.g. 2500623)" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm w-64 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500">
+            <button onclick="runSingleStudent()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition">
+                <i class="fas fa-user-check mr-1"></i> Verify Student
+            </button>
+        </div>
+        <div class="ml-auto flex items-center gap-3">
+            <button onclick="toggleScheduler()" id="btnScheduler" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                <i class="fas fa-clock"></i> <span id="schedulerBtnText">Start Scheduler</span>
+            </button>
+            <button onclick="openConfig()" class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-2.5 rounded-lg text-sm transition">
+                <i class="fas fa-cog"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6" id="statsCards">
+        <div class="bg-gray-900 rounded-xl p-4 border border-gray-800">
+            <p class="text-xs text-gray-500 mb-1">Total Students</p>
+            <p class="text-2xl font-bold text-white" id="statTotal">-</p>
+        </div>
+        <div class="bg-gray-900 rounded-xl p-4 border border-gray-800">
+            <p class="text-xs text-gray-500 mb-1">Processed</p>
+            <p class="text-2xl font-bold text-blue-400" id="statProcessed">-</p>
+        </div>
+        <div class="bg-gray-900 rounded-xl p-4 border border-gray-800">
+            <p class="text-xs text-gray-500 mb-1">Docs Verified</p>
+            <p class="text-2xl font-bold text-purple-400" id="statDocs">-</p>
+        </div>
+        <div class="bg-gray-900 rounded-xl p-4 border border-gray-800">
+            <p class="text-xs text-gray-500 mb-1">Approved</p>
+            <p class="text-2xl font-bold text-green-400" id="statApproved">-</p>
+        </div>
+        <div class="bg-gray-900 rounded-xl p-4 border border-gray-800">
+            <p class="text-xs text-gray-500 mb-1">Rejected</p>
+            <p class="text-2xl font-bold text-red-400" id="statRejected">-</p>
+        </div>
+        <div class="bg-gray-900 rounded-xl p-4 border border-gray-800">
+            <p class="text-xs text-gray-500 mb-1">Errors</p>
+            <p class="text-2xl font-bold text-yellow-400" id="statErrors">-</p>
+        </div>
+    </div>
+
+    <!-- Progress Bar (visible during runs) -->
+    <div id="progressSection" class="mb-6 hidden">
+        <div class="bg-gray-900 rounded-xl p-4 border border-gray-800">
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-sm font-medium text-gray-300" id="progressLabel">Processing...</span>
+                <span class="text-sm text-gray-400" id="progressPercent">0%</span>
+            </div>
+            <div class="w-full bg-gray-800 rounded-full h-3">
+                <div id="progressBar" class="bg-gradient-to-r from-blue-500 to-blue-400 h-3 rounded-full transition-all duration-500" style="width:0%"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Left: Live Logs -->
+        <div class="lg:col-span-2">
+            <div class="bg-gray-900 rounded-xl border border-gray-800 flex flex-col" style="height: 520px;">
+                <div class="flex justify-between items-center px-4 py-3 border-b border-gray-800">
+                    <h3 class="font-semibold text-sm flex items-center gap-2">
+                        <i class="fas fa-terminal text-green-400"></i> Live Verification Logs
+                    </h3>
+                    <div class="flex gap-2">
+                        <button onclick="clearLogs()" class="text-xs text-gray-500 hover:text-gray-300">Clear</button>
+                        <label class="text-xs text-gray-500 flex items-center gap-1">
+                            <input type="checkbox" id="autoScroll" checked class="rounded"> Auto-scroll
+                        </label>
+                    </div>
+                </div>
+                <div id="logContainer" class="flex-1 overflow-y-auto p-4 space-y-0.5"></div>
+            </div>
+        </div>
+
+        <!-- Right: Run History + Current Run Students -->
+        <div class="space-y-6">
+            <!-- Current Run Students -->
+            <div class="bg-gray-900 rounded-xl border border-gray-800" style="max-height: 250px;">
+                <div class="px-4 py-3 border-b border-gray-800">
+                    <h3 class="font-semibold text-sm flex items-center gap-2">
+                        <i class="fas fa-users text-blue-400"></i> Current Run - Students
+                    </h3>
+                </div>
+                <div id="currentStudents" class="overflow-y-auto p-3 space-y-1" style="max-height: 200px;">
+                    <p class="text-gray-600 text-xs text-center py-4">No active run</p>
+                </div>
+            </div>
+
+            <!-- Run History -->
+            <div class="bg-gray-900 rounded-xl border border-gray-800" style="max-height: 250px;">
+                <div class="px-4 py-3 border-b border-gray-800">
+                    <h3 class="font-semibold text-sm flex items-center gap-2">
+                        <i class="fas fa-history text-gray-400"></i> Run History
+                    </h3>
+                </div>
+                <div id="runHistory" class="overflow-y-auto p-3 space-y-1" style="max-height: 200px;">
+                    <p class="text-gray-600 text-xs text-center py-4">No runs yet</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Config Modal -->
+<div id="configModal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center">
+    <div class="bg-gray-900 rounded-2xl border border-gray-700 p-6 w-full max-w-md slide-in">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-white"><i class="fas fa-cog mr-2"></i>Scheduler Configuration</h3>
+            <button onclick="closeConfig()" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="space-y-4">
+            <div>
+                <label class="text-xs text-gray-400 block mb-1">Cron Schedule</label>
+                <input type="text" id="cfgCron" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white">
+                <p class="text-xs text-gray-600 mt-1">e.g., "0 */2 * * *" = every 2 hours, "*/30 * * * *" = every 30 min</p>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="text-xs text-gray-400 block mb-1">Concurrency</label>
+                    <input type="number" id="cfgConcurrency" min="1" max="10" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-400 block mb-1">Retry Attempts</label>
+                    <input type="number" id="cfgRetry" min="1" max="10" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white">
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="text-xs text-gray-400 block mb-1">Student Delay (ms)</label>
+                    <input type="number" id="cfgStudentDelay" min="0" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white">
+                </div>
+                <div>
+                    <label class="text-xs text-gray-400 block mb-1">Doc Delay (ms)</label>
+                    <input type="number" id="cfgDocDelay" min="0" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white">
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <input type="checkbox" id="cfgSkipVerified" class="rounded">
+                <label for="cfgSkipVerified" class="text-sm text-gray-300">Skip already verified documents</label>
+            </div>
+            <button onclick="saveConfig()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-medium transition">
+                Save Configuration
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+const API = '/api/verification';
+let pollInterval = null;
+let lastLogCount = 0;
+
+// ==================== API HELPERS ====================
+async function apiFetch(url, opts = {}) {
+    const res = await fetch(API + url, {
+        headers: { 'Content-Type': 'application/json' },
+        ...opts
+    });
+    return res.json();
+}
+
+// ==================== STATUS POLLING ====================
+async function refreshStatus() {
+    try {
+        const { data } = await apiFetch('/status');
+        updateUI(data);
+    } catch (e) {
+        console.error('Status poll error:', e);
+    }
+}
+
+async function refreshLogs() {
+    try {
+        const { data } = await apiFetch('/logs?limit=200');
+        renderLogs(data);
+    } catch (e) {
+        console.error('Log poll error:', e);
+    }
+}
+
+function startPolling() {
+    if (pollInterval) return;
+    pollInterval = setInterval(() => {
+        refreshStatus();
+        refreshLogs();
+    }, 2000);
+}
+
+function stopPolling() {
+    if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+    }
+}
+
+// ==================== UI UPDATE ====================
+function updateUI(data) {
+    const { scheduler: sched, engine, currentRun, recentRuns } = data;
+
+    // Status indicator
+    const dot = document.getElementById('statusDot');
+    const text = document.getElementById('statusText');
+    if (engine.isRunning) {
+        dot.className = 'status-dot running';
+        text.textContent = 'Running';
+        text.className = 'text-yellow-400 font-medium';
+        document.getElementById('btnRunAll').classList.add('hidden');
+        document.getElementById('btnStop').classList.remove('hidden');
+    } else {
+        dot.className = sched.active ? 'status-dot active' : 'status-dot inactive';
+        text.textContent = sched.active ? 'Scheduled' : 'Idle';
+        text.className = sched.active ? 'text-green-400' : 'text-gray-400';
+        document.getElementById('btnRunAll').classList.remove('hidden');
+        document.getElementById('btnStop').classList.add('hidden');
+    }
+
+    // Provider badge
+    document.getElementById('providerBadge').textContent = `AI: ${engine.provider.toUpperCase()}`;
+
+    // Scheduler button
+    document.getElementById('schedulerBtnText').textContent = sched.active ? 'Stop Scheduler' : 'Start Scheduler';
+    document.getElementById('btnScheduler').className = sched.active
+        ? 'bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition flex items-center gap-2'
+        : 'bg-gray-700 hover:bg-gray-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition flex items-center gap-2';
+
+    // Stats from current run
+    if (currentRun) {
+        document.getElementById('statTotal').textContent = currentRun.totalStudents;
+        document.getElementById('statProcessed').textContent = currentRun.processed;
+        document.getElementById('statDocs').textContent = currentRun.totalDocsVerified;
+        document.getElementById('statApproved').textContent = currentRun.totalApproved;
+        document.getElementById('statRejected').textContent = currentRun.totalRejected;
+        document.getElementById('statErrors').textContent = currentRun.errors;
+
+        // Progress bar
+        if (currentRun.status === 'running' && currentRun.totalStudents > 0) {
+            document.getElementById('progressSection').classList.remove('hidden');
+            const pct = Math.round((currentRun.processed / currentRun.totalStudents) * 100);
+            document.getElementById('progressBar').style.width = pct + '%';
+            document.getElementById('progressPercent').textContent = pct + '%';
+            document.getElementById('progressLabel').textContent = `Processing ${currentRun.processed} of ${currentRun.totalStudents} students...`;
+        } else {
+            document.getElementById('progressSection').classList.add('hidden');
+        }
+    }
+
+    // Recent runs
+    renderRunHistory(recentRuns || []);
+}
+
+// ==================== RENDER FUNCTIONS ====================
+function renderLogs(logs) {
+    if (logs.length === lastLogCount) return;
+    lastLogCount = logs.length;
+
+    const container = document.getElementById('logContainer');
+    container.innerHTML = logs.map(l => {
+        const time = new Date(l.timestamp).toLocaleTimeString();
+        const cls = `log-${l.level}`;
+        const icon = l.level === 'error' ? '<i class="fas fa-times-circle"></i>' :
+                     l.level === 'warn' ? '<i class="fas fa-exclamation-triangle"></i>' :
+                     '<i class="fas fa-info-circle"></i>';
+        return `<div class="${cls}"><span class="text-gray-600">[${time}]</span> ${icon} ${escapeHtml(l.message)}</div>`;
+    }).join('');
+
+    if (document.getElementById('autoScroll').checked) {
+        container.scrollTop = container.scrollHeight;
+    }
+}
+
+function renderRunHistory(runs) {
+    const el = document.getElementById('runHistory');
+    if (runs.length === 0) {
+        el.innerHTML = '<p class="text-gray-600 text-xs text-center py-4">No runs yet</p>';
+        return;
+    }
+    el.innerHTML = runs.map(r => {
+        const time = new Date(r.startTime).toLocaleString();
+        const statusColor = r.status === 'completed' ? 'text-green-400' :
+                            r.status === 'stopped' ? 'text-yellow-400' :
+                            r.status === 'error' ? 'text-red-400' : 'text-blue-400';
+        const duration = r.endTime ? Math.round((new Date(r.endTime) - new Date(r.startTime)) / 1000) : '-';
+        return `<div class="flex justify-between items-center text-xs py-1.5 px-2 rounded hover:bg-gray-800">
+            <div>
+                <span class="${statusColor} font-medium">${r.status}</span>
+                <span class="text-gray-500 ml-2">${time}</span>
+            </div>
+            <div class="text-gray-400">
+                ${r.processed || 0} students &middot; ${duration}s
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function escapeHtml(text) {
+    const d = document.createElement('div');
+    d.textContent = text;
+    return d.innerHTML;
+}
+
+// ==================== ACTIONS ====================
+async function runBatch() {
+    if (!confirm('Start verifying ALL students? This will process every student from the Atlas API.')) return;
+    await apiFetch('/run', { method: 'POST' });
+    startPolling();
+    refreshStatus();
+    refreshLogs();
+}
+
+async function stopBatch() {
+    await apiFetch('/stop', { method: 'POST' });
+    refreshStatus();
+}
+
+async function runSingleStudent() {
+    const applnID = document.getElementById('singleStudentId').value.trim();
+    if (!applnID) return alert('Enter an Application ID');
+
+    document.getElementById('singleStudentId').value = '';
+    startPolling();
+
+    const res = await apiFetch('/run-student', {
+        method: 'POST',
+        body: JSON.stringify({ applnID })
+    });
+
+    if (!res.success) {
+        alert(res.message || 'Failed to start verification');
+    }
+
+    refreshStatus();
+    refreshLogs();
+}
+
+async function toggleScheduler() {
+    const { data } = await apiFetch('/status');
+    if (data.scheduler.active) {
+        await apiFetch('/scheduler/stop', { method: 'POST' });
+    } else {
+        await apiFetch('/scheduler/start', { method: 'POST' });
+    }
+    refreshStatus();
+}
+
+// ==================== CONFIG ====================
+async function openConfig() {
+    const { data } = await apiFetch('/config');
+    document.getElementById('cfgCron').value = data.cronSchedule;
+    document.getElementById('cfgConcurrency').value = data.concurrency;
+    document.getElementById('cfgRetry').value = data.retryAttempts;
+    document.getElementById('cfgStudentDelay').value = data.delayBetweenStudentsMs;
+    document.getElementById('cfgDocDelay').value = data.delayBetweenDocsMs;
+    document.getElementById('cfgSkipVerified').checked = data.skipAlreadyVerified;
+    document.getElementById('configModal').classList.remove('hidden');
+}
+
+function closeConfig() {
+    document.getElementById('configModal').classList.add('hidden');
+}
+
+async function saveConfig() {
+    await apiFetch('/config', {
+        method: 'PUT',
+        body: JSON.stringify({
+            cronSchedule: document.getElementById('cfgCron').value,
+            concurrency: parseInt(document.getElementById('cfgConcurrency').value),
+            retryAttempts: parseInt(document.getElementById('cfgRetry').value),
+            delayBetweenStudentsMs: parseInt(document.getElementById('cfgStudentDelay').value),
+            delayBetweenDocsMs: parseInt(document.getElementById('cfgDocDelay').value),
+            skipAlreadyVerified: document.getElementById('cfgSkipVerified').checked
+        })
+    });
+    closeConfig();
+    refreshStatus();
+}
+
+function clearLogs() {
+    document.getElementById('logContainer').innerHTML = '';
+    lastLogCount = 0;
+}
+
+// ==================== INIT ====================
+async function init() {
+    await refreshStatus();
+    await refreshLogs();
+    startPolling();
+}
+init();
+</script>
+</body>
+</html>
