@@ -81,17 +81,41 @@ Be strict but fair. Only approve if reasonably confident the document is correct
         return prompt;
     }
 
-    getMediaType(filename, contentType) {
-        const ext = filename.split('.').pop().toLowerCase();
+    /**
+     * Detect media type from file buffer magic bytes, filename, and content-type header.
+     * Checks magic bytes first for reliability, then falls back to content-type and extension.
+     */
+    getMediaType(filename, contentType, fileBuffer) {
+        // Check magic bytes first (most reliable)
+        if (fileBuffer && fileBuffer.length >= 5) {
+            const header = fileBuffer.slice(0, 5).toString('ascii');
+            if (header.startsWith('%PDF')) return 'application/pdf';
 
+            // Check binary signatures
+            const hex = fileBuffer.slice(0, 4).toString('hex');
+            if (hex === 'ffd8ffe0' || hex === 'ffd8ffe1' || hex === 'ffd8ffdb' || hex.startsWith('ffd8ff')) return 'image/jpeg';
+            if (hex === '89504e47') return 'image/png';
+            if (hex === '47494638') return 'image/gif';
+            if (hex === '52494646') {
+                // RIFF - could be WebP
+                if (fileBuffer.length >= 12) {
+                    const webp = fileBuffer.slice(8, 12).toString('ascii');
+                    if (webp === 'WEBP') return 'image/webp';
+                }
+            }
+        }
+
+        // Check content-type header
         if (contentType && contentType !== 'application/octet-stream') {
+            if (contentType.includes('pdf')) return 'application/pdf';
             if (contentType.includes('jpeg') || contentType.includes('jpg')) return 'image/jpeg';
             if (contentType.includes('png')) return 'image/png';
             if (contentType.includes('gif')) return 'image/gif';
             if (contentType.includes('webp')) return 'image/webp';
-            if (contentType.includes('pdf')) return 'application/pdf';
         }
 
+        // Fallback: file extension
+        const ext = (filename || '').split('.').pop().toLowerCase();
         const extMap = {
             'jpg': 'image/jpeg',
             'jpeg': 'image/jpeg',
@@ -148,10 +172,28 @@ Be strict but fair. Only approve if reasonably confident the document is correct
         return { buffer: compressed, mediaType: 'image/jpeg' };
     }
 
-    async verifyWithClaude(fileBuffer, document) {
-        let mediaType = this.getMediaType(document.filename, document.contentType);
+    /**
+     * Convert a PDF buffer to a JPEG image (first page) for providers that don't support PDFs directly.
+     */
+    async convertPdfToImage(fileBuffer) {
+        try {
+            // sharp with libvips can render PDF first page to image
+            const imageBuffer = await sharp(fileBuffer, { density: 200 })
+                .jpeg({ quality: 85 })
+                .toBuffer();
+            console.log(`[Verification] PDF converted to JPEG (${(imageBuffer.length / 1024 / 1024).toFixed(1)}MB)`);
+            return imageBuffer;
+        } catch (err) {
+            console.log(`[Verification] PDF to image conversion failed: ${err.message}`);
+            throw new Error(`PDF processing failed: ${err.message}. If using OpenAI, try switching to AI_PROVIDER=claude which natively supports PDFs.`);
+        }
+    }
 
-        // Compress if needed
+    async verifyWithClaude(fileBuffer, document) {
+        // Detect media type using magic bytes
+        let mediaType = this.getMediaType(document.filename, document.contentType, fileBuffer);
+
+        // Compress images if needed (PDFs pass through unchanged)
         const compressed = await this.compressImage(fileBuffer, mediaType);
         fileBuffer = compressed.buffer;
         mediaType = compressed.mediaType;
@@ -162,6 +204,7 @@ Be strict but fair. Only approve if reasonably confident the document is correct
         const contentBlocks = [];
 
         if (mediaType === 'application/pdf') {
+            // Claude natively supports PDF via document block
             contentBlocks.push({
                 type: 'document',
                 source: {
@@ -195,7 +238,15 @@ Be strict but fair. Only approve if reasonably confident the document is correct
     }
 
     async verifyWithOpenAI(fileBuffer, document) {
-        let mediaType = this.getMediaType(document.filename, document.contentType);
+        // Detect media type using magic bytes
+        let mediaType = this.getMediaType(document.filename, document.contentType, fileBuffer);
+
+        // If PDF, convert to image first since OpenAI vision API doesn't accept PDFs
+        if (mediaType === 'application/pdf') {
+            console.log(`[Verification] Converting PDF to image for OpenAI processing...`);
+            fileBuffer = await this.convertPdfToImage(fileBuffer);
+            mediaType = 'image/jpeg';
+        }
 
         // Compress if needed
         const compressed = await this.compressImage(fileBuffer, mediaType);
