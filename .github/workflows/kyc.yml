@@ -18,9 +18,9 @@ jobs:
           echo "$EC2_KEY" > ~/.ssh/key.pem
           chmod 600 ~/.ssh/key.pem
           ssh -i ~/.ssh/key.pem -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << 'EOF'
-            cd /home/ubuntu/kyc
+            cd /home/ubuntu/video-kyc
             git pull origin main
             npm install
-            pm2 restart kyc || pm2 start server.js --name kyc
+            pm2 restart video-kyc || pm2 start server.js --name video-kyc
           EOF
           rm -f ~/.ssh/key.pem
