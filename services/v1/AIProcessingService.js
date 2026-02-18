@@ -49,16 +49,60 @@ You MUST respond in valid JSON format only. No markdown, no extra text.`;
      */
     getDocumentTypeDescriptions() {
         return {
-            aadhaar: { name: 'Aadhaar Card', description: 'Indian unique identity card issued by UIDAI with 12-digit Aadhaar number, photo, QR code, and Government of India emblem' },
-            pan: { name: 'PAN Card', description: 'Indian Permanent Account Number card issued by Income Tax Dept with 10-character alphanumeric PAN, photo, and Income Tax Dept logo' },
-            passport: { name: 'Passport', description: 'International travel passport document with passport number, photo, nationality, and machine-readable zone (MRZ)' },
-            driving_license: { name: 'Driving License', description: 'Driving license/permit issued by transport authority with license number, vehicle classes, and photo' },
-            voter_id: { name: 'Voter ID / EPIC', description: 'Indian Election Photo ID Card (EPIC) issued by Election Commission with voter ID number and photo' },
-            bank_statement: { name: 'Bank Statement', description: 'Bank account statement showing account number, account holder name, bank logo, and transaction history' },
-            utility_bill: { name: 'Utility Bill', description: 'Utility bill (electricity, water, gas, phone) showing name, address, and bill amount' },
-            marksheet_10: { name: '10th Class Marksheet', description: 'Class 10 / SSC / Secondary School examination marksheet with roll number, subjects, marks, and board name' },
-            marksheet_12: { name: '12th Class Marksheet', description: 'Class 12 / HSC / Higher Secondary examination marksheet with roll number, subjects, marks, and board name' },
-            graduation_cert: { name: 'Graduation Certificate', description: 'University degree/graduation certificate with degree name, university name, student name, and year of passing' }
+            aadhaar: {
+                name: 'Aadhaar Card',
+                description: 'Indian unique identity card issued by UIDAI with 12-digit Aadhaar number, photo, QR code, and Government of India emblem',
+                confusable_with: []
+            },
+            pan: {
+                name: 'PAN Card',
+                description: 'Indian Permanent Account Number card issued by Income Tax Dept with 10-character alphanumeric PAN, photo, and Income Tax Dept logo',
+                confusable_with: []
+            },
+            passport: {
+                name: 'Passport',
+                description: 'International travel passport document with passport number, photo, nationality, and machine-readable zone (MRZ)',
+                confusable_with: []
+            },
+            driving_license: {
+                name: 'Driving License',
+                description: 'Driving license/permit issued by transport authority with license number, vehicle classes, and photo',
+                confusable_with: []
+            },
+            voter_id: {
+                name: 'Voter ID / EPIC',
+                description: 'Indian Election Photo ID Card (EPIC) issued by Election Commission with voter ID number and photo',
+                confusable_with: []
+            },
+            bank_statement: {
+                name: 'Bank Statement',
+                description: 'Bank account statement showing account number, account holder name, bank logo, and transaction history',
+                confusable_with: []
+            },
+            utility_bill: {
+                name: 'Utility Bill',
+                description: 'Utility bill (electricity, water, gas, phone) showing name, address, and bill amount',
+                confusable_with: []
+            },
+            marksheet_10: {
+                name: '10th Class Marksheet (SSC / Secondary School)',
+                description: 'Class 10 / SSC / SSLC / Secondary School Certificate examination marksheet. This is the 10th standard / Class X exam. It will contain keywords like "Secondary School Certificate", "SSC", "SSLC", "Class X", "10th", "Matriculation", or "Secondary Education". It must NOT contain "Higher Secondary", "HSC", "Senior Secondary", "Class XII", "12th", or "Intermediate".',
+                must_have_keywords: ['Secondary', 'SSC', 'SSLC', 'Class X', '10th', 'Matriculation', 'Class-X', 'Xth'],
+                must_not_have_keywords: ['Higher Secondary', 'HSC', 'Senior Secondary', 'Class XII', '12th', 'Intermediate', 'Class-XII', 'XIIth', 'Plus Two'],
+                confusable_with: ['marksheet_12']
+            },
+            marksheet_12: {
+                name: '12th Class Marksheet (HSC / Higher Secondary)',
+                description: 'Class 12 / HSC / Higher Secondary Certificate / Senior Secondary examination marksheet. This is the 12th standard / Class XII exam. It will contain keywords like "Higher Secondary", "HSC", "Senior Secondary", "Class XII", "12th", "Intermediate", or "Plus Two". It must NOT be a 10th / SSC / Secondary School Certificate.',
+                must_have_keywords: ['Higher Secondary', 'HSC', 'Senior Secondary', 'Class XII', '12th', 'Intermediate', 'Class-XII', 'XIIth', 'Plus Two'],
+                must_not_have_keywords: ['Secondary School Certificate', 'SSC Examination', 'SSLC', 'Class X Exam', 'Matriculation Exam'],
+                confusable_with: ['marksheet_10']
+            },
+            graduation_cert: {
+                name: 'Graduation Certificate',
+                description: 'University degree/graduation certificate with degree name (B.A., B.Sc., B.Tech, etc.), university name, student name, and year of passing',
+                confusable_with: ['marksheet_12']
+            }
         };
     }
 
@@ -68,23 +112,68 @@ You MUST respond in valid JSON format only. No markdown, no extra text.`;
         const expectedName = expectedDoc ? expectedDoc.name : documentType;
         const expectedDescription = expectedDoc ? expectedDoc.description : `A document of type "${documentType}"`;
 
-        let prompt = `STEP 1 - DOCUMENT TYPE VERIFICATION (MANDATORY):
+        let prompt = `STEP 1 - DOCUMENT TYPE VERIFICATION (MANDATORY - DO THIS FIRST):
 The user claims this is a "${expectedName}" (code: ${documentType}).
 Expected document: ${expectedDescription}
 
 You MUST first determine what type of document is ACTUALLY shown in this image.
-- Look at the document layout, logos, headers, format, and content
-- Determine the actual document type
+- Carefully read ALL text on the document including headers, titles, board names, and exam names
+- Determine the actual document type based on the content, NOT just the layout
 - Compare it against the expected type "${expectedName}"
 - If the actual document does NOT match the expected type, set document_type_match to false
 - If the image is blurry, blank, a random photo, or not a valid document, set document_type_match to false
+`;
 
-STEP 2 - DATA EXTRACTION (only if document type matches):
+        // Add keyword-based identification rules
+        if (expectedDoc?.must_have_keywords?.length) {
+            prompt += `\nKEYWORD CHECK - The document SHOULD contain at least one of these keywords/phrases to be a valid "${expectedName}":
+${expectedDoc.must_have_keywords.map(k => `  - "${k}"`).join('\n')}
+If NONE of these keywords are found on the document, it is likely NOT a ${expectedName}.\n`;
+        }
+
+        if (expectedDoc?.must_not_have_keywords?.length) {
+            prompt += `\nREJECTION KEYWORDS - If the document contains ANY of these keywords, it is NOT a "${expectedName}" and must be REJECTED:
+${expectedDoc.must_not_have_keywords.map(k => `  - "${k}"`).join('\n')}
+These keywords indicate a DIFFERENT document type.\n`;
+        }
+
+        // Warn about confusable types
+        if (expectedDoc?.confusable_with?.length) {
+            const confusableNames = expectedDoc.confusable_with.map(code => {
+                const desc = docDescriptions[code];
+                return desc ? `"${desc.name}" (${code})` : code;
+            }).join(', ');
+            prompt += `\nWARNING - COMMONLY CONFUSED DOCUMENTS:
+This document type is frequently confused with: ${confusableNames}.
+You MUST carefully distinguish between them. Pay close attention to:
+- The exact exam/certificate name printed on the document
+- Whether it says "Secondary" vs "Higher Secondary"
+- Whether it says "Class X" vs "Class XII"
+- Whether it says "10th" vs "12th"
+- The board/examination authority name and what exam level they indicate
+Do NOT assume the document matches just because it looks like a marksheet or certificate.\n`;
+        }
+
+        prompt += `\nSTEP 2 - DATA EXTRACTION (only if document type matches):
 `;
         prompt += `Extract the following fields from the ${expectedName}:\n`;
-        if (requiredFields && requiredFields.length > 0) {
-            requiredFields.forEach(field => {
-                prompt += `- ${field}\n`;
+        // Always ask for exam_class on marksheet-type docs
+        const fieldsToExtract = [...(requiredFields || [])];
+        if (documentType.startsWith('marksheet_') && !fieldsToExtract.includes('exam_class')) {
+            fieldsToExtract.push('exam_class');
+        }
+        if (documentType.startsWith('marksheet_') && !fieldsToExtract.includes('exam_name')) {
+            fieldsToExtract.push('exam_name');
+        }
+        if (fieldsToExtract && fieldsToExtract.length > 0) {
+            fieldsToExtract.forEach(field => {
+                if (field === 'exam_class') {
+                    prompt += `- exam_class (IMPORTANT: Extract the exact class/standard, e.g. "10th", "12th", "Class X", "Class XII")\n`;
+                } else if (field === 'exam_name') {
+                    prompt += `- exam_name (IMPORTANT: Extract the full exam name, e.g. "Secondary School Certificate", "Higher Secondary Certificate")\n`;
+                } else {
+                    prompt += `- ${field}\n`;
+                }
             });
         } else {
             prompt += `- Any visible text fields, names, dates, ID numbers\n`;
