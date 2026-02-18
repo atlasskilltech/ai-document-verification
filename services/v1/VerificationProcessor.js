@@ -1,5 +1,6 @@
 const V1VerificationRequestModel = require('../../models/v1/V1VerificationRequestModel');
 const V1DocumentMasterModel = require('../../models/v1/V1DocumentMasterModel');
+const V1BulkJobModel = require('../../models/v1/V1BulkJobModel');
 const AIProcessingService = require('./AIProcessingService');
 const RuleEngineService = require('./RuleEngineService');
 const WebhookService = require('./WebhookService');
@@ -96,6 +97,9 @@ class VerificationProcessor {
 
             console.log(`[VerificationProcessor] Request ${request.system_reference_id} completed: ${finalStatus} (confidence: ${ruleResult.confidence}%)`);
 
+            // 9. If part of a bulk job, update progress
+            await this._updateBulkProgress(requestId);
+
         } catch (error) {
             console.error(`[VerificationProcessor] Error processing request ${requestId}:`, error.message);
 
@@ -118,10 +122,47 @@ class VerificationProcessor {
                         resourceId: request.system_reference_id,
                         details: { error: error.message }
                     });
+
+                    // Update bulk progress on failure too
+                    await this._updateBulkProgress(requestId);
                 }
             } catch (updateErr) {
                 console.error('[VerificationProcessor] Failed to update error status:', updateErr.message);
             }
+        }
+    }
+
+    /**
+     * Check if this request is part of a bulk job and update its progress
+     */
+    static async _updateBulkProgress(requestId) {
+        try {
+            const pool = require('../../config/database');
+            const [links] = await pool.query(
+                'SELECT bulk_job_id FROM v1_bulk_job_items WHERE verification_request_id = ?',
+                [requestId]
+            );
+            if (links.length > 0) {
+                const updatedJob = await V1BulkJobModel.updateProgress(links[0].bulk_job_id);
+                if (updatedJob && ['completed', 'partial', 'failed'].includes(updatedJob.status)) {
+                    console.log(`[VerificationProcessor] Bulk job ${updatedJob.bulk_id || links[0].bulk_job_id} finished: ${updatedJob.status}`);
+                    // Trigger bulk completion webhook
+                    const job = await V1BulkJobModel.findById(links[0].bulk_job_id);
+                    if (job) {
+                        WebhookService.trigger(job.user_id, 'bulk.completed', {
+                            bulk_id: job.bulk_id,
+                            status: updatedJob.status,
+                            total: job.total_documents,
+                            verified: updatedJob.verified,
+                            rejected: updatedJob.rejected,
+                            failed: updatedJob.failed
+                        }).catch(() => {});
+                    }
+                }
+            }
+        } catch (err) {
+            // Non-critical, log and continue
+            console.error('[VerificationProcessor] Bulk progress update error:', err.message);
         }
     }
 }

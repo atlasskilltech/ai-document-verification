@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Documentation - AI Document Verification Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body { background: #0f172a; }
+        .glass { background: rgba(30, 41, 59, 0.6); backdrop-filter: blur(8px); border: 1px solid rgba(71, 85, 105, 0.3); }
+        .code-block { background: #1e293b; border: 1px solid rgba(71, 85, 105, 0.4); font-family: 'Courier New', monospace; }
+        .method-get { background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
+        .method-post { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+        .method-put { background: rgba(234, 179, 8, 0.15); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.3); }
+        .method-delete { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+        .sidebar-link { transition: all 0.15s; }
+        .sidebar-link:hover, .sidebar-link.active { background: rgba(59, 130, 246, 0.15); color: #93c5fd; }
+        .endpoint-card { transition: all 0.2s; }
+        .endpoint-card:hover { border-color: rgba(59, 130, 246, 0.4); }
+        .tab-btn.active { border-bottom: 2px solid #3b82f6; color: #93c5fd; }
+        pre { white-space: pre-wrap; word-wrap: break-word; }
+        .copy-btn:hover { background: rgba(59, 130, 246, 0.3); }
+    </style>
+</head>
+<body class="text-gray-200 min-h-screen">
+    <!-- Header -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-gray-900/95 backdrop-blur border-b border-gray-800">
+        <div class="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-blue-600/20 flex items-center justify-center">
+                    <i class="fas fa-shield-halved text-blue-400"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-white text-sm">Document Verification API</h1>
+                    <p class="text-[10px] text-gray-500">v1 Documentation</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="px-2 py-1 rounded-lg bg-green-600/20 text-green-400 text-xs font-medium">v1.0</span>
+                <a href="/v1/login" class="px-3 py-1.5 rounded-lg bg-blue-600/20 text-blue-400 text-xs hover:bg-blue-600/30 border border-blue-600/30">Login</a>
+                <a href="/v1/user-dashboard" class="px-3 py-1.5 rounded-lg bg-blue-600/20 text-blue-400 text-xs hover:bg-blue-600/30 border border-blue-600/30">Dashboard</a>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex pt-14">
+        <!-- Sidebar Navigation -->
+        <aside class="fixed left-0 top-14 bottom-0 w-64 bg-gray-900 border-r border-gray-800 overflow-y-auto z-30">
+            <nav class="p-3">
+                <p class="px-3 py-2 text-[10px] text-gray-500 uppercase font-semibold tracking-wider">Getting Started</p>
+                <ul class="space-y-0.5 mb-4">
+                    <li><a href="#overview" class="sidebar-link active flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" onclick="scrollToSection('overview')">
+                        <i class="fas fa-home w-4 text-center"></i> Overview</a></li>
+                    <li><a href="#authentication" class="sidebar-link flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" onclick="scrollToSection('authentication')">
+                        <i class="fas fa-lock w-4 text-center"></i> Authentication</a></li>
+                    <li><a href="#quickstart" class="sidebar-link flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" onclick="scrollToSection('quickstart')">
+                        <i class="fas fa-rocket w-4 text-center"></i> Quick Start</a></li>
+                    <li><a href="#errors" class="sidebar-link flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" onclick="scrollToSection('errors')">
+                        <i class="fas fa-triangle-exclamation w-4 text-center"></i> Error Handling</a></li>
+                    <li><a href="#ratelimits" class="sidebar-link flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" onclick="scrollToSection('ratelimits')">
+                        <i class="fas fa-gauge w-4 text-center"></i> Rate Limits</a></li>
+                </ul>
+
+                <p class="px-3 py-2 text-[10px] text-gray-500 uppercase font-semibold tracking-wider">Auth Endpoints</p>
+                <ul class="space-y-0.5 mb-4">
+                    <li><a href="#auth-register" class="sidebar-link flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" onclick="scrollToSection('auth-register')">
+                        <span class="px-1 rounded text-[9px] font-bold method-post">POST</span> Register</a></li>
+                    <li><a href="#auth-login" class="sidebar-link flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" onclick="scrollToSection('auth-login')">
+                        <span class="px-1 rounded text-[9px] font-bold method-post">POST</span> Login</a></li>
+                    <li><a href="#auth-apikey" class="sidebar-link flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" onclick="scrollToSection('auth-apikey')">
+                        <span class="px-1 rounded text-[9px] font-bold method-post">POST</span> Generate API Key</a></li>
+                </ul>
+
+                <p class="px-3 py-2 text-[10px] text-gray-500 uppercase font-semibold tracking-wider">Verification</p>
+                <ul class="space-y-0.5 mb-4">
+                    <li><a href="#verify-single" class="sidebar-link flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" onclick="scrollToSection('verify-single')">
+                        <span class="px-1 rounded text-[9px] font-bold method-post">POST</span> Verify Document</a></li>
+                    <li><a href="#verify-bulk" class="sidebar-link flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" onclick="scrollToSection('verify-bulk')">
+                        <span class="px-1 rounded text-[9px] font-bold method-post">POST</span> Bulk Verify</a></li>
+                    <li><a href="#verify-status" class="sidebar-link flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" onclick="scrollToSection('verify-status')">
+                        <span class="px-1 rounded text-[9px] font-bold method-get">GET</span> Check Status</a></li>
+                    <li><a href="#verify-result" class="sidebar-link flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" onclick="scrollToSection('verify-result')">
+                        <span class="px-1 rounded text-[9px] font-bold method-get">GET</span> Get Result</a></li>
+                    <li><a href="#verify-bulk-status" class="sidebar-link flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" onclick="scrollToSection('verify-bulk-status')">
+                        <span class="px-1 rounded text-[9px] font-bold method-get">GET</span> Bulk Job Status</a></li>
+                    <li><a href="#verify-requests" class="sidebar-link flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" onclick="scrollToSection('verify-requests')">
+                        <span class="px-1 rounded text-[9px] font-bold method-get">GET</span> List Requests</a></li>
+                    <li><a href="#verify-doctypes" class="sidebar-link flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" onclick="scrollToSection('verify-doctypes')">
+                        <span class="px-1 rounded text-[9px] font-bold method-get">GET</span> Document Types</a></li>
+                </ul>
+
+                <p class="px-3 py-2 text-[10px] text-gray-500 uppercase font-semibold tracking-wider">Document Setup</p>
+                <ul class="space-y-0.5 mb-4">
+                    <li><a href="#doctype-create" class="sidebar-link flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" onclick="scrollToSection('doctype-create')">
+                        <span class="px-1 rounded text-[9px] font-bold method-post">POST</span> Create Type</a></li>
+                    <li><a href="#doctype-update" class="sidebar-link flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" onclick="scrollToSection('doctype-update')">
+                        <span class="px-1 rounded text-[9px] font-bold method-put">PUT</span> Update Type</a></li>
+                    <li><a href="#doctype-delete" class="sidebar-link flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" onclick="scrollToSection('doctype-delete')">
+                        <span class="px-1 rounded text-[9px] font-bold method-delete">DEL</span> Delete Type</a></li>
+                </ul>
+
+                <p class="px-3 py-2 text-[10px] text-gray-500 uppercase font-semibold tracking-wider">Webhooks</p>
+                <ul class="space-y-0.5 mb-4">
+                    <li><a href="#webhook-register" class="sidebar-link flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" onclick="scrollToSection('webhook-register')">
+                        <span class="px-1 rounded text-[9px] font-bold method-post">POST</span> Register</a></li>
+                    <li><a href="#webhook-events" class="sidebar-link flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" onclick="scrollToSection('webhook-events')">
+                        <i class="fas fa-bolt w-4 text-center"></i> Events & Signatures</a></li>
+                </ul>
+
+                <p class="px-3 py-2 text-[10px] text-gray-500 uppercase font-semibold tracking-wider">Code Samples</p>
+                <ul class="space-y-0.5">
+                    <li><a href="#code-node" class="sidebar-link flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" onclick="scrollToSection('code-node')">
+                        <i class="fab fa-node-js w-4 text-center"></i> Node.js</a></li>
+                    <li><a href="#code-python" class="sidebar-link flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" onclick="scrollToSection('code-python')">
+                        <i class="fab fa-python w-4 text-center"></i> Python</a></li>
+                    <li><a href="#code-curl" class="sidebar-link flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" onclick="scrollToSection('code-curl')">
+                        <i class="fas fa-terminal w-4 text-center"></i> cURL</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="ml-64 p-8 max-w-5xl">
+
+            <!-- Overview -->
+            <section id="overview" class="mb-12">
+                <h2 class="text-2xl font-bold text-white mb-4">AI Document Verification API</h2>
+                <p class="text-gray-300 mb-4">A powerful API for verifying identity documents using AI-powered OCR and rule-based validation. Submit documents via URL, and receive structured verification results with extracted data, confidence scores, and issue reports.</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="glass rounded-xl p-5">
+                        <div class="w-10 h-10 rounded-lg bg-blue-600/20 flex items-center justify-center mb-3"><i class="fas fa-bolt text-blue-400"></i></div>
+                        <h3 class="font-semibold text-white text-sm mb-1">URL Push Model</h3>
+                        <p class="text-xs text-gray-400">Push document URLs to our API. No file uploads needed. We fetch, analyze, and return results.</p>
+                    </div>
+                    <div class="glass rounded-xl p-5">
+                        <div class="w-10 h-10 rounded-lg bg-green-600/20 flex items-center justify-center mb-3"><i class="fas fa-brain text-green-400"></i></div>
+                        <h3 class="font-semibold text-white text-sm mb-1">AI-Powered OCR</h3>
+                        <p class="text-xs text-gray-400">OpenAI Vision extracts fields from documents. Custom validation rules verify extracted data.</p>
+                    </div>
+                    <div class="glass rounded-xl p-5">
+                        <div class="w-10 h-10 rounded-lg bg-purple-600/20 flex items-center justify-center mb-3"><i class="fas fa-layer-group text-purple-400"></i></div>
+                        <h3 class="font-semibold text-white text-sm mb-1">Bulk Processing</h3>
+                        <p class="text-xs text-gray-400">Submit up to 50 documents in a single API call. Track batch progress in real-time.</p>
+                    </div>
+                </div>
+
+                <div class="glass rounded-xl p-5">
+                    <h3 class="font-semibold text-white text-sm mb-3">Base URL</h3>
+                    <div class="code-block rounded-lg p-3 flex items-center justify-between">
+                        <code class="text-green-400 text-sm" id="baseUrl">http://localhost:3000</code>
+                        <button onclick="copyText(document.getElementById('baseUrl').textContent)" class="copy-btn px-2 py-1 rounded text-xs text-gray-400 hover:text-white"><i class="fas fa-copy"></i></button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Authentication -->
+            <section id="authentication" class="mb-12">
+                <h2 class="text-xl font-bold text-white mb-4"><i class="fas fa-lock mr-2 text-yellow-400"></i>Authentication</h2>
+                <p class="text-gray-300 text-sm mb-4">The API uses two authentication methods:</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div class="glass rounded-xl p-5">
+                        <h3 class="font-semibold text-white text-sm mb-2"><i class="fas fa-key mr-2 text-yellow-400"></i>API Key (Primary)</h3>
+                        <p class="text-xs text-gray-400 mb-3">Used for all verification endpoints. Pass your API key as a Bearer token.</p>
+                        <div class="code-block rounded-lg p-3">
+                            <pre class="text-xs text-gray-300">Authorization: Bearer vk_your_api_key_here</pre>
+                        </div>
+                    </div>
+                    <div class="glass rounded-xl p-5">
+                        <h3 class="font-semibold text-white text-sm mb-2"><i class="fas fa-id-badge mr-2 text-blue-400"></i>JWT Token</h3>
+                        <p class="text-xs text-gray-400 mb-3">Used for account management (profile, key generation). Obtained via login.</p>
+                        <div class="code-block rounded-lg p-3">
+                            <pre class="text-xs text-gray-300">Authorization: Bearer eyJhbGciOi...</pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass rounded-xl p-4 flex items-start gap-3">
+                    <i class="fas fa-info-circle text-blue-400 mt-0.5"></i>
+                    <div class="text-xs text-gray-300">
+                        <strong class="text-white">Integration Flow:</strong> Register &rarr; Login (get JWT) &rarr; Generate API Key (using JWT) &rarr; Use API Key for all verification calls.
+                    </div>
+                </div>
+            </section>
+
+            <!-- Quick Start -->
+            <section id="quickstart" class="mb-12">
+                <h2 class="text-xl font-bold text-white mb-4"><i class="fas fa-rocket mr-2 text-green-400"></i>Quick Start</h2>
+                <div class="space-y-4">
+                    <div class="glass rounded-xl p-5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <span class="w-7 h-7 rounded-full bg-blue-600/30 flex items-center justify-center text-xs font-bold text-blue-300">1</span>
+                            <h3 class="font-semibold text-white text-sm">Register an Account</h3>
+                        </div>
+                        <div class="code-block rounded-lg p-4">
+<pre class="text-xs text-gray-300">curl -X POST http://localhost:3000/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "John Doe",
+    "email": "john@example.com",
+    "password": "securepassword123"
+  }'</pre>
+                        </div>
+                    </div>
+
+                    <div class="glass rounded-xl p-5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <span class="w-7 h-7 rounded-full bg-blue-600/30 flex items-center justify-center text-xs font-bold text-blue-300">2</span>
+                            <h3 class="font-semibold text-white text-sm">Login & Get JWT Token</h3>
+                        </div>
+                        <div class="code-block rounded-lg p-4">
+<pre class="text-xs text-gray-300">curl -X POST http://localhost:3000/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "john@example.com",
+    "password": "securepassword123"
+  }'
+
+# Response: { "token": "eyJ...", "user": { ... } }</pre>
+                        </div>
+                    </div>
+
+                    <div class="glass rounded-xl p-5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <span class="w-7 h-7 rounded-full bg-blue-600/30 flex items-center justify-center text-xs font-bold text-blue-300">3</span>
+                            <h3 class="font-semibold text-white text-sm">Generate an API Key</h3>
+                        </div>
+                        <div class="code-block rounded-lg p-4">
+<pre class="text-xs text-gray-300">curl -X POST http://localhost:3000/v1/auth/api/generate \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{ "name": "Production Key" }'
+
+# Response: { "data": { "api_key": "vk_abc123..." } }</pre>
+                        </div>
+                    </div>
+
+                    <div class="glass rounded-xl p-5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <span class="w-7 h-7 rounded-full bg-green-600/30 flex items-center justify-center text-xs font-bold text-green-300">4</span>
+                            <h3 class="font-semibold text-white text-sm">Verify a Document</h3>
+                        </div>
+                        <div class="code-block rounded-lg p-4">
+<pre class="text-xs text-gray-300">curl -X POST http://localhost:3000/v1/verify \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer vk_your_api_key" \
+  -d '{
+    "document_type": "aadhaar",
+    "file_url": "https://your-s3.com/documents/aadhaar.jpg",
+    "reference_id": "USER_123",
+    "metadata": { "applicant_name": "Rahul Sharma" }
+  }'
+
+# Response: { "status": "accepted", "system_reference_id": "DOC..." }</pre>
+                        </div>
+                    </div>
+
+                    <div class="glass rounded-xl p-5">
+                        <div class="flex items-center gap-3 mb-3">
+                            <span class="w-7 h-7 rounded-full bg-green-600/30 flex items-center justify-center text-xs font-bold text-green-300">5</span>
+                            <h3 class="font-semibold text-white text-sm">Fetch the Result</h3>
+                        </div>
+                        <div class="code-block rounded-lg p-4">
+<pre class="text-xs text-gray-300">curl http://localhost:3000/v1/result/DOC_REFERENCE_ID \
+  -H "Authorization: Bearer vk_your_api_key"
+
+# Response: {
+#   "status": "verified",
+#   "confidence": 95.5,
+#   "extracted_data": { "name": "Rahul Sharma", "id_number": "1234 5678 9012" },
+#   "issues": []
+# }</pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Error Handling -->
+            <section id="errors" class="mb-12">
+                <h2 class="text-xl font-bold text-white mb-4"><i class="fas fa-triangle-exclamation mr-2 text-red-400"></i>Error Handling</h2>
+                <p class="text-gray-300 text-sm mb-4">All errors return a consistent JSON structure:</p>
+                <div class="code-block rounded-lg p-4 mb-4">
+<pre class="text-xs text-gray-300">{
+  "error": "Error type",
+  "message": "Human-readable description of what went wrong"
+}</pre>
+                </div>
+                <div class="glass rounded-xl overflow-hidden">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-800/50 text-xs text-gray-400 uppercase">
+                            <tr><th class="px-4 py-2.5 text-left">Status</th><th class="px-4 py-2.5 text-left">Meaning</th><th class="px-4 py-2.5 text-left">Common Causes</th></tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-800/50 text-xs">
+                            <tr><td class="px-4 py-2.5 text-yellow-400 font-mono">400</td><td class="px-4 py-2.5 text-white">Bad Request</td><td class="px-4 py-2.5 text-gray-400">Missing required fields, invalid document_type, unsupported format</td></tr>
+                            <tr><td class="px-4 py-2.5 text-yellow-400 font-mono">401</td><td class="px-4 py-2.5 text-white">Unauthorized</td><td class="px-4 py-2.5 text-gray-400">Missing or invalid API key / JWT token</td></tr>
+                            <tr><td class="px-4 py-2.5 text-yellow-400 font-mono">403</td><td class="px-4 py-2.5 text-white">Forbidden</td><td class="px-4 py-2.5 text-gray-400">Accessing another user's resource, insufficient role</td></tr>
+                            <tr><td class="px-4 py-2.5 text-yellow-400 font-mono">404</td><td class="px-4 py-2.5 text-white">Not Found</td><td class="px-4 py-2.5 text-gray-400">Verification request or resource not found</td></tr>
+                            <tr><td class="px-4 py-2.5 text-yellow-400 font-mono">409</td><td class="px-4 py-2.5 text-white">Conflict</td><td class="px-4 py-2.5 text-gray-400">Duplicate document type code</td></tr>
+                            <tr><td class="px-4 py-2.5 text-yellow-400 font-mono">429</td><td class="px-4 py-2.5 text-white">Too Many Requests</td><td class="px-4 py-2.5 text-gray-400">Rate limit exceeded (hourly or burst)</td></tr>
+                            <tr><td class="px-4 py-2.5 text-red-400 font-mono">500</td><td class="px-4 py-2.5 text-white">Server Error</td><td class="px-4 py-2.5 text-gray-400">Internal error, contact support</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Rate Limits -->
+            <section id="ratelimits" class="mb-12">
+                <h2 class="text-xl font-bold text-white mb-4"><i class="fas fa-gauge mr-2 text-orange-400"></i>Rate Limits</h2>
+                <div class="glass rounded-xl p-5">
+                    <p class="text-sm text-gray-300 mb-3">Each API key has configurable rate limits (set during key generation):</p>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-gray-800/50 rounded-lg p-3">
+                            <p class="text-[10px] text-gray-500 uppercase mb-1">Hourly Limit</p>
+                            <p class="text-white text-sm font-semibold">Default: 1,000 requests/hour</p>
+                        </div>
+                        <div class="bg-gray-800/50 rounded-lg p-3">
+                            <p class="text-[10px] text-gray-500 uppercase mb-1">Burst Limit</p>
+                            <p class="text-white text-sm font-semibold">Default: 50 requests/minute</p>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-3">When rate limited, you'll receive a <code class="text-yellow-400">429</code> response. Wait for the limit window to reset before retrying.</p>
+                </div>
+            </section>
+
+            <!-- Auth Endpoints -->
+            <section id="auth-register" class="mb-8">
+                <div class="glass rounded-xl p-6 endpoint-card">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="px-2 py-1 rounded text-xs font-bold method-post">POST</span>
+                        <code class="text-white text-sm">/v1/auth/register</code>
+                        <span class="text-gray-500 text-xs ml-2">Create a new account</span>
+                    </div>
+                    <p class="text-xs text-gray-400 mb-3">No authentication required.</p>
+                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Request Body</h4>
+                    <div class="code-block rounded-lg p-3 mb-3">
+<pre class="text-xs text-gray-300">{
+  "name": "string (required)",
+  "email": "string (required, unique)",
+  "password": "string (required, min 6 chars)"
+}</pre>
+                    </div>
+                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Response <span class="text-green-400">201</span></h4>
+                    <div class="code-block rounded-lg p-3">
+<pre class="text-xs text-gray-300">{
+  "success": true,
+  "message": "Registration successful",
+  "data": {
+    "token": "eyJhbGciOi...",
+    "user": { "id": 1, "name": "John", "email": "john@example.com", "role": "user" }
+  }
+}</pre>
+                    </div>
+                </div>
+            </section>
+
+            <section id="auth-login" class="mb-8">
+                <div class="glass rounded-xl p-6 endpoint-card">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="px-2 py-1 rounded text-xs font-bold method-post">POST</span>
+                        <code class="text-white text-sm">/v1/auth/login</code>
+                        <span class="text-gray-500 text-xs ml-2">Login and get JWT token</span>
+                    </div>
+                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Request Body</h4>
+                    <div class="code-block rounded-lg p-3 mb-3">
+<pre class="text-xs text-gray-300">{
+  "email": "string (required)",
+  "password": "string (required)"
+}</pre>
+                    </div>
+                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Response <span class="text-green-400">200</span></h4>
+                    <div class="code-block rounded-lg p-3">
+<pre class="text-xs text-gray-300">{
+  "success": true,
+  "data": {
+    "token": "eyJhbGciOi...",
+    "user": { "id": 1, "name": "John", "email": "john@example.com", "role": "user" }
+  }
+}</pre>
+                    </div>
+                </div>
+            </section>
+
+            <section id="auth-apikey" class="mb-12">
+                <div class="glass rounded-xl p-6 endpoint-card">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="px-2 py-1 rounded text-xs font-bold method-post">POST</span>
+                        <code class="text-white text-sm">/v1/auth/api/generate</code>
+                        <span class="text-gray-500 text-xs ml-2">Generate API key (JWT auth required)</span>
+                    </div>
+                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Request Body</h4>
+                    <div class="code-block rounded-lg p-3 mb-3">
+<pre class="text-xs text-gray-300">{
+  "name": "string (optional, default: 'Default')",
+  "rate_limit": "number (optional, default: 1000, requests/hour)",
+  "burst_limit": "number (optional, default: 50, requests/minute)"
+}</pre>
+                    </div>
+                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Response <span class="text-green-400">201</span></h4>
+                    <div class="code-block rounded-lg p-3">
+<pre class="text-xs text-gray-300">{
+  "success": true,
+  "data": {
+    "id": 1,
+    "api_key": "vk_abc123def456...",
+    "name": "Production Key"
+  }
+}</pre>
+                    </div>
+                    <div class="mt-3 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-xs text-yellow-300">
+                        <i class="fas fa-exclamation-triangle mr-1"></i> Save the API key immediately. It won't be shown again in full.
+                    </div>
+                </div>
+            </section>
+
+            <!-- Verify Single -->
+            <section id="verify-single" class="mb-8">
+                <h2 class="text-xl font-bold text-white mb-4"><i class="fas fa-file-circle-check mr-2 text-green-400"></i>Verification Endpoints</h2>
+                <div class="glass rounded-xl p-6 endpoint-card">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="px-2 py-1 rounded text-xs font-bold method-post">POST</span>
+                        <code class="text-white text-sm">/v1/verify</code>
+                        <span class="text-gray-500 text-xs ml-2">Submit single document for verification</span>
+                    </div>
+                    <p class="text-xs text-gray-400 mb-3">Requires API Key auth. Async - returns immediately with a reference ID. Poll status/result endpoints for outcome.</p>
+                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Request Body</h4>
+                    <div class="code-block rounded-lg p-3 mb-3">
+<pre class="text-xs text-gray-300">{
+  "document_type": "string (required) - e.g. 'aadhaar', 'pan', 'passport'",
+  "file_url": "string (required) - Public URL to the document image/PDF",
+  "reference_id": "string (optional) - Your own tracking ID",
+  "metadata": {
+    "key": "value (optional) - Cross-verification data e.g. applicant name"
+  }
+}</pre>
+                    </div>
+                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Response <span class="text-green-400">202 Accepted</span></h4>
+                    <div class="code-block rounded-lg p-3 mb-3">
+<pre class="text-xs text-gray-300">{
+  "status": "accepted",
+  "system_reference_id": "DOCLXYZ12345ABC",
+  "processing_status": "processing"
+}</pre>
+                    </div>
+                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Available Document Types</h4>
+                    <div class="flex flex-wrap gap-2 mt-2">
+                        <span class="px-2 py-1 rounded bg-gray-800 text-xs text-gray-300">aadhaar</span>
+                        <span class="px-2 py-1 rounded bg-gray-800 text-xs text-gray-300">pan</span>
+                        <span class="px-2 py-1 rounded bg-gray-800 text-xs text-gray-300">passport</span>
+                        <span class="px-2 py-1 rounded bg-gray-800 text-xs text-gray-300">driving_license</span>
+                        <span class="px-2 py-1 rounded bg-gray-800 text-xs text-gray-300">voter_id</span>
+                        <span class="px-2 py-1 rounded bg-gray-800 text-xs text-gray-300">bank_statement</span>
+                        <span class="px-2 py-1 rounded bg-gray-800 text-xs text-gray-300">utility_bill</span>
+                        <span class="px-2 py-1 rounded bg-gray-800 text-xs text-gray-300">marksheet_10</span>
+                        <span class="px-2 py-1 rounded bg-gray-800 text-xs text-gray-300">marksheet_12</span>
+                        <span class="px-2 py-1 rounded bg-gray-800 text-xs text-gray-300">graduation_cert</span>
+                        <span class="px-2 py-1 rounded bg-gray-800 text-xs text-gray-300 italic">+ your custom types</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Bulk Verify -->
+            <section id="verify-bulk" class="mb-8">
+                <div class="glass rounded-xl p-6 endpoint-card border-purple-500/20">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="px-2 py-1 rounded text-xs font-bold method-post">POST</span>
+                        <code class="text-white text-sm">/v1/verify/bulk</code>
+                        <span class="px-2 py-0.5 rounded bg-purple-600/20 text-purple-300 text-[10px] font-medium ml-2">BULK</span>
+                    </div>
+                    <p class="text-xs text-gray-400 mb-3">Submit up to 50 documents in a single request. All documents are validated before any are queued. Returns a bulk_id for tracking the batch.</p>
+                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Request Body</h4>
+                    <div class="code-block rounded-lg p-3 mb-3">
+<pre class="text-xs text-gray-300">{
+  "documents": [
+    {
+      "document_type": "aadhaar",
+      "file_url": "https://s3.example.com/doc1.jpg",
+      "reference_id": "APP_001",
+      "metadata": { "name": "Rahul Sharma" }
+    },
+    {
+      "document_type": "pan",
+      "file_url": "https://s3.example.com/doc2.jpg",
+      "reference_id": "APP_001_PAN"
+    },
+    {
+      "document_type": "passport",
+      "file_url": "https://s3.example.com/doc3.pdf"
+    }
+  ],
+  "callback_url": "https://your-server.com/webhook/bulk-done (optional)",
+  "metadata": { "batch_name": "Jan Intake" }
+}</pre>
+                    </div>
+                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Response <span class="text-green-400">202 Accepted</span></h4>
+                    <div class="code-block rounded-lg p-3 mb-3">
+<pre class="text-xs text-gray-300">{
+  "status": "accepted",
+  "bulk_id": "BULKLXYZ12345ABC",
+  "total_documents": 3,
+  "documents": [
+    { "index": 0, "system_reference_id": "DOCA1B2C3", "document_type": "aadhaar", "status": "accepted" },
+    { "index": 1, "system_reference_id": "DOCD4E5F6", "document_type": "pan", "status": "accepted" },
+    { "index": 2, "system_reference_id": "DOCG7H8I9", "document_type": "passport", "status": "accepted" }
+  ]
+}</pre>
+                    </div>
+                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Validation Error <span class="text-red-400">400</span></h4>
+                    <div class="code-block rounded-lg p-3">
+<pre class="text-xs text-gray-300">{
+  "error": "Validation failed",
+  "message": "2 document(s) failed validation",
+  "errors": [
+    { "index": 0, "message": "Unknown document_type: 'xyz'" },
+    { "index": 2, "message": "File format 'exe' not allowed for aadhaar" }
+  ]
+}</pre>
+                    </div>
+                    <div class="mt-3 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300">
+                        <i class="fas fa-info-circle mr-1"></i> All documents are validated before processing. If any fail validation, none are queued. Fix the errors and resubmit the entire batch.
+                    </div>
+                </div>
+            </section>
+
+            <!-- Check Status -->
+            <section id="verify-status" class="mb-8">
+                <div class="glass rounded-xl p-6 endpoint-card">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="px-2 py-1 rounded text-xs font-bold method-get">GET</span>
+                        <code class="text-white text-sm">/v1/status/<span class="text-blue-300">{system_reference_id}</span></code>
+                    </div>
+                    <p class="text-xs text-gray-400 mb-3">Lightweight status check. Returns only status and basic info.</p>
+                    <div class="code-block rounded-lg p-3">
+<pre class="text-xs text-gray-300">{
+  "system_reference_id": "DOCLXYZ12345ABC",
+  "client_reference_id": "APP_001",
+  "status": "verified",        // accepted | processing | verified | rejected | failed
+  "confidence": 95.50,
+  "created_at": "2025-01-15T10:30:00Z",
+  "processed_at": "2025-01-15T10:30:45Z"
+}</pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Get Result -->
+            <section id="verify-result" class="mb-8">
+                <div class="glass rounded-xl p-6 endpoint-card">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="px-2 py-1 rounded text-xs font-bold method-get">GET</span>
+                        <code class="text-white text-sm">/v1/result/<span class="text-blue-300">{system_reference_id}</span></code>
+                    </div>
+                    <p class="text-xs text-gray-400 mb-3">Full verification result with extracted data, confidence, risk score, and issues.</p>
+                    <div class="code-block rounded-lg p-3">
+<pre class="text-xs text-gray-300">{
+  "system_reference_id": "DOCLXYZ12345ABC",
+  "client_reference_id": "APP_001",
+  "document_type": "aadhaar",
+  "status": "verified",
+  "confidence": 95.50,
+  "risk_score": 0.0234,
+  "extracted_data": {
+    "name": "RAHUL SHARMA",
+    "dob": "15/03/1995",
+    "id_number": "1234 5678 9012"
+  },
+  "issues": [],
+  "created_at": "2025-01-15T10:30:00Z",
+  "processed_at": "2025-01-15T10:30:45Z"
+}</pre>
+                    </div>
+                    <h4 class="text-xs font-semibold text-gray-300 mb-2 mt-4">Possible Statuses</h4>
+                    <div class="grid grid-cols-5 gap-2">
+                        <div class="bg-yellow-500/10 rounded-lg p-2 text-center"><p class="text-[10px] text-yellow-300">accepted</p><p class="text-[9px] text-gray-500">Queued</p></div>
+                        <div class="bg-blue-500/10 rounded-lg p-2 text-center"><p class="text-[10px] text-blue-300">processing</p><p class="text-[9px] text-gray-500">AI analyzing</p></div>
+                        <div class="bg-green-500/10 rounded-lg p-2 text-center"><p class="text-[10px] text-green-300">verified</p><p class="text-[9px] text-gray-500">Pass</p></div>
+                        <div class="bg-red-500/10 rounded-lg p-2 text-center"><p class="text-[10px] text-red-300">rejected</p><p class="text-[9px] text-gray-500">Fail</p></div>
+                        <div class="bg-gray-500/10 rounded-lg p-2 text-center"><p class="text-[10px] text-gray-300">failed</p><p class="text-[9px] text-gray-500">Error</p></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Bulk Job Status -->
+            <section id="verify-bulk-status" class="mb-8">
+                <div class="glass rounded-xl p-6 endpoint-card">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="px-2 py-1 rounded text-xs font-bold method-get">GET</span>
+                        <code class="text-white text-sm">/v1/verify/bulk/<span class="text-purple-300">{bulk_id}</span></code>
+                    </div>
+                    <p class="text-xs text-gray-400 mb-3">Get bulk job progress, counts, and individual document statuses.</p>
+                    <div class="code-block rounded-lg p-3">
+<pre class="text-xs text-gray-300">{
+  "success": true,
+  "data": {
+    "bulk_id": "BULKLXYZ12345ABC",
+    "status": "completed",
+    "total_documents": 3,
+    "completed": 3,
+    "verified": 2,
+    "rejected": 1,
+    "failed": 0,
+    "progress_percent": 100,
+    "created_at": "2025-01-15T10:30:00Z",
+    "completed_at": "2025-01-15T10:32:15Z",
+    "documents": [
+      { "item_index": 0, "system_reference_id": "DOCA1B2C3", "document_type": "aadhaar", "status": "verified", "confidence": 95.5 },
+      { "item_index": 1, "system_reference_id": "DOCD4E5F6", "document_type": "pan", "status": "verified", "confidence": 98.0 },
+      { "item_index": 2, "system_reference_id": "DOCG7H8I9", "document_type": "passport", "status": "rejected", "confidence": 45.2 }
+    ]
+  }
+}</pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- List Requests -->
+            <section id="verify-requests" class="mb-8">
+                <div class="glass rounded-xl p-6 endpoint-card">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="px-2 py-1 rounded text-xs font-bold method-get">GET</span>
+                        <code class="text-white text-sm">/v1/verify/requests</code>
+                    </div>
+                    <p class="text-xs text-gray-400 mb-3">List your verification requests with pagination and filtering.</p>
+                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Query Parameters</h4>
+                    <div class="code-block rounded-lg p-3">
+<pre class="text-xs text-gray-300">?status=verified    # Filter: accepted, processing, verified, rejected, failed
+&page=1             # Page number (default: 1)
+&limit=20           # Items per page (default: 20)</pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Document Types -->
+            <section id="verify-doctypes" class="mb-12">
+                <div class="glass rounded-xl p-6 endpoint-card">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="px-2 py-1 rounded text-xs font-bold method-get">GET</span>
+                        <code class="text-white text-sm">/v1/verify/document-types</code>
+                    </div>
+                    <p class="text-xs text-gray-400 mb-3">List all available document types (system + your custom types).</p>
+                    <div class="code-block rounded-lg p-3">
+<pre class="text-xs text-gray-300">{
+  "success": true,
+  "data": [
+    {
+      "code": "aadhaar",
+      "name": "Aadhaar Card",
+      "allowed_formats": ["jpg", "png", "pdf"],
+      "max_size_mb": 5,
+      "required_fields": ["name", "dob", "id_number"],
+      "validation_rules": { "id_number": "^[0-9]{4}\\s?[0-9]{4}\\s?[0-9]{4}$" },
+      "is_global": true,
+      "is_own": false
+    }
+  ]
+}</pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Document Type CRUD -->
+            <section id="doctype-create" class="mb-8">
+                <h2 class="text-xl font-bold text-white mb-4"><i class="fas fa-folder-open mr-2 text-yellow-400"></i>Custom Document Type Management</h2>
+                <p class="text-sm text-gray-400 mb-4">Create your own document types with custom fields and validation rules. Custom types are scoped to your account and can override system defaults.</p>
+                <div class="glass rounded-xl p-6 endpoint-card">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="px-2 py-1 rounded text-xs font-bold method-post">POST</span>
+                        <code class="text-white text-sm">/v1/verify/my-document-types</code>
+                    </div>
+                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Request Body</h4>
+                    <div class="code-block rounded-lg p-3 mb-3">
+<pre class="text-xs text-gray-300">{
+  "name": "Employment Letter (required)",
+  "code": "employment_letter (required, lowercase, underscores/hyphens)",
+  "allowed_formats": ["jpg", "png", "pdf"],
+  "max_size_mb": 10,
+  "required_fields": ["employee_name", "company_name", "designation", "joining_date"],
+  "validation_rules": {
+    "joining_date": "^\\d{2}/\\d{2}/\\d{4}$"
+  }
+}</pre>
+                    </div>
+                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Response <span class="text-green-400">201</span></h4>
+                    <div class="code-block rounded-lg p-3">
+<pre class="text-xs text-gray-300">{ "success": true, "message": "Document type created", "data": { ... } }</pre>
+                    </div>
+                </div>
+            </section>
+
+            <section id="doctype-update" class="mb-8">
+                <div class="glass rounded-xl p-6 endpoint-card">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="px-2 py-1 rounded text-xs font-bold method-put">PUT</span>
+                        <code class="text-white text-sm">/v1/verify/my-document-types/<span class="text-blue-300">{id}</span></code>
+                    </div>
+                    <p class="text-xs text-gray-400 mb-3">Update a document type you own. Same request body as create (all fields optional).</p>
+                </div>
+            </section>
+
+            <section id="doctype-delete" class="mb-12">
+                <div class="glass rounded-xl p-6 endpoint-card">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="px-2 py-1 rounded text-xs font-bold method-delete">DELETE</span>
+                        <code class="text-white text-sm">/v1/verify/my-document-types/<span class="text-blue-300">{id}</span></code>
+                    </div>
+                    <p class="text-xs text-gray-400 mb-3">Delete a custom document type you own. System types cannot be deleted.</p>
+                </div>
+            </section>
+
+            <!-- Webhooks -->
+            <section id="webhook-register" class="mb-8">
+                <h2 class="text-xl font-bold text-white mb-4"><i class="fas fa-bolt mr-2 text-yellow-400"></i>Webhooks</h2>
+                <div class="glass rounded-xl p-6 endpoint-card">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="px-2 py-1 rounded text-xs font-bold method-post">POST</span>
+                        <code class="text-white text-sm">/v1/webhook/register</code>
+                    </div>
+                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Request Body</h4>
+                    <div class="code-block rounded-lg p-3 mb-3">
+<pre class="text-xs text-gray-300">{
+  "url": "https://your-server.com/webhook/verification (required)",
+  "events": ["document.verified", "document.rejected", "document.failed", "bulk.completed"]
+}</pre>
+                    </div>
+                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Response <span class="text-green-400">201</span></h4>
+                    <div class="code-block rounded-lg p-3">
+<pre class="text-xs text-gray-300">{
+  "success": true,
+  "data": {
+    "id": 1,
+    "secret": "whsec_abc123..."
+  }
+}</pre>
+                    </div>
+                    <div class="mt-3 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-xs text-yellow-300">
+                        <i class="fas fa-exclamation-triangle mr-1"></i> Save the webhook secret. You'll need it to verify webhook signatures.
+                    </div>
+                </div>
+            </section>
+
+            <section id="webhook-events" class="mb-12">
+                <div class="glass rounded-xl p-6">
+                    <h3 class="font-semibold text-white text-sm mb-4">Webhook Events & Payload Verification</h3>
+
+                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Available Events</h4>
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <div class="bg-green-500/10 rounded-lg p-3"><code class="text-xs text-green-300">document.verified</code><p class="text-[10px] text-gray-500 mt-1">Document passed verification</p></div>
+                        <div class="bg-red-500/10 rounded-lg p-3"><code class="text-xs text-red-300">document.rejected</code><p class="text-[10px] text-gray-500 mt-1">Document failed verification</p></div>
+                        <div class="bg-gray-500/10 rounded-lg p-3"><code class="text-xs text-gray-300">document.failed</code><p class="text-[10px] text-gray-500 mt-1">Processing error occurred</p></div>
+                        <div class="bg-purple-500/10 rounded-lg p-3"><code class="text-xs text-purple-300">bulk.completed</code><p class="text-[10px] text-gray-500 mt-1">All docs in bulk job finished</p></div>
+                    </div>
+
+                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Webhook Headers</h4>
+                    <div class="code-block rounded-lg p-3 mb-4">
+<pre class="text-xs text-gray-300">X-Webhook-Signature: sha256=a1b2c3d4e5...   # HMAC-SHA256 of the payload body
+X-Webhook-Event: document.verified            # Event type
+X-Webhook-Timestamp: 1705312245000            # Unix timestamp (ms)</pre>
+                    </div>
+
+                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Verifying Signatures (Node.js)</h4>
+                    <div class="code-block rounded-lg p-3">
+<pre class="text-xs text-gray-300">const crypto = require('crypto');
+
+function verifyWebhookSignature(payload, signature, secret) {
+  const expected = 'sha256=' + crypto
+    .createHmac('sha256', secret)
+    .update(JSON.stringify(payload))
+    .digest('hex');
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expected)
+  );
+}</pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Code Samples -->
+            <section id="code-node" class="mb-8">
+                <h2 class="text-xl font-bold text-white mb-4"><i class="fas fa-code mr-2 text-cyan-400"></i>Integration Code Samples</h2>
+                <div class="glass rounded-xl p-6">
+                    <div class="flex items-center gap-2 mb-4">
+                        <i class="fab fa-node-js text-green-400"></i>
+                        <h3 class="font-semibold text-white text-sm">Node.js Integration</h3>
+                    </div>
+                    <div class="code-block rounded-lg p-4">
+<pre class="text-xs text-gray-300">const API_KEY = 'vk_your_api_key';
+const BASE_URL = 'http://localhost:3000';
+
+// Single document verification
+async function verifyDocument(docType, fileUrl, referenceId, metadata) {
+  const res = await fetch(`${BASE_URL}/v1/verify`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${API_KEY}`
+    },
+    body: JSON.stringify({
+      document_type: docType,
+      file_url: fileUrl,
+      reference_id: referenceId,
+      metadata
+    })
+  });
+  return res.json();
+}
+
+// Bulk verification
+async function bulkVerify(documents, callbackUrl) {
+  const res = await fetch(`${BASE_URL}/v1/verify/bulk`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${API_KEY}`
+    },
+    body: JSON.stringify({ documents, callback_url: callbackUrl })
+  });
+  return res.json();
+}
+
+// Poll for result
+async function waitForResult(systemRefId, maxWaitMs = 60000) {
+  const start = Date.now();
+  while (Date.now() - start < maxWaitMs) {
+    const res = await fetch(`${BASE_URL}/v1/result/${systemRefId}`, {
+      headers: { 'Authorization': `Bearer ${API_KEY}` }
+    });
+    const data = await res.json();
+    if (!['accepted', 'processing'].includes(data.status)) return data;
+    await new Promise(r => setTimeout(r, 2000));
+  }
+  throw new Error('Timeout waiting for result');
+}
+
+// Example usage
+(async () => {
+  // Single
+  const single = await verifyDocument('aadhaar',
+    'https://s3.example.com/aadhaar.jpg', 'TXN_001',
+    { applicant_name: 'Rahul Sharma' });
+  console.log('Submitted:', single.system_reference_id);
+
+  const result = await waitForResult(single.system_reference_id);
+  console.log('Result:', result.status, result.extracted_data);
+
+  // Bulk
+  const bulk = await bulkVerify([
+    { document_type: 'aadhaar', file_url: 'https://s3.example.com/doc1.jpg', reference_id: 'APP_001' },
+    { document_type: 'pan', file_url: 'https://s3.example.com/doc2.jpg', reference_id: 'APP_002' },
+    { document_type: 'passport', file_url: 'https://s3.example.com/doc3.pdf', reference_id: 'APP_003' }
+  ], 'https://your-server.com/bulk-callback');
+  console.log('Bulk submitted:', bulk.bulk_id);
+})();</pre>
+                    </div>
+                </div>
+            </section>
+
+            <section id="code-python" class="mb-8">
+                <div class="glass rounded-xl p-6">
+                    <div class="flex items-center gap-2 mb-4">
+                        <i class="fab fa-python text-yellow-400"></i>
+                        <h3 class="font-semibold text-white text-sm">Python Integration</h3>
+                    </div>
+                    <div class="code-block rounded-lg p-4">
+<pre class="text-xs text-gray-300">import requests
+import time
+
+API_KEY = "vk_your_api_key"
+BASE_URL = "http://localhost:3000"
+HEADERS = {
+    "Content-Type": "application/json",
+    "Authorization": f"Bearer {API_KEY}"
+}
+
+# Single document verification
+def verify_document(doc_type, file_url, reference_id=None, metadata=None):
+    payload = {"document_type": doc_type, "file_url": file_url}
+    if reference_id: payload["reference_id"] = reference_id
+    if metadata: payload["metadata"] = metadata
+    resp = requests.post(f"{BASE_URL}/v1/verify", json=payload, headers=HEADERS)
+    return resp.json()
+
+# Bulk verification
+def bulk_verify(documents, callback_url=None):
+    payload = {"documents": documents}
+    if callback_url: payload["callback_url"] = callback_url
+    resp = requests.post(f"{BASE_URL}/v1/verify/bulk", json=payload, headers=HEADERS)
+    return resp.json()
+
+# Poll for result
+def wait_for_result(system_ref_id, max_wait=60):
+    start = time.time()
+    while time.time() - start < max_wait:
+        resp = requests.get(f"{BASE_URL}/v1/result/{system_ref_id}", headers=HEADERS)
+        data = resp.json()
+        if data.get("status") not in ("accepted", "processing"):
+            return data
+        time.sleep(2)
+    raise TimeoutError("Timeout waiting for result")
+
+# Example
+result = verify_document("aadhaar", "https://s3.example.com/aadhaar.jpg",
+    reference_id="TXN_001", metadata={"applicant_name": "Rahul Sharma"})
+print(f"Submitted: {result['system_reference_id']}")
+
+final = wait_for_result(result["system_reference_id"])
+print(f"Status: {final['status']}, Data: {final.get('extracted_data')}")
+
+# Bulk
+bulk = bulk_verify([
+    {"document_type": "aadhaar", "file_url": "https://s3.example.com/doc1.jpg"},
+    {"document_type": "pan", "file_url": "https://s3.example.com/doc2.jpg"},
+])
+print(f"Bulk submitted: {bulk['bulk_id']}")</pre>
+                    </div>
+                </div>
+            </section>
+
+            <section id="code-curl" class="mb-12">
+                <div class="glass rounded-xl p-6">
+                    <div class="flex items-center gap-2 mb-4">
+                        <i class="fas fa-terminal text-gray-400"></i>
+                        <h3 class="font-semibold text-white text-sm">cURL Examples</h3>
+                    </div>
+                    <div class="space-y-4">
+                        <div>
+                            <p class="text-xs text-gray-400 mb-2">Single Verification</p>
+                            <div class="code-block rounded-lg p-3">
+<pre class="text-xs text-gray-300">curl -X POST http://localhost:3000/v1/verify \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer vk_your_api_key" \
+  -d '{
+    "document_type": "aadhaar",
+    "file_url": "https://s3.example.com/aadhaar.jpg",
+    "reference_id": "TXN_001"
+  }'</pre>
+                            </div>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-400 mb-2">Bulk Verification</p>
+                            <div class="code-block rounded-lg p-3">
+<pre class="text-xs text-gray-300">curl -X POST http://localhost:3000/v1/verify/bulk \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer vk_your_api_key" \
+  -d '{
+    "documents": [
+      {"document_type": "aadhaar", "file_url": "https://s3.example.com/doc1.jpg"},
+      {"document_type": "pan", "file_url": "https://s3.example.com/doc2.jpg"},
+      {"document_type": "passport", "file_url": "https://s3.example.com/doc3.pdf"}
+    ]
+  }'</pre>
+                            </div>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-400 mb-2">Get Result</p>
+                            <div class="code-block rounded-lg p-3">
+<pre class="text-xs text-gray-300">curl http://localhost:3000/v1/result/DOCLXYZ12345ABC \
+  -H "Authorization: Bearer vk_your_api_key"</pre>
+                            </div>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-400 mb-2">Check Bulk Job Status</p>
+                            <div class="code-block rounded-lg p-3">
+<pre class="text-xs text-gray-300">curl http://localhost:3000/v1/verify/bulk/BULKLXYZ12345ABC \
+  -H "Authorization: Bearer vk_your_api_key"</pre>
+                            </div>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-400 mb-2">Create Custom Document Type</p>
+                            <div class="code-block rounded-lg p-3">
+<pre class="text-xs text-gray-300">curl -X POST http://localhost:3000/v1/verify/my-document-types \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer vk_your_api_key" \
+  -d '{
+    "name": "Employment Letter",
+    "code": "employment_letter",
+    "required_fields": ["employee_name", "company", "designation"],
+    "validation_rules": {}
+  }'</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Footer -->
+            <div class="glass rounded-xl p-6 text-center">
+                <p class="text-sm text-gray-400">AI Document Verification Platform v1.0</p>
+                <p class="text-xs text-gray-600 mt-1">Need help? Contact your platform administrator.</p>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        function scrollToSection(id) {
+            document.getElementById(id).scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // Update active sidebar
+            document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+            const link = document.querySelector(`a[href="#${id}"]`);
+            if (link) link.classList.add('active');
+        }
+
+        function copyText(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                // Brief visual feedback could be added here
+            });
+        }
+
+        // Highlight active section on scroll
+        const observer = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+                    const link = document.querySelector(`a[href="#${entry.target.id}"]`);
+                    if (link) link.classList.add('active');
+                }
+            });
+        }, { rootMargin: '-80px 0px -70% 0px' });
+
+        document.querySelectorAll('section[id]').forEach(s => observer.observe(s));
+    </script>
+</body>
+</html>
