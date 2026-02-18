@@ -178,4 +178,89 @@ router.get('/runs/:runId', (req, res) => {
     res.json({ success: true, data: detail });
 });
 
+// ===================== STUDENT RESULTS =====================
+
+/**
+ * GET /api/verification/results
+ * Get all student verification results (summary list)
+ */
+router.get('/results', (req, res) => {
+    res.json({ success: true, data: scheduler.getAllStudentResults() });
+});
+
+/**
+ * GET /api/verification/results/:applnID
+ * Get full verification result for a specific student (all docs + extracted data)
+ */
+router.get('/results/:applnID', (req, res) => {
+    const result = scheduler.getStudentResult(req.params.applnID);
+    if (!result) {
+        return res.status(404).json({ success: false, message: 'No verification result for this student' });
+    }
+    res.json({ success: true, data: result });
+});
+
+/**
+ * POST /api/verification/fetch-student-docs
+ * Fetch documents from Atlas API (without verifying) and store for display
+ * Body: { applnID: "2500623" }
+ */
+router.post('/fetch-student-docs', async (req, res) => {
+    try {
+        const { applnID } = req.body;
+        if (!applnID) {
+            return res.status(400).json({ success: false, message: 'applnID is required' });
+        }
+
+        const docListResponse = await scheduler.atlasClient.getDocumentList(applnID);
+        if (docListResponse.status !== 1 || !docListResponse.data?.document_status) {
+            return res.status(400).json({ success: false, message: 'Failed to fetch document list' });
+        }
+
+        const allDocs = docListResponse.data.document_status;
+
+        // Check if we already have verification results for this student
+        const existing = scheduler.getStudentResult(applnID);
+
+        const documents = allDocs.map(doc => {
+            const isUploaded = !!(doc.file_url && doc.file_url.trim());
+
+            // Merge existing AI results if available
+            let aiData = {};
+            if (existing) {
+                const verifiedDoc = existing.documents.find(
+                    d => d.document_type_id === doc.document_type_id
+                );
+                if (verifiedDoc) {
+                    aiData = {
+                        ai_status: verifiedDoc.ai_status,
+                        confidence: verifiedDoc.confidence,
+                        remark: verifiedDoc.remark,
+                        issues: verifiedDoc.issues,
+                        extracted_data: verifiedDoc.extracted_data
+                    };
+                }
+            }
+
+            return {
+                document_type_id: doc.document_type_id,
+                document_type_name: doc.document_type_name,
+                document_label: doc.document_label,
+                document_description: doc.document_description,
+                is_required: doc.document_is_required === '1',
+                is_uploaded: isUploaded,
+                filename: doc.filename || null,
+                file_url: doc.file_url || null,
+                verify_status: doc.verify_status,
+                doc_upload_id: doc.doc_upload_id,
+                ...aiData
+            };
+        });
+
+        res.json({ success: true, data: { applnID, documents } });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
 module.exports = router;
