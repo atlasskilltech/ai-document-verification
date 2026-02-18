@@ -142,13 +142,95 @@ class RuleEngineService {
             confidenceAdjustment -= 10 * aiResult.fraud_indicators.length;
         }
 
+        // 5. Authenticity checks - is_genuine flag
+        let forceReject = false;
+        if (aiResult.is_genuine === false) {
+            issues.push('Document failed authenticity check: AI determined document is not genuine');
+            confidenceAdjustment -= 40;
+            riskAdjustment += 0.5;
+            forceReject = true;
+            validationResults.authenticity = { status: 'failed', message: 'Document is not genuine' };
+        }
+
+        // 6. Detailed authenticity checks
+        const authChecks = aiResult.authenticity_checks || {};
+        if (authChecks.tampering_detected === true) {
+            issues.push('Tampering detected: Document appears to have been digitally altered');
+            confidenceAdjustment -= 30;
+            riskAdjustment += 0.4;
+            forceReject = true;
+            validationResults.tampering = { status: 'failed', message: 'Tampering evidence found' };
+        }
+        if (authChecks.is_original_document === false) {
+            issues.push('Document does not appear to be an original - possible photocopy or digitally recreated');
+            confidenceAdjustment -= 15;
+            riskAdjustment += 0.15;
+            validationResults.originality = { status: 'failed', message: 'Not an original document' };
+        }
+        if (authChecks.font_consistency === false) {
+            issues.push('Inconsistent fonts detected across the document');
+            confidenceAdjustment -= 15;
+            riskAdjustment += 0.15;
+            validationResults.font_check = { status: 'failed', message: 'Font inconsistency detected' };
+        }
+        if (authChecks.layout_matches_official === false) {
+            issues.push('Document layout does not match known official format');
+            confidenceAdjustment -= 20;
+            riskAdjustment += 0.2;
+            validationResults.layout_check = { status: 'failed', message: 'Layout mismatch with official format' };
+        }
+        if (authChecks.photo_integrity === false) {
+            issues.push('Photo on document appears altered or digitally pasted');
+            confidenceAdjustment -= 20;
+            riskAdjustment += 0.2;
+            validationResults.photo_check = { status: 'failed', message: 'Photo integrity compromised' };
+        }
+        if (authChecks.image_quality === 'suspicious') {
+            issues.push('Image quality is suspicious - may indicate digital manipulation');
+            confidenceAdjustment -= 20;
+            riskAdjustment += 0.2;
+            validationResults.image_quality = { status: 'failed', message: 'Suspicious image quality' };
+        } else if (authChecks.image_quality === 'poor') {
+            issues.push('Image quality is too poor for reliable verification');
+            confidenceAdjustment -= 10;
+            riskAdjustment += 0.1;
+            validationResults.image_quality = { status: 'warning', message: 'Poor image quality' };
+        }
+        if (authChecks.has_security_features === false) {
+            issues.push('Expected security features (watermarks, holograms, official seals) not found');
+            confidenceAdjustment -= 15;
+            riskAdjustment += 0.15;
+            validationResults.security_features = { status: 'failed', message: 'Security features missing' };
+        }
+
+        // 7. Data consistency checks
+        const dataConsistency = aiResult.data_consistency || {};
+        if (dataConsistency.dates_valid === false) {
+            issues.push('Date inconsistency detected in document fields');
+            confidenceAdjustment -= 10;
+            riskAdjustment += 0.1;
+            validationResults.date_consistency = { status: 'failed', message: 'Invalid or inconsistent dates' };
+        }
+        if (dataConsistency.id_format_valid === false) {
+            issues.push('ID number format does not match expected pattern for this document type');
+            confidenceAdjustment -= 10;
+            riskAdjustment += 0.1;
+            validationResults.id_format = { status: 'failed', message: 'ID format mismatch' };
+        }
+        if (dataConsistency.logical_checks_passed === false) {
+            issues.push(`Data consistency issue: ${dataConsistency.details || 'Logical inconsistencies found in document data'}`);
+            confidenceAdjustment -= 10;
+            riskAdjustment += 0.1;
+            validationResults.logical_consistency = { status: 'failed', message: dataConsistency.details || 'Logical check failed' };
+        }
+
         // Calculate final scores
         const finalConfidence = Math.max(0, Math.min(100, aiResult.confidence + confidenceAdjustment));
         const finalRiskScore = Math.max(0, Math.min(1, aiResult.risk_score + riskAdjustment));
 
         // Determine final status
         let finalStatus = aiResult.status;
-        if (finalConfidence < 50 || finalRiskScore > 0.7) {
+        if (forceReject || finalConfidence < 50 || finalRiskScore > 0.7) {
             finalStatus = 'rejected';
         } else if (finalConfidence >= 80 && finalRiskScore < 0.2) {
             finalStatus = 'verified';
@@ -162,6 +244,9 @@ class RuleEngineService {
             validation_results: validationResults,
             fraud_indicators: aiResult.fraud_indicators || [],
             wrong_document: false,
+            is_genuine: aiResult.is_genuine !== false,
+            authenticity_checks: authChecks,
+            data_consistency: dataConsistency,
             detected_document_type: aiResult.detected_document_type || null,
             expected_document_type: aiResult.expected_document_type || documentTypeCode
         };

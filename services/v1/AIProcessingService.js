@@ -24,19 +24,48 @@ class AIProcessingService {
      * Build the system prompt for document verification
      */
     getSystemPrompt() {
-        return `You are an expert document verification AI. Your job is to:
-1. FIRST identify what type of document is actually shown in the image
-2. Compare the actual document type with the expected/claimed document type
-3. If the document does NOT match the expected type, immediately flag it as a wrong document
-4. If it matches, extract all relevant structured data
-5. Verify the document's authenticity indicators
-6. Check for signs of tampering or fraud
-7. Provide a confidence score and risk assessment
+        return `You are an expert forensic document verification AI with zero tolerance for fake, tampered, or incorrect documents. Your job is to ensure ONLY 100% genuine, authentic documents pass verification.
 
-CRITICAL: You must ALWAYS verify that the submitted document actually matches the expected document type. For example:
-- If expected type is "aadhaar" but the image shows a PAN card, flag as wrong document
-- If expected type is "passport" but the image shows a driving license, flag as wrong document
-- If the image is not a document at all (random photo, blank page, etc.), flag as wrong document
+VERIFICATION PIPELINE (follow in strict order):
+
+PHASE 1 - DOCUMENT TYPE IDENTIFICATION:
+- Identify what type of document is ACTUALLY in the image
+- Compare against the claimed/expected document type
+- If mismatch, immediately reject (document_type_match = false)
+- If image is not a document (random photo, blank page, screenshot of text, etc.), reject
+
+PHASE 2 - AUTHENTICITY & FRAUD DETECTION (CRITICAL):
+Examine the document for ALL of the following:
+a) IMAGE QUALITY: Is it a photo of a real document or a digitally created/edited image?
+b) TAMPERING SIGNS: Look for inconsistent fonts, misaligned text, different text colors/sizes within same field, pixelation around text, copy-paste artifacts, blur inconsistencies (some parts sharp, some blurry)
+c) LAYOUT VERIFICATION: Does the layout match known official formats for this document type? Are logos, headers, watermarks in correct positions?
+d) SECURITY FEATURES: Check for expected security features (holograms, watermarks, microprint, QR codes, official seals, embossed stamps, government emblems)
+e) PRINT QUALITY: Is this a scan of an original document or a printout of a digital fake?
+f) DATA CONSISTENCY: Do all fields on the document look internally consistent? (same font family, consistent formatting, no overlapping text)
+g) PHOTO INTEGRITY: If the document has a photo, does it look naturally integrated or pasted/overlaid?
+h) DOCUMENT CONDITION: Is this a photograph of a real physical document, or a digitally generated document?
+
+PHASE 3 - DATA EXTRACTION & VALIDATION:
+- Extract all required fields
+- Cross-verify extracted data against provided metadata
+- Check ID numbers, dates, and patterns against known formats
+- Verify logical consistency (e.g., DOB makes person reasonable age, dates are in valid ranges, expiry after issue date)
+
+SCORING RULES:
+- Confidence 90-100: Document appears fully genuine with all security features present
+- Confidence 70-89: Document appears genuine but minor quality issues (blur, angle, etc.)
+- Confidence 50-69: Some concerns but no clear evidence of fraud
+- Confidence 0-49: Significant fraud indicators or missing security features - MUST REJECT
+- Risk score > 0.5: MUST REJECT the document
+- Any fraud indicator found: reduce confidence by at least 20 points per indicator
+
+CRITICAL RULES:
+- If expected type is "aadhaar" but image shows PAN card = wrong document, reject
+- If the image is not a document at all = reject
+- If you detect ANY tampering evidence = reject with fraud_indicators
+- If the document looks like a photocopy of a photocopy (very degraded) = flag as low quality
+- If text appears digitally overlaid on a template = reject as fake
+- When in doubt, REJECT. False positives (accepting fake docs) are far worse than false negatives.
 
 You MUST respond in valid JSON format only. No markdown, no extra text.`;
     }
@@ -200,23 +229,46 @@ Return ONLY a JSON object with this exact structure:
   "document_type_match": true/false,
   "detected_document_type": "<what document is actually shown, e.g. 'PAN Card', 'Aadhaar Card', 'Random Photo', 'Blank Page', etc.>",
   "expected_document_type": "${expectedName}",
-  "document_type_mismatch_reason": "<if document_type_match is false, explain why. e.g. 'Expected Aadhaar Card but received PAN Card'. Empty string if match is true>",
+  "document_type_mismatch_reason": "<if document_type_match is false, explain why. Empty string if match is true>",
+  "is_genuine": true/false,
+  "authenticity_checks": {
+    "is_original_document": true/false,
+    "has_security_features": true/false,
+    "tampering_detected": true/false,
+    "image_quality": "good" | "acceptable" | "poor" | "suspicious",
+    "font_consistency": true/false,
+    "layout_matches_official": true/false,
+    "photo_integrity": true/false | null,
+    "details": "<explain authenticity assessment in 1-2 sentences>"
+  },
   "status": "verified" or "rejected",
-  "confidence": <number between 0 and 100. Set to 0 if wrong document>,
-  "risk_score": <number between 0 and 1. Set to 1.0 if wrong document>,
+  "confidence": <number 0-100. 0 if wrong doc. Below 50 if fraud suspected. Only 80+ if fully genuine>,
+  "risk_score": <number 0-1. 1.0 if wrong doc. Above 0.5 if fraud suspected. Below 0.2 only if fully clean>,
   "extracted_data": {
-    <field_name>: <extracted_value or null if wrong document>,
+    <field_name>: <extracted_value or null if wrong/fake document>,
     ...
   },
-  "issues": [<list of any issues found. MUST include "Wrong document type: Expected X but received Y" if mismatch>],
-  "fraud_indicators": [<list of fraud indicators if any, empty array if clean>],
+  "issues": [<list of ALL issues found. Include wrong doc type, missing fields, tampering, quality problems>],
+  "fraud_indicators": [<MUST list ALL detected fraud signs. Examples: "Text appears digitally overlaid", "Inconsistent fonts detected", "Missing official watermark", "Photo appears pasted", "Document layout does not match known official format", "Pixelation around text fields suggests editing", "QR code missing or unreadable". Empty array ONLY if document is 100% clean>],
   "metadata_match": {
     <field>: {"matches": true/false, "extracted": "value", "expected": "value"}
+  },
+  "data_consistency": {
+    "dates_valid": true/false,
+    "id_format_valid": true/false,
+    "logical_checks_passed": true/false,
+    "details": "<explain any inconsistencies found>"
   },
   "remarks": "Brief summary of the verification result"
 }
 
-IMPORTANT: If document_type_match is false, you MUST set status to "rejected", confidence to 0, risk_score to 1.0, and include the mismatch in issues.`;
+IMPORTANT RULES:
+- If document_type_match is false: status="rejected", confidence=0, risk_score=1.0
+- If is_genuine is false: status="rejected", confidence must be below 30, risk_score above 0.7
+- If ANY fraud_indicator is found: status="rejected", reduce confidence significantly
+- If tampering_detected is true: status="rejected", risk_score must be above 0.8
+- ONLY set status="verified" and confidence above 80 if the document is GENUINELY authentic with no concerns
+- When unsure about authenticity, REJECT rather than accept`;
         return prompt;
     }
 
@@ -369,10 +421,28 @@ IMPORTANT: If document_type_match is false, you MUST set status to "rejected", c
             issues.unshift(`Wrong document type: Expected "${expected}" but received "${detected}"`);
         }
 
+        // If AI says document is not genuine, force rejection
+        const isNotGenuine = result.is_genuine === false;
+        const isTampered = result.authenticity_checks?.tampering_detected === true;
+
+        let finalStatus = result.status || 'verified';
+        let finalConfidence = parseFloat(result.confidence) || 0;
+        let finalRiskScore = parseFloat(result.risk_score) || 0;
+
+        if (isWrongDoc) {
+            finalStatus = 'rejected';
+            finalConfidence = 0;
+            finalRiskScore = 1.0;
+        } else if (isNotGenuine || isTampered) {
+            finalStatus = 'rejected';
+            finalConfidence = Math.min(finalConfidence, 25);
+            finalRiskScore = Math.max(finalRiskScore, 0.8);
+        }
+
         return {
-            status: isWrongDoc ? 'rejected' : (result.status || 'verified'),
-            confidence: isWrongDoc ? 0 : (parseFloat(result.confidence) || 0),
-            risk_score: isWrongDoc ? 1.0 : (parseFloat(result.risk_score) || 0),
+            status: finalStatus,
+            confidence: finalConfidence,
+            risk_score: finalRiskScore,
             extracted_data: result.extracted_data || {},
             issues,
             fraud_indicators: result.fraud_indicators || [],
@@ -381,7 +451,10 @@ IMPORTANT: If document_type_match is false, you MUST set status to "rejected", c
             document_type_match: result.document_type_match !== false,
             detected_document_type: result.detected_document_type || null,
             expected_document_type: result.expected_document_type || documentType,
-            document_type_mismatch_reason: result.document_type_mismatch_reason || ''
+            document_type_mismatch_reason: result.document_type_mismatch_reason || '',
+            is_genuine: isWrongDoc ? false : (result.is_genuine !== false),
+            authenticity_checks: result.authenticity_checks || {},
+            data_consistency: result.data_consistency || {}
         };
     }
 }

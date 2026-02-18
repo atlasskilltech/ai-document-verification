@@ -92,6 +92,10 @@ app.get('/v1/result/:system_reference_id', apiKeyAuth, async (req, res) => {
             result.detected_document_type = aiResponse.detected_document_type || 'Unknown';
             result.expected_document_type = aiResponse.expected_document_type || request.document_type;
         }
+        result.is_genuine = aiResponse.is_genuine !== false;
+        result.authenticity_checks = aiResponse.authenticity_checks || {};
+        result.fraud_indicators = aiResponse.fraud_indicators || [];
+        result.data_consistency = aiResponse.data_consistency || {};
         res.json(result);
     } catch (error) {
         res.status(500).json({ error: 'Internal server error' });
