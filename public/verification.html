@@ -81,6 +81,22 @@
             </div>
         </div>
 
+        <!-- Completion Banner -->
+        <div id="completionBanner" class="mb-6 hidden">
+            <div class="bg-green-900/30 border border-green-700/50 rounded-xl p-4 flex items-center justify-between slide-in">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-green-600/30 flex items-center justify-center">
+                        <i class="fas fa-check-circle text-green-400 text-lg"></i>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-green-300 text-sm">All Students Processed</p>
+                        <p class="text-xs text-green-400/70" id="completionSummary"></p>
+                    </div>
+                </div>
+                <button onclick="document.getElementById('completionBanner').classList.add('hidden')" class="text-green-400/50 hover:text-green-300"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+
         <!-- Progress Bar -->
         <div id="progressSection" class="mb-6 hidden">
             <div class="bg-gray-900 rounded-xl p-4 border border-gray-800">
@@ -91,6 +107,7 @@
                 <div class="w-full bg-gray-800 rounded-full h-3">
                     <div id="progressBar" class="bg-gradient-to-r from-blue-500 to-blue-400 h-3 rounded-full transition-all duration-500" style="width:0%"></div>
                 </div>
+                <p class="text-xs text-gray-500 mt-2" id="progressDetail"></p>
             </div>
         </div>
 
@@ -251,6 +268,9 @@ const API = '/api/verification';
 let pollInterval = null;
 let lastLogCount = 0;
 let studentsCache = [];
+let wasRunning = false;           // track if batch was running on last poll
+let lastProcessedCount = -1;      // track processed count for live table refresh
+let studentListLoaded = false;    // whether we have fetched from Atlas at least once
 
 // ==================== API ====================
 async function apiFetch(url, opts = {}) {
@@ -267,13 +287,15 @@ function switchTab(tab) {
 }
 
 // ==================== STUDENT LIST ====================
-async function loadStudentList() {
-    document.getElementById('studentListBody').innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Loading students from Atlas API...</td></tr>';
+async function loadStudentList(silent) {
+    if (!silent) {
+        document.getElementById('studentListBody').innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Loading students from Atlas API...</td></tr>';
+    }
 
     try {
         const res = await apiFetch('/students');
         if (!res.success || !res.data) {
-            document.getElementById('studentListBody').innerHTML = '<tr><td colspan="8" class="text-center py-8 text-red-400">Failed to load students</td></tr>';
+            if (!silent) document.getElementById('studentListBody').innerHTML = '<tr><td colspan="8" class="text-center py-8 text-red-400">Failed to load students</td></tr>';
             return;
         }
 
@@ -288,6 +310,7 @@ async function loadStudentList() {
         }
 
         studentsCache = studentArr;
+        studentListLoaded = true;
         document.getElementById('studentCount').textContent = `${studentArr.length} students`;
 
         if (studentArr.length === 0) {
@@ -295,47 +318,88 @@ async function loadStudentList() {
             return;
         }
 
-        document.getElementById('studentListBody').innerHTML = studentArr.map(s => {
-            const id = s.applnID || s.id || s.application_id;
-            const name = [s.first_name, s.last_name].filter(Boolean).join(' ') || s.name || s.studentName || '-';
-            const r = resultsMap[id];
-
-            const totalDocs = r ? r.totalDocs : '-';
-            const uploaded = r ? r.uploaded : '-';
-            const approved = r ? r.approved : '-';
-            const rejected = r ? r.rejected : '-';
-
-            let statusBadge;
-            if (!r) {
-                statusBadge = '<span class="px-2 py-0.5 rounded text-xs badge-pending">Not Verified</span>';
-            } else if (r.status === 'completed') {
-                statusBadge = '<span class="px-2 py-0.5 rounded text-xs badge-verified">Completed</span>';
-            } else if (r.status === 'partial') {
-                statusBadge = '<span class="px-2 py-0.5 rounded text-xs badge-error">Partial</span>';
-            } else if (r.status === 'error') {
-                statusBadge = '<span class="px-2 py-0.5 rounded text-xs badge-reject">Error</span>';
-            } else {
-                statusBadge = `<span class="px-2 py-0.5 rounded text-xs badge-pending">${r.status}</span>`;
-            }
-
-            return `<tr class="border-b border-gray-800/50 hover:bg-gray-800/30 transition">
-                <td class="px-4 py-2.5 font-mono text-blue-400 text-xs">${id}</td>
-                <td class="px-4 py-2.5 font-medium text-white">${esc(name)}</td>
-                <td class="px-4 py-2.5 text-center">${totalDocs}</td>
-                <td class="px-4 py-2.5 text-center">${uploaded}</td>
-                <td class="px-4 py-2.5 text-center text-green-400">${approved}</td>
-                <td class="px-4 py-2.5 text-center text-red-400">${rejected}</td>
-                <td class="px-4 py-2.5 text-center">${statusBadge}</td>
-                <td class="px-4 py-2.5 text-center">
-                    <button onclick="viewStudentDocs('${id}')" class="text-blue-400 hover:text-blue-300 text-xs mr-2" title="View Documents"><i class="fas fa-eye"></i></button>
-                    <button onclick="verifySingleFromList('${id}')" class="text-green-400 hover:text-green-300 text-xs" title="Verify"><i class="fas fa-check-circle"></i></button>
-                </td>
-            </tr>`;
-        }).join('');
+        renderStudentTable(studentArr, resultsMap);
 
     } catch (err) {
-        document.getElementById('studentListBody').innerHTML = `<tr><td colspan="8" class="text-center py-8 text-red-400">Error: ${esc(err.message)}</td></tr>`;
+        if (!silent) document.getElementById('studentListBody').innerHTML = `<tr><td colspan="8" class="text-center py-8 text-red-400">Error: ${esc(err.message)}</td></tr>`;
     }
+}
+
+// Refresh only the results data (no Atlas fetch), merges with cached student list
+async function refreshStudentResults() {
+    if (!studentListLoaded || studentsCache.length === 0) return;
+    try {
+        const resultsRes = await apiFetch('/results');
+        const resultsMap = {};
+        if (resultsRes.success && resultsRes.data) {
+            resultsRes.data.forEach(r => { resultsMap[r.applnID] = r; });
+        }
+        renderStudentTable(studentsCache, resultsMap);
+    } catch (e) {}
+}
+
+function renderStudentTable(studentArr, resultsMap) {
+    let completedCount = 0;
+    let totalApproved = 0;
+    let totalRejected = 0;
+    let totalErrors = 0;
+
+    const rows = studentArr.map((s, idx) => {
+        const id = s.applnID || s.id || s.application_id;
+        const name = [s.first_name, s.last_name].filter(Boolean).join(' ') || s.name || s.studentName || '-';
+        const r = resultsMap[id];
+
+        const totalDocs = r ? r.totalDocs : '-';
+        const uploaded = r ? r.uploaded : '-';
+        const approved = r ? r.approved : '-';
+        const rejected = r ? r.rejected : '-';
+
+        if (r) {
+            totalApproved += r.approved || 0;
+            totalRejected += r.rejected || 0;
+            totalErrors += r.errors || 0;
+            if (r.status === 'completed' || r.status === 'partial') completedCount++;
+        }
+
+        let statusBadge;
+        if (!r) {
+            statusBadge = '<span class="px-2 py-0.5 rounded text-xs badge-pending">Not Verified</span>';
+        } else if (r.status === 'completed') {
+            statusBadge = '<span class="px-2 py-0.5 rounded text-xs badge-verified"><i class="fas fa-check mr-1"></i>Completed</span>';
+        } else if (r.status === 'partial') {
+            statusBadge = '<span class="px-2 py-0.5 rounded text-xs badge-error"><i class="fas fa-exclamation-triangle mr-1"></i>Partial</span>';
+        } else if (r.status === 'error') {
+            statusBadge = '<span class="px-2 py-0.5 rounded text-xs badge-reject"><i class="fas fa-times mr-1"></i>Error</span>';
+        } else if (r.status === 'skipped') {
+            statusBadge = '<span class="px-2 py-0.5 rounded text-xs badge-pending"><i class="fas fa-forward mr-1"></i>Skipped</span>';
+        } else if (r.status === 'processing') {
+            statusBadge = '<span class="px-2 py-0.5 rounded text-xs bg-blue-900/50 text-blue-300 pulse"><i class="fas fa-spinner fa-spin mr-1"></i>Processing</span>';
+        } else {
+            statusBadge = `<span class="px-2 py-0.5 rounded text-xs badge-pending">${esc(r.status)}</span>`;
+        }
+
+        const rowNum = `<span class="text-gray-600 mr-2">${idx + 1}.</span>`;
+
+        return `<tr class="border-b border-gray-800/50 hover:bg-gray-800/30 transition cursor-pointer" onclick="viewStudentDocs('${id}')">
+            <td class="px-4 py-2.5 font-mono text-blue-400 text-xs">${rowNum}${id}</td>
+            <td class="px-4 py-2.5 font-medium text-white">${esc(name)}</td>
+            <td class="px-4 py-2.5 text-center">${totalDocs}</td>
+            <td class="px-4 py-2.5 text-center">${uploaded}</td>
+            <td class="px-4 py-2.5 text-center text-green-400 font-medium">${approved}</td>
+            <td class="px-4 py-2.5 text-center text-red-400 font-medium">${rejected}</td>
+            <td class="px-4 py-2.5 text-center">${statusBadge}</td>
+            <td class="px-4 py-2.5 text-center" onclick="event.stopPropagation()">
+                <button onclick="viewStudentDocs('${id}')" class="text-blue-400 hover:text-blue-300 text-xs mr-2" title="View Documents"><i class="fas fa-eye"></i></button>
+                <button onclick="verifySingleFromList('${id}')" class="text-green-400 hover:text-green-300 text-xs" title="Verify"><i class="fas fa-check-circle"></i></button>
+            </td>
+        </tr>`;
+    });
+
+    document.getElementById('studentListBody').innerHTML = rows.join('');
+
+    // Update header count
+    const verifiedCount = Object.keys(resultsMap).length;
+    document.getElementById('studentCount').textContent = `${studentArr.length} students | ${verifiedCount} verified`;
 }
 
 // ==================== VIEW STUDENT DOCUMENTS ====================
@@ -343,6 +407,9 @@ async function viewStudentDocs(applnID) {
     document.getElementById('studentDetailSection').classList.remove('hidden');
     document.getElementById('detailTitle').innerHTML = `<i class="fas fa-file-alt text-green-400 mr-2"></i>Documents - Application ${applnID}`;
     document.getElementById('documentListContent').innerHTML = '<div class="text-center py-8 text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Loading documents...</div>';
+
+    // Scroll to detail panel
+    document.getElementById('studentDetailSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
     try {
         // First try to get from verification results (has AI data)
@@ -383,6 +450,7 @@ function renderDocumentList(docs, applnID) {
     const uploaded = docs.filter(d => d.is_uploaded).length;
     const verified = docs.filter(d => d.ai_status === 'Verified').length;
     const rejected = docs.filter(d => d.ai_status === 'reject').length;
+    const errors = docs.filter(d => d.ai_status === 'error').length;
 
     html += `<div class="flex flex-wrap gap-4 mb-4 text-xs">
         <span class="text-gray-400">Total: <strong class="text-white">${docs.length}</strong></span>
@@ -390,6 +458,7 @@ function renderDocumentList(docs, applnID) {
         <span class="text-gray-400">Uploaded: <strong class="text-blue-400">${uploaded}</strong></span>
         <span class="text-gray-400">AI Approved: <strong class="text-green-400">${verified}</strong></span>
         <span class="text-gray-400">AI Rejected: <strong class="text-red-400">${rejected}</strong></span>
+        ${errors > 0 ? `<span class="text-gray-400">Errors: <strong class="text-yellow-400">${errors}</strong></span>` : ''}
     </div>`;
 
     html += '<div class="space-y-3">';
@@ -423,10 +492,11 @@ function renderDocumentList(docs, applnID) {
         html += `<div class="bg-gray-800/50 rounded-lg p-3 border border-gray-700/50">
             <div class="flex justify-between items-start mb-2">
                 <div>
+                    <span class="text-gray-500 text-xs mr-1">${idx + 1}.</span>
                     <span class="font-medium text-white text-sm">${esc(doc.document_label)}</span>
-                    <span class="text-gray-500 text-xs ml-2">${esc(doc.document_type_name)}</span>
+                    <span class="text-gray-500 text-xs ml-2">${esc(doc.document_type_name || '')}</span>
                 </div>
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 flex-wrap justify-end">
                     ${reqBadge}
                     ${uploadBadge}
                     ${aiBadge}
@@ -499,7 +569,10 @@ function closeExtractedData() {
 // ==================== ACTIONS ====================
 async function runBatch() {
     if (!confirm('Start AI verification for ALL students?')) return;
+    document.getElementById('completionBanner').classList.add('hidden');
     await apiFetch('/run', { method: 'POST' });
+    // Load student list first if not loaded
+    if (!studentListLoaded) await loadStudentList();
     startPolling();
 }
 
@@ -517,7 +590,7 @@ async function verifySingleStudent() {
     } else {
         alert(res.message);
     }
-    loadStudentList();
+    await refreshStudentResults();
 }
 
 async function verifySingleFromList(applnID) {
@@ -528,7 +601,7 @@ async function verifySingleFromList(applnID) {
     } else {
         alert(res.message);
     }
-    loadStudentList();
+    await refreshStudentResults();
 }
 
 async function fetchSingleStudentDocs() {
@@ -577,7 +650,9 @@ function updateStatusUI(data) {
     // Status dot
     const dot = document.getElementById('statusDot');
     const text = document.getElementById('statusText');
-    if (engine.isRunning) {
+    const isRunning = engine.isRunning;
+
+    if (isRunning) {
         dot.className = 'status-dot running';
         text.textContent = 'Running';
         text.className = 'text-yellow-400 font-medium';
@@ -597,7 +672,7 @@ function updateStatusUI(data) {
     // Stats
     if (currentRun) {
         document.getElementById('statStudents').textContent = currentRun.totalStudents;
-        document.getElementById('statProcessed').textContent = currentRun.processed;
+        document.getElementById('statProcessed').textContent = `${currentRun.processed}/${currentRun.totalStudents}`;
         document.getElementById('statDocs').textContent = currentRun.totalDocsVerified;
         document.getElementById('statApproved').textContent = currentRun.totalApproved;
         document.getElementById('statRejected').textContent = currentRun.totalRejected;
@@ -608,13 +683,55 @@ function updateStatusUI(data) {
             const pct = Math.round((currentRun.processed / currentRun.totalStudents) * 100);
             document.getElementById('progressBar').style.width = pct + '%';
             document.getElementById('progressPercent').textContent = pct + '%';
-            document.getElementById('progressLabel').textContent = `Processing ${currentRun.processed} of ${currentRun.totalStudents} students...`;
+            document.getElementById('progressLabel').textContent = `Processing student ${currentRun.processed + 1} of ${currentRun.totalStudents}...`;
+            document.getElementById('progressDetail').textContent = `Docs verified: ${currentRun.totalDocsVerified} | Approved: ${currentRun.totalApproved} | Rejected: ${currentRun.totalRejected}`;
+
+            // Live refresh student table when a new student is processed
+            if (currentRun.processed !== lastProcessedCount && studentListLoaded) {
+                lastProcessedCount = currentRun.processed;
+                refreshStudentResults();
+            }
         } else {
             document.getElementById('progressSection').classList.add('hidden');
         }
+
+        // Detect batch completion: was running, now not running
+        if (wasRunning && !isRunning && currentRun.status !== 'running') {
+            onBatchCompleted(currentRun);
+        }
     }
 
+    wasRunning = isRunning;
     renderRunHistory(data.recentRuns || []);
+}
+
+function onBatchCompleted(run) {
+    // Show completion banner
+    const banner = document.getElementById('completionBanner');
+    const dur = run.endTime ? Math.round((new Date(run.endTime) - new Date(run.startTime)) / 1000) : 0;
+    const durStr = dur >= 60 ? `${Math.floor(dur / 60)}m ${dur % 60}s` : `${dur}s`;
+
+    document.getElementById('completionSummary').textContent =
+        `${run.processed} students | ${run.totalDocsVerified} docs verified | ${run.totalApproved} approved | ${run.totalRejected} rejected | ${run.errors} errors | ${durStr}`;
+    banner.classList.remove('hidden');
+
+    // Final refresh of student table
+    refreshStudentResults();
+
+    // Show green completed progress momentarily
+    document.getElementById('progressSection').classList.remove('hidden');
+    document.getElementById('progressBar').style.width = '100%';
+    document.getElementById('progressBar').className = 'bg-gradient-to-r from-green-500 to-green-400 h-3 rounded-full transition-all duration-500';
+    document.getElementById('progressPercent').textContent = '100%';
+    document.getElementById('progressLabel').textContent = 'All students processed!';
+    document.getElementById('progressDetail').textContent = '';
+    setTimeout(() => {
+        document.getElementById('progressSection').classList.add('hidden');
+        // Reset bar color
+        document.getElementById('progressBar').className = 'bg-gradient-to-r from-blue-500 to-blue-400 h-3 rounded-full transition-all duration-500';
+    }, 4000);
+
+    lastProcessedCount = -1;
 }
 
 function renderLogs(logs) {
@@ -671,6 +788,8 @@ function formatKey(k) { return k.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUp
 async function init() {
     await refreshStatus();
     await refreshLogs();
+    // Auto-load student list on page load
+    await loadStudentList();
     startPolling();
 }
 init();
