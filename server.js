@@ -41,6 +41,10 @@ app.get('/dashboard', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
+app.get('/verification', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'verification.html'));
+});
+
 // ===================== ERROR HANDLING =====================
 app.use((err, req, res, next) => {
     console.error('Error:', err.message);
@@ -58,8 +62,13 @@ app.listen(PORT, () => {
 ║   Admissions Document Review Agent               ║
 ║   Server running on http://localhost:${PORT}        ║
 ║   API Base: http://localhost:${PORT}/api            ║
+║   Verification: http://localhost:${PORT}/verification║
 ╚══════════════════════════════════════════════════╝
     `);
+
+    // Initialize AI Document Verification Scheduler
+    const scheduler = require('./services/VerificationScheduler');
+    scheduler.init();
 });
 
 module.exports = app;
