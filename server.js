@@ -103,6 +103,19 @@ app.get('/verification', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'verification.html'));
 });
 
+// V1 Platform Web Views
+app.get('/v1/login', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'v1-login.html'));
+});
+
+app.get('/v1/admin-dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'v1-admin.html'));
+});
+
+app.get('/v1/user-dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'v1-user.html'));
+});
+
 // ===================== ERROR HANDLING =====================
 app.use((err, req, res, next) => {
     console.error('Error:', err.message);

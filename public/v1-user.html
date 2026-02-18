@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Dashboard - Document Verification Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body { background: #0f172a; }
+        .glass { background: rgba(30, 41, 59, 0.6); backdrop-filter: blur(8px); border: 1px solid rgba(71, 85, 105, 0.3); }
+        .input-dark { background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(71, 85, 105, 0.5); color: #e2e8f0; }
+        .input-dark:focus { border-color: #3b82f6; outline: none; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
+        .btn-primary { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+        .btn-primary:hover { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+        .sidebar-link { transition: all 0.15s; }
+        .sidebar-link:hover, .sidebar-link.active { background: rgba(59, 130, 246, 0.15); color: #93c5fd; }
+        .stat-card { transition: transform 0.2s; }
+        .stat-card:hover { transform: translateY(-2px); }
+        .badge-verified { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
+        .badge-rejected { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+        .badge-processing { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+        .badge-accepted { background: rgba(234, 179, 8, 0.15); color: #facc15; }
+        .badge-failed { background: rgba(156, 163, 175, 0.15); color: #9ca3af; }
+        .slide-in { animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .modal-overlay { background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
+    </style>
+</head>
+<body class="text-gray-200 min-h-screen">
+    <!-- Sidebar -->
+    <aside class="fixed left-0 top-0 bottom-0 w-64 bg-gray-900 border-r border-gray-800 z-40 flex flex-col">
+        <div class="p-5 border-b border-gray-800">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-blue-600/20 flex items-center justify-center">
+                    <i class="fas fa-shield-halved text-blue-400"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-white text-sm">Doc Verification</h1>
+                    <p class="text-[10px] text-gray-500">User Portal</p>
+                </div>
+            </div>
+        </div>
+        <nav class="p-3 flex-1 overflow-y-auto">
+            <ul class="space-y-0.5">
+                <li><a href="#" onclick="showSection('dashboard')" class="sidebar-link active flex items-center gap-3 px-3 py-2 rounded-lg text-sm" id="nav-dashboard">
+                    <i class="fas fa-chart-pie w-5 text-center"></i> Dashboard</a></li>
+                <li><a href="#" onclick="showSection('verify')" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm" id="nav-verify">
+                    <i class="fas fa-file-circle-check w-5 text-center"></i> Verify Document</a></li>
+                <li><a href="#" onclick="showSection('requests')" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm" id="nav-requests">
+                    <i class="fas fa-file-lines w-5 text-center"></i> My Requests</a></li>
+                <li><a href="#" onclick="showSection('apikeys')" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm" id="nav-apikeys">
+                    <i class="fas fa-key w-5 text-center"></i> API Keys</a></li>
+                <li><a href="#" onclick="showSection('webhooks')" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm" id="nav-webhooks">
+                    <i class="fas fa-bolt w-5 text-center"></i> Webhooks</a></li>
+            </ul>
+        </nav>
+        <div class="p-3 border-t border-gray-800">
+            <div class="flex items-center gap-3 px-3 py-2">
+                <div class="w-8 h-8 rounded-full bg-green-600/30 flex items-center justify-center text-sm font-bold text-green-300" id="userAvatar">U</div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-white truncate" id="userName">User</p>
+                    <p class="text-[10px] text-gray-500" id="userEmail">user@email.com</p>
+                </div>
+                <button onclick="logout()" class="text-gray-500 hover:text-red-400" title="Logout"><i class="fas fa-right-from-bracket"></i></button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="ml-64 p-6 min-h-screen">
+
+        <!-- Dashboard Section -->
+        <div id="sec-dashboard" class="slide-in">
+            <h2 class="text-xl font-bold text-white mb-6">Dashboard</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6" id="statCards"></div>
+            <div class="glass rounded-xl overflow-hidden">
+                <div class="px-5 py-4 border-b border-gray-700/50">
+                    <h3 class="font-semibold text-white"><i class="fas fa-clock mr-2 text-yellow-400"></i>Recent Requests</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-800/50 text-xs text-gray-400 uppercase">
+                            <tr>
+                                <th class="px-4 py-2.5 text-left">Reference</th>
+                                <th class="px-4 py-2.5 text-left">Doc Type</th>
+                                <th class="px-4 py-2.5 text-left">Status</th>
+                                <th class="px-4 py-2.5 text-left">Confidence</th>
+                                <th class="px-4 py-2.5 text-left">Date</th>
+                                <th class="px-4 py-2.5 text-left">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentTable" class="divide-y divide-gray-800/50"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Verify Document Section -->
+        <div id="sec-verify" class="hidden slide-in">
+            <h2 class="text-xl font-bold text-white mb-6">Verify Document</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Submit Form -->
+                <div class="glass rounded-xl p-6">
+                    <h3 class="font-semibold text-white mb-4"><i class="fas fa-upload mr-2 text-blue-400"></i>Push Document for Verification</h3>
+                    <div id="verifyError" class="hidden mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm"></div>
+                    <div id="verifySuccess" class="hidden mb-4 p-3 rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 text-sm"></div>
+                    <form onsubmit="submitVerification(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">Document Type</label>
+                            <select id="verifyDocType" required class="w-full px-3 py-2 rounded-lg input-dark text-sm">
+                                <option value="">Select document type...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">File URL</label>
+                            <input type="url" id="verifyFileUrl" required placeholder="https://s3.amazonaws.com/bucket/document.jpg"
+                                class="w-full px-3 py-2 rounded-lg input-dark text-sm">
+                            <p class="text-[10px] text-gray-500 mt-1">Public URL to your document (S3, CDN, etc.)</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">Reference ID (optional)</label>
+                            <input type="text" id="verifyRefId" placeholder="TXN12345"
+                                class="w-full px-3 py-2 rounded-lg input-dark text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">Metadata (JSON, optional)</label>
+                            <textarea id="verifyMetadata" rows="3" class="w-full px-3 py-2 rounded-lg input-dark text-sm font-mono"
+                                placeholder='{"name": "Rahul Sharma"}'></textarea>
+                        </div>
+                        <button type="submit" id="verifyBtn" class="w-full py-2.5 rounded-lg btn-primary text-white font-medium text-sm">
+                            <i class="fas fa-paper-plane mr-2"></i>Submit for Verification
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Check Status -->
+                <div class="space-y-6">
+                    <div class="glass rounded-xl p-6">
+                        <h3 class="font-semibold text-white mb-4"><i class="fas fa-search mr-2 text-green-400"></i>Check Status / Result</h3>
+                        <div class="flex gap-2">
+                            <input type="text" id="checkRefId" placeholder="DOC98765..." class="flex-1 px-3 py-2 rounded-lg input-dark text-sm font-mono">
+                            <button onclick="checkStatus()" class="px-4 py-2 rounded-lg btn-primary text-white text-sm"><i class="fas fa-search"></i></button>
+                        </div>
+                        <div id="statusResult" class="mt-4"></div>
+                    </div>
+
+                    <div class="glass rounded-xl p-6">
+                        <h3 class="font-semibold text-white mb-4"><i class="fas fa-list mr-2 text-purple-400"></i>Available Document Types</h3>
+                        <div id="docTypeList" class="space-y-2"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- My Requests Section -->
+        <div id="sec-requests" class="hidden slide-in">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-bold text-white">My Requests</h2>
+                <div class="flex gap-2">
+                    <select id="reqFilterStatus" onchange="loadMyRequests()" class="px-3 py-1.5 rounded-lg input-dark text-sm">
+                        <option value="">All</option>
+                        <option value="accepted">Accepted</option>
+                        <option value="processing">Processing</option>
+                        <option value="verified">Verified</option>
+                        <option value="rejected">Rejected</option>
+                        <option value="failed">Failed</option>
+                    </select>
+                </div>
+            </div>
+            <div class="glass rounded-xl overflow-hidden">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-800/50 text-xs text-gray-400 uppercase">
+                        <tr>
+                            <th class="px-4 py-2.5 text-left">System Ref</th>
+                            <th class="px-4 py-2.5 text-left">Client Ref</th>
+                            <th class="px-4 py-2.5 text-left">Doc Type</th>
+                            <th class="px-4 py-2.5 text-left">Status</th>
+                            <th class="px-4 py-2.5 text-left">Confidence</th>
+                            <th class="px-4 py-2.5 text-left">Risk</th>
+                            <th class="px-4 py-2.5 text-left">Date</th>
+                            <th class="px-4 py-2.5 text-left">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="myRequestsTable" class="divide-y divide-gray-800/50"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- API Keys Section -->
+        <div id="sec-apikeys" class="hidden slide-in">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-bold text-white">API Keys</h2>
+                <button onclick="openKeyModal()" class="px-4 py-2 rounded-lg btn-primary text-white text-sm font-medium">
+                    <i class="fas fa-plus mr-2"></i>Generate New Key
+                </button>
+            </div>
+            <div id="apiKeysList" class="space-y-3"></div>
+        </div>
+
+        <!-- Webhooks Section -->
+        <div id="sec-webhooks" class="hidden slide-in">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-bold text-white">Webhooks</h2>
+                <button onclick="openWebhookModal()" class="px-4 py-2 rounded-lg btn-primary text-white text-sm font-medium">
+                    <i class="fas fa-plus mr-2"></i>Register Webhook
+                </button>
+            </div>
+            <div id="webhooksList" class="space-y-3"></div>
+        </div>
+    </main>
+
+    <!-- Result Detail Modal -->
+    <div id="resultModal" class="fixed inset-0 z-50 hidden flex items-center justify-center modal-overlay">
+        <div class="bg-gray-900 rounded-2xl border border-gray-700 w-full max-w-2xl max-h-[85vh] overflow-y-auto slide-in m-4">
+            <div class="flex justify-between items-center px-6 py-4 border-b border-gray-800 sticky top-0 bg-gray-900 z-10">
+                <h3 class="font-bold text-white"><i class="fas fa-file-circle-check mr-2 text-blue-400"></i>Verification Result</h3>
+                <button onclick="closeModal('resultModal')" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="resultContent" class="p-6"></div>
+        </div>
+    </div>
+
+    <!-- Generate Key Modal -->
+    <div id="keyModal" class="fixed inset-0 z-50 hidden flex items-center justify-center modal-overlay">
+        <div class="bg-gray-900 rounded-2xl border border-gray-700 w-full max-w-md slide-in m-4">
+            <div class="flex justify-between items-center px-6 py-4 border-b border-gray-800">
+                <h3 class="font-bold text-white"><i class="fas fa-key mr-2 text-yellow-400"></i>Generate API Key</h3>
+                <button onclick="closeModal('keyModal')" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+            </div>
+            <form onsubmit="generateKey(event)" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Key Name</label>
+                    <input type="text" id="keyName" class="w-full px-3 py-2 rounded-lg input-dark text-sm" placeholder="Production Key">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Rate Limit/hr</label>
+                        <input type="number" id="keyRateLimit" value="1000" class="w-full px-3 py-2 rounded-lg input-dark text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Burst Limit/min</label>
+                        <input type="number" id="keyBurstLimit" value="50" class="w-full px-3 py-2 rounded-lg input-dark text-sm">
+                    </div>
+                </div>
+                <div id="newKeyResult" class="hidden"></div>
+                <button type="submit" class="w-full py-2.5 rounded-lg btn-primary text-white font-medium text-sm">
+                    <i class="fas fa-plus mr-2"></i>Generate
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Register Webhook Modal -->
+    <div id="webhookModal" class="fixed inset-0 z-50 hidden flex items-center justify-center modal-overlay">
+        <div class="bg-gray-900 rounded-2xl border border-gray-700 w-full max-w-md slide-in m-4">
+            <div class="flex justify-between items-center px-6 py-4 border-b border-gray-800">
+                <h3 class="font-bold text-white"><i class="fas fa-bolt mr-2 text-yellow-400"></i>Register Webhook</h3>
+                <button onclick="closeModal('webhookModal')" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+            </div>
+            <form onsubmit="registerWebhook(event)" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Webhook URL</label>
+                    <input type="url" id="webhookUrl" required class="w-full px-3 py-2 rounded-lg input-dark text-sm" placeholder="https://your-server.com/webhook">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Events</label>
+                    <div class="space-y-2 mt-1">
+                        <label class="flex items-center gap-2 text-sm text-gray-300"><input type="checkbox" value="document.verified" checked class="webhook-event rounded"> document.verified</label>
+                        <label class="flex items-center gap-2 text-sm text-gray-300"><input type="checkbox" value="document.rejected" checked class="webhook-event rounded"> document.rejected</label>
+                        <label class="flex items-center gap-2 text-sm text-gray-300"><input type="checkbox" value="document.failed" checked class="webhook-event rounded"> document.failed</label>
+                    </div>
+                </div>
+                <div id="webhookResult" class="hidden"></div>
+                <button type="submit" class="w-full py-2.5 rounded-lg btn-primary text-white font-medium text-sm">
+                    <i class="fas fa-bolt mr-2"></i>Register
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('v1_token');
+        const user = JSON.parse(localStorage.getItem('v1_user') || '{}');
+        if (!token) { window.location.href = '/v1/login'; }
+
+        let apiKey = localStorage.getItem('v1_api_key') || '';
+
+        document.getElementById('userName').textContent = user.name || 'User';
+        document.getElementById('userEmail').textContent = user.email || '';
+        document.getElementById('userAvatar').textContent = (user.name || 'U')[0].toUpperCase();
+
+        // JWT-based fetch (for profile/key gen)
+        async function jwtFetch(url, opts = {}) {
+            const res = await fetch(url, {
+                ...opts,
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, ...(opts.headers || {}) }
+            });
+            if (res.status === 401) { localStorage.clear(); window.location.href = '/v1/login'; }
+            return res.json();
+        }
+
+        // API-key-based fetch (for verification endpoints)
+        async function apiFetch(url, opts = {}) {
+            if (!apiKey) { alert('No API key set. Please go to API Keys section and generate/set one.'); return null; }
+            const res = await fetch(url, {
+                ...opts,
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey, ...(opts.headers || {}) }
+            });
+            if (res.status === 401) { alert('API key is invalid or expired. Generate a new one.'); return null; }
+            if (res.status === 429) { alert('Rate limit exceeded. Please slow down.'); return null; }
+            return res.json();
+        }
+
+        function showSection(name) {
+            ['dashboard', 'verify', 'requests', 'apikeys', 'webhooks'].forEach(s => {
+                document.getElementById('sec-' + s).classList.toggle('hidden', s !== name);
+                document.getElementById('nav-' + s).classList.toggle('active', s === name);
+            });
+            if (name === 'dashboard') loadUserDashboard();
+            if (name === 'verify') loadDocTypes();
+            if (name === 'requests') loadMyRequests();
+            if (name === 'apikeys') loadApiKeys();
+            if (name === 'webhooks') loadWebhooks();
+        }
+
+        function statusBadge(s) {
+            const c = { verified: 'badge-verified', rejected: 'badge-rejected', processing: 'badge-processing', accepted: 'badge-accepted', failed: 'badge-failed' };
+            return `<span class="px-2 py-0.5 rounded-full text-xs font-medium ${c[s] || 'badge-failed'}">${s}</span>`;
+        }
+        function riskBadge(score) {
+            if (score == null) return '-';
+            const s = parseFloat(score);
+            const color = s > 0.7 ? 'text-red-400' : s > 0.3 ? 'text-yellow-400' : 'text-green-400';
+            return `<span class="font-mono text-xs ${color}">${s.toFixed(4)}</span>`;
+        }
+        function fmtDate(d) { return d ? new Date(d).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '-'; }
+
+        // ========== DASHBOARD ==========
+        async function loadUserDashboard() {
+            if (!apiKey) {
+                document.getElementById('statCards').innerHTML = '<div class="col-span-4 glass rounded-xl p-6 text-center"><p class="text-gray-400">Set an API key in the <a href="#" onclick="showSection(\'apikeys\')" class="text-blue-400">API Keys</a> section to view stats.</p></div>';
+                return;
+            }
+            const data = await apiFetch('/v1/dashboard/user');
+            if (!data?.success) return;
+            const d = data.data;
+            document.getElementById('statCards').innerHTML = `
+                <div class="glass rounded-xl p-5 stat-card"><div class="flex justify-between items-start"><div><p class="text-xs text-gray-400">Total Requests</p><p class="text-2xl font-bold text-white mt-1">${d.total_requests}</p></div><i class="fas fa-file-lines text-xl text-blue-400 opacity-60"></i></div></div>
+                <div class="glass rounded-xl p-5 stat-card"><div class="flex justify-between items-start"><div><p class="text-xs text-gray-400">Verified</p><p class="text-2xl font-bold text-green-400 mt-1">${d.verified_count}</p></div><i class="fas fa-circle-check text-xl text-green-400 opacity-60"></i></div></div>
+                <div class="glass rounded-xl p-5 stat-card"><div class="flex justify-between items-start"><div><p class="text-xs text-gray-400">Rejected</p><p class="text-2xl font-bold text-red-400 mt-1">${d.rejected_count}</p></div><i class="fas fa-circle-xmark text-xl text-red-400 opacity-60"></i></div></div>
+                <div class="glass rounded-xl p-5 stat-card"><div class="flex justify-between items-start"><div><p class="text-xs text-gray-400">Processing</p><p class="text-2xl font-bold text-yellow-400 mt-1">${d.processing_count}</p></div><i class="fas fa-spinner text-xl text-yellow-400 opacity-60"></i></div></div>`;
+
+            document.getElementById('recentTable').innerHTML = (d.recent_requests || []).map(r => `
+                <tr class="hover:bg-gray-800/30 transition cursor-pointer" onclick="viewResult('${r.system_reference_id}')">
+                    <td class="px-4 py-2.5 font-mono text-xs text-blue-300">${r.system_reference_id}</td>
+                    <td class="px-4 py-2.5 text-xs capitalize">${r.document_type}</td>
+                    <td class="px-4 py-2.5">${statusBadge(r.status)}</td>
+                    <td class="px-4 py-2.5 text-xs">${r.confidence != null ? r.confidence + '%' : '-'}</td>
+                    <td class="px-4 py-2.5 text-xs text-gray-400">${fmtDate(r.created_at)}</td>
+                    <td class="px-4 py-2.5"><button class="text-blue-400 hover:text-blue-300 text-xs"><i class="fas fa-eye"></i> View</button></td>
+                </tr>`).join('') || '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No requests yet. Submit your first document!</td></tr>';
+        }
+
+        // ========== VERIFY ==========
+        async function loadDocTypes() {
+            if (!apiKey) return;
+            const data = await apiFetch('/v1/verify/document-types');
+            if (!data?.success) return;
+            const select = document.getElementById('verifyDocType');
+            select.innerHTML = '<option value="">Select document type...</option>' +
+                data.data.map(d => `<option value="${d.code}">${d.name} (${d.code})</option>`).join('');
+
+            document.getElementById('docTypeList').innerHTML = data.data.map(d => `
+                <div class="bg-gray-800/50 rounded-lg p-3 flex justify-between items-center">
+                    <div>
+                        <span class="text-sm text-white">${d.name}</span>
+                        <span class="text-xs text-gray-500 ml-2 font-mono">${d.code}</span>
+                    </div>
+                    <span class="text-[10px] text-gray-400">${(d.allowed_formats || []).join(', ')}</span>
+                </div>`).join('');
+        }
+
+        async function submitVerification(e) {
+            e.preventDefault();
+            const errDiv = document.getElementById('verifyError');
+            const sucDiv = document.getElementById('verifySuccess');
+            errDiv.classList.add('hidden');
+            sucDiv.classList.add('hidden');
+
+            const btn = document.getElementById('verifyBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Submitting...';
+
+            let metadata = {};
+            try {
+                const metaStr = document.getElementById('verifyMetadata').value.trim();
+                if (metaStr) metadata = JSON.parse(metaStr);
+            } catch (err) {
+                errDiv.textContent = 'Invalid metadata JSON';
+                errDiv.classList.remove('hidden');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Submit for Verification';
+                return;
+            }
+
+            const body = {
+                document_type: document.getElementById('verifyDocType').value,
+                file_url: document.getElementById('verifyFileUrl').value,
+                reference_id: document.getElementById('verifyRefId').value || undefined,
+                metadata: Object.keys(metadata).length ? metadata : undefined
+            };
+
+            const data = await apiFetch('/v1/verify', { method: 'POST', body: JSON.stringify(body) });
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Submit for Verification';
+
+            if (data?.status === 'accepted') {
+                sucDiv.innerHTML = `Document accepted! Reference: <code class="bg-gray-800 px-2 py-0.5 rounded text-blue-300 font-mono">${data.system_reference_id}</code>`;
+                sucDiv.classList.remove('hidden');
+                document.getElementById('checkRefId').value = data.system_reference_id;
+            } else {
+                errDiv.textContent = data?.message || 'Submission failed';
+                errDiv.classList.remove('hidden');
+            }
+        }
+
+        async function checkStatus() {
+            const ref = document.getElementById('checkRefId').value.trim();
+            if (!ref) return;
+            const result = document.getElementById('statusResult');
+            result.innerHTML = '<p class="text-gray-400 text-sm"><i class="fas fa-spinner fa-spin mr-2"></i>Checking...</p>';
+
+            // Try result first (more data), fallback to status
+            const data = await apiFetch('/v1/verify/result/' + ref);
+            if (!data) { result.innerHTML = ''; return; }
+            if (data.error) {
+                result.innerHTML = `<p class="text-red-400 text-sm">${data.message}</p>`;
+                return;
+            }
+            renderResultInline(result, data);
+        }
+
+        function renderResultInline(container, r) {
+            let extracted = '';
+            if (r.extracted_data && Object.keys(r.extracted_data).length) {
+                extracted = `<div class="mt-3"><p class="text-[10px] text-gray-500 uppercase mb-1">Extracted Data</p>
+                    <div class="bg-gray-800/50 rounded-lg p-2 space-y-1">${Object.entries(r.extracted_data).map(([k,v]) =>
+                        `<div class="flex justify-between text-xs"><span class="text-gray-400">${k}</span><span class="text-white">${v}</span></div>`
+                    ).join('')}</div></div>`;
+            }
+            container.innerHTML = `
+                <div class="bg-gray-800/30 rounded-lg p-4 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="font-mono text-xs text-blue-300">${r.system_reference_id}</span>
+                        ${statusBadge(r.status)}
+                    </div>
+                    ${r.confidence != null ? `<div class="flex justify-between text-xs"><span class="text-gray-400">Confidence</span><span class="text-white">${r.confidence}%</span></div>` : ''}
+                    ${r.risk_score != null ? `<div class="flex justify-between text-xs"><span class="text-gray-400">Risk Score</span>${riskBadge(r.risk_score)}</div>` : ''}
+                    ${r.message ? `<p class="text-xs text-gray-400">${r.message}</p>` : ''}
+                    ${extracted}
+                    ${r.issues && r.issues.length ? `<div class="mt-2"><p class="text-[10px] text-gray-500 uppercase mb-1">Issues</p>${r.issues.map(i => `<p class="text-xs text-red-300"><i class="fas fa-triangle-exclamation mr-1"></i>${i}</p>`).join('')}</div>` : ''}
+                </div>`;
+        }
+
+        async function viewResult(ref) {
+            const data = await apiFetch('/v1/verify/result/' + ref);
+            if (!data) return;
+            const container = document.getElementById('resultContent');
+
+            let extracted = '';
+            if (data.extracted_data && Object.keys(data.extracted_data).length) {
+                extracted = `<div class="mt-4"><h4 class="text-sm font-medium text-gray-300 mb-2">Extracted Data</h4>
+                    <div class="bg-gray-800/50 rounded-lg p-3 space-y-1">${Object.entries(data.extracted_data).map(([k,v]) =>
+                        `<div class="flex justify-between text-xs"><span class="text-gray-400">${k}</span><span class="text-white">${v}</span></div>`
+                    ).join('')}</div></div>`;
+            }
+
+            container.innerHTML = `
+                <div class="space-y-3">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500">System Ref</p><p class="text-sm text-blue-300 font-mono">${data.system_reference_id}</p></div>
+                        <div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500">Status</p><p class="mt-1">${statusBadge(data.status)}</p></div>
+                        ${data.confidence != null ? `<div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500">Confidence</p><p class="text-sm text-white">${data.confidence}%</p></div>` : ''}
+                        ${data.risk_score != null ? `<div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500">Risk Score</p><p class="text-sm">${riskBadge(data.risk_score)}</p></div>` : ''}
+                        ${data.document_type ? `<div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500">Doc Type</p><p class="text-sm text-white capitalize">${data.document_type}</p></div>` : ''}
+                        <div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500">Created</p><p class="text-sm text-white">${fmtDate(data.created_at)}</p></div>
+                    </div>
+                    ${extracted}
+                    ${data.issues && data.issues.length ? `<div class="mt-3"><h4 class="text-sm font-medium text-gray-300 mb-2">Issues</h4><ul class="space-y-1">${data.issues.map(i => `<li class="text-xs text-red-300"><i class="fas fa-triangle-exclamation mr-1"></i>${i}</li>`).join('')}</ul></div>` : ''}
+                </div>`;
+            document.getElementById('resultModal').classList.remove('hidden');
+        }
+
+        // ========== MY REQUESTS ==========
+        async function loadMyRequests() {
+            if (!apiKey) return;
+            const status = document.getElementById('reqFilterStatus').value;
+            const url = '/v1/verify/requests' + (status ? '?status=' + status : '');
+            const data = await apiFetch(url);
+            if (!data?.success) return;
+            document.getElementById('myRequestsTable').innerHTML = (data.data.requests || []).map(r => `
+                <tr class="hover:bg-gray-800/30 transition cursor-pointer" onclick="viewResult('${r.system_reference_id}')">
+                    <td class="px-4 py-2.5 font-mono text-xs text-blue-300">${r.system_reference_id}</td>
+                    <td class="px-4 py-2.5 text-xs">${r.client_reference_id || '-'}</td>
+                    <td class="px-4 py-2.5 text-xs capitalize">${r.document_type}</td>
+                    <td class="px-4 py-2.5">${statusBadge(r.status)}</td>
+                    <td class="px-4 py-2.5 text-xs">${r.confidence != null ? r.confidence + '%' : '-'}</td>
+                    <td class="px-4 py-2.5">${riskBadge(r.risk_score)}</td>
+                    <td class="px-4 py-2.5 text-xs text-gray-400">${fmtDate(r.created_at)}</td>
+                    <td class="px-4 py-2.5"><button class="text-blue-400 hover:text-blue-300 text-xs"><i class="fas fa-eye"></i></button></td>
+                </tr>`).join('') || '<tr><td colspan="8" class="px-4 py-8 text-center text-gray-500">No requests found</td></tr>';
+        }
+
+        // ========== API KEYS ==========
+        async function loadApiKeys() {
+            const data = await jwtFetch('/v1/auth/profile');
+            if (!data?.success) return;
+            const keys = data.data.api_keys || [];
+            document.getElementById('apiKeysList').innerHTML = keys.map(k => `
+                <div class="glass rounded-xl p-4 flex items-center justify-between">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-3 mb-1">
+                            <span class="font-medium text-white text-sm">${k.name}</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-medium ${k.status === 'active' ? 'badge-verified' : 'badge-failed'}">${k.status}</span>
+                        </div>
+                        <p class="font-mono text-xs text-gray-400">${k.api_key}</p>
+                        <div class="flex gap-4 mt-1 text-[10px] text-gray-500">
+                            <span>Rate: ${k.rate_limit}/hr</span>
+                            <span>Burst: ${k.burst_limit}/min</span>
+                            <span>Last used: ${k.last_used_at ? fmtDate(k.last_used_at) : 'Never'}</span>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 ml-4">
+                        <button onclick="useKey(${k.id},'${k.api_key}')" class="px-3 py-1.5 rounded-lg bg-blue-600/20 text-blue-400 text-xs hover:bg-blue-600/30 border border-blue-600/30" title="Set as active key">
+                            <i class="fas fa-check mr-1"></i>Use
+                        </button>
+                        ${k.status === 'active' ? `<button onclick="revokeKey(${k.id})" class="px-3 py-1.5 rounded-lg bg-red-600/20 text-red-400 text-xs hover:bg-red-600/30 border border-red-600/30"><i class="fas fa-ban mr-1"></i>Revoke</button>` : ''}
+                    </div>
+                </div>`).join('') || '<div class="glass rounded-xl p-8 text-center text-gray-500">No API keys yet</div>';
+
+            if (apiKey) {
+                document.getElementById('apiKeysList').insertAdjacentHTML('beforebegin',
+                    `<div class="glass rounded-xl p-3 mb-4 flex items-center gap-3"><i class="fas fa-key text-yellow-400"></i><span class="text-sm text-gray-300">Active Key:</span><code class="font-mono text-xs text-blue-300">${apiKey.substring(0, 15)}...</code></div>`);
+            }
+        }
+
+        function useKey(id, key) {
+            // Since profile shows masked keys, we need to get full key from stored data
+            // For newly generated keys, use the full key
+            if (key && key.length > 15) {
+                apiKey = key;
+                localStorage.setItem('v1_api_key', key);
+                alert('API key activated! You can now use all verification features.');
+                loadApiKeys();
+            } else {
+                alert('To use this key, you need the full key value. Generate a new key if you don\'t have it.');
+            }
+        }
+
+        async function generateKey(e) {
+            e.preventDefault();
+            const data = await jwtFetch('/v1/auth/api/generate', {
+                method: 'POST',
+                body: JSON.stringify({
+                    name: document.getElementById('keyName').value || 'API Key',
+                    rate_limit: parseInt(document.getElementById('keyRateLimit').value) || 1000,
+                    burst_limit: parseInt(document.getElementById('keyBurstLimit').value) || 50
+                })
+            });
+            if (data?.success) {
+                const resultDiv = document.getElementById('newKeyResult');
+                resultDiv.innerHTML = `<div class="p-3 rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 text-sm">
+                    Key generated!<br><code class="text-xs bg-gray-800 px-2 py-0.5 rounded block mt-1 break-all text-blue-300">${data.data.api_key}</code>
+                    <p class="text-[10px] text-gray-400 mt-1">Save this key - it won't be shown again in full.</p>
+                    <button onclick="useKey(${data.data.id},'${data.data.api_key}')" class="mt-2 px-3 py-1 rounded bg-blue-600/30 text-blue-300 text-xs hover:bg-blue-600/40">Use This Key</button>
+                </div>`;
+                resultDiv.classList.remove('hidden');
+                loadApiKeys();
+            }
+        }
+
+        async function revokeKey(id) {
+            if (!confirm('Revoke this API key? This cannot be undone.')) return;
+            await jwtFetch('/v1/auth/api/revoke/' + id, { method: 'POST' });
+            loadApiKeys();
+        }
+
+        function openKeyModal() {
+            document.getElementById('newKeyResult').classList.add('hidden');
+            document.getElementById('keyName').value = '';
+            document.getElementById('keyModal').classList.remove('hidden');
+        }
+
+        // ========== WEBHOOKS ==========
+        async function loadWebhooks() {
+            if (!apiKey) {
+                document.getElementById('webhooksList').innerHTML = '<div class="glass rounded-xl p-8 text-center text-gray-500">Set an API key first</div>';
+                return;
+            }
+            const data = await apiFetch('/v1/webhook');
+            if (!data?.success) return;
+            document.getElementById('webhooksList').innerHTML = (data.data || []).map(w => {
+                const events = typeof w.events === 'string' ? JSON.parse(w.events) : (w.events || []);
+                return `<div class="glass rounded-xl p-4">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <p class="text-sm text-white break-all">${w.url}</p>
+                            <div class="flex gap-1 mt-1">${events.map(e => `<span class="px-1.5 py-0.5 rounded bg-gray-800 text-[10px] text-gray-300">${e}</span>`).join('')}</div>
+                        </div>
+                        <div class="flex gap-2 ml-4">
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-medium ${w.is_active ? 'badge-verified' : 'badge-failed'}">${w.is_active ? 'Active' : 'Inactive'}</span>
+                            <button onclick="deleteWebhook(${w.id})" class="text-red-400 hover:text-red-300 text-xs"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                    <div class="text-[10px] text-gray-500">Failures: ${w.failure_count} | Last: ${w.last_triggered_at ? fmtDate(w.last_triggered_at) : 'Never'}</div>
+                </div>`;
+            }).join('') || '<div class="glass rounded-xl p-8 text-center text-gray-500">No webhooks registered</div>';
+        }
+
+        async function registerWebhook(e) {
+            e.preventDefault();
+            const events = [...document.querySelectorAll('.webhook-event:checked')].map(c => c.value);
+            const data = await apiFetch('/v1/webhook/register', {
+                method: 'POST',
+                body: JSON.stringify({ url: document.getElementById('webhookUrl').value, events })
+            });
+            if (data?.success) {
+                const resultDiv = document.getElementById('webhookResult');
+                resultDiv.innerHTML = `<div class="p-3 rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 text-sm">
+                    Webhook registered!<br>Secret: <code class="text-xs bg-gray-800 px-1 rounded text-blue-300">${data.data.secret}</code>
+                    <p class="text-[10px] text-gray-400 mt-1">Save this secret for verifying webhook signatures.</p>
+                </div>`;
+                resultDiv.classList.remove('hidden');
+                loadWebhooks();
+            }
+        }
+
+        async function deleteWebhook(id) {
+            if (!confirm('Delete this webhook?')) return;
+            await apiFetch('/v1/webhook/' + id, { method: 'DELETE' });
+            loadWebhooks();
+        }
+
+        function openWebhookModal() {
+            document.getElementById('webhookResult').classList.add('hidden');
+            document.getElementById('webhookUrl').value = '';
+            document.getElementById('webhookModal').classList.remove('hidden');
+        }
+
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+        function logout() { localStorage.clear(); window.location.href = '/v1/login'; }
+
+        // Initial load
+        loadUserDashboard();
+    </script>
+</body>
+</html>
