@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Document Verification Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body { background: #0f172a; }
+        .glass { background: rgba(30, 41, 59, 0.6); backdrop-filter: blur(8px); border: 1px solid rgba(71, 85, 105, 0.3); }
+        .input-dark { background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(71, 85, 105, 0.5); color: #e2e8f0; }
+        .input-dark:focus { border-color: #3b82f6; outline: none; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
+        .btn-primary { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+        .btn-primary:hover { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+        .sidebar-link { transition: all 0.15s; }
+        .sidebar-link:hover, .sidebar-link.active { background: rgba(59, 130, 246, 0.15); color: #93c5fd; }
+        .stat-card { transition: transform 0.2s; }
+        .stat-card:hover { transform: translateY(-2px); }
+        .badge-verified { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
+        .badge-rejected { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+        .badge-processing { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+        .badge-accepted { background: rgba(234, 179, 8, 0.15); color: #facc15; }
+        .badge-failed { background: rgba(156, 163, 175, 0.15); color: #9ca3af; }
+        .slide-in { animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .modal-overlay { background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
+    </style>
+</head>
+<body class="text-gray-200 min-h-screen">
+    <!-- Sidebar -->
+    <aside class="fixed left-0 top-0 bottom-0 w-64 bg-gray-900 border-r border-gray-800 z-40 flex flex-col">
+        <div class="p-5 border-b border-gray-800">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-blue-600/20 flex items-center justify-center">
+                    <i class="fas fa-shield-halved text-blue-400"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-white text-sm">Doc Verification</h1>
+                    <p class="text-[10px] text-gray-500">Admin Panel</p>
+                </div>
+            </div>
+        </div>
+        <nav class="p-3 flex-1 overflow-y-auto">
+            <p class="text-[10px] uppercase tracking-wider text-gray-500 px-3 mb-2">Overview</p>
+            <ul class="space-y-0.5 mb-4">
+                <li><a href="#" onclick="showSection('dashboard')" class="sidebar-link active flex items-center gap-3 px-3 py-2 rounded-lg text-sm" id="nav-dashboard">
+                    <i class="fas fa-chart-pie w-5 text-center"></i> Dashboard</a></li>
+                <li><a href="#" onclick="showSection('requests')" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm" id="nav-requests">
+                    <i class="fas fa-file-lines w-5 text-center"></i> Requests</a></li>
+            </ul>
+            <p class="text-[10px] uppercase tracking-wider text-gray-500 px-3 mb-2">Management</p>
+            <ul class="space-y-0.5 mb-4">
+                <li><a href="#" onclick="showSection('documents')" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm" id="nav-documents">
+                    <i class="fas fa-folder-open w-5 text-center"></i> Document Types</a></li>
+                <li><a href="#" onclick="showSection('users')" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm" id="nav-users">
+                    <i class="fas fa-users w-5 text-center"></i> Users</a></li>
+                <li><a href="#" onclick="showSection('audit')" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm" id="nav-audit">
+                    <i class="fas fa-clock-rotate-left w-5 text-center"></i> Audit Log</a></li>
+            </ul>
+        </nav>
+        <div class="p-3 border-t border-gray-800">
+            <div class="flex items-center gap-3 px-3 py-2">
+                <div class="w-8 h-8 rounded-full bg-blue-600/30 flex items-center justify-center text-sm font-bold text-blue-300" id="userAvatar">A</div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-white truncate" id="userName">Admin</p>
+                    <p class="text-[10px] text-gray-500" id="userRole">admin</p>
+                </div>
+                <button onclick="logout()" class="text-gray-500 hover:text-red-400" title="Logout"><i class="fas fa-right-from-bracket"></i></button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="ml-64 p-6 min-h-screen">
+        <!-- Dashboard Section -->
+        <div id="sec-dashboard" class="slide-in">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-xl font-bold text-white">Dashboard</h2>
+                    <p class="text-sm text-gray-400">System overview & analytics</p>
+                </div>
+                <button onclick="loadDashboard()" class="px-3 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-300 hover:bg-gray-700 transition">
+                    <i class="fas fa-sync-alt mr-1"></i> Refresh
+                </button>
+            </div>
+
+            <!-- Stat Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6" id="statCards">
+                <div class="glass rounded-xl p-5 stat-card"><div class="animate-pulse bg-gray-700 h-16 rounded"></div></div>
+                <div class="glass rounded-xl p-5 stat-card"><div class="animate-pulse bg-gray-700 h-16 rounded"></div></div>
+                <div class="glass rounded-xl p-5 stat-card"><div class="animate-pulse bg-gray-700 h-16 rounded"></div></div>
+                <div class="glass rounded-xl p-5 stat-card"><div class="animate-pulse bg-gray-700 h-16 rounded"></div></div>
+            </div>
+
+            <!-- Status Breakdown + Queue -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+                <div class="glass rounded-xl p-5 lg:col-span-2">
+                    <h3 class="font-semibold text-white mb-4"><i class="fas fa-chart-bar mr-2 text-blue-400"></i>Status Breakdown</h3>
+                    <div id="statusBreakdown" class="space-y-3"></div>
+                </div>
+                <div class="glass rounded-xl p-5">
+                    <h3 class="font-semibold text-white mb-4"><i class="fas fa-server mr-2 text-green-400"></i>Queue Status</h3>
+                    <div id="queueStatus" class="space-y-3"></div>
+                </div>
+            </div>
+
+            <!-- Recent Requests -->
+            <div class="glass rounded-xl overflow-hidden">
+                <div class="px-5 py-4 border-b border-gray-700/50">
+                    <h3 class="font-semibold text-white"><i class="fas fa-clock mr-2 text-yellow-400"></i>Recent Requests</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-800/50 text-xs text-gray-400 uppercase">
+                            <tr>
+                                <th class="px-4 py-2.5 text-left">Reference</th>
+                                <th class="px-4 py-2.5 text-left">User</th>
+                                <th class="px-4 py-2.5 text-left">Doc Type</th>
+                                <th class="px-4 py-2.5 text-left">Status</th>
+                                <th class="px-4 py-2.5 text-left">Confidence</th>
+                                <th class="px-4 py-2.5 text-left">Risk</th>
+                                <th class="px-4 py-2.5 text-left">Date</th>
+                                <th class="px-4 py-2.5 text-left">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentTable" class="divide-y divide-gray-800/50"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Requests Section -->
+        <div id="sec-requests" class="hidden slide-in">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-xl font-bold text-white">All Verification Requests</h2>
+                    <p class="text-sm text-gray-400">View and manage all requests</p>
+                </div>
+                <div class="flex gap-2">
+                    <select id="filterStatus" onchange="loadRequests()" class="px-3 py-1.5 rounded-lg input-dark text-sm">
+                        <option value="">All Status</option>
+                        <option value="accepted">Accepted</option>
+                        <option value="processing">Processing</option>
+                        <option value="verified">Verified</option>
+                        <option value="rejected">Rejected</option>
+                        <option value="failed">Failed</option>
+                    </select>
+                    <button onclick="loadRequests()" class="px-3 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-300 hover:bg-gray-700">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="glass rounded-xl overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-800/50 text-xs text-gray-400 uppercase">
+                            <tr>
+                                <th class="px-4 py-2.5 text-left">System Ref</th>
+                                <th class="px-4 py-2.5 text-left">Client Ref</th>
+                                <th class="px-4 py-2.5 text-left">User</th>
+                                <th class="px-4 py-2.5 text-left">Doc Type</th>
+                                <th class="px-4 py-2.5 text-left">Status</th>
+                                <th class="px-4 py-2.5 text-left">Confidence</th>
+                                <th class="px-4 py-2.5 text-left">Risk</th>
+                                <th class="px-4 py-2.5 text-left">Created</th>
+                                <th class="px-4 py-2.5 text-left">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="requestsTable" class="divide-y divide-gray-800/50"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Document Types Section -->
+        <div id="sec-documents" class="hidden slide-in">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h2 class="text-xl font-bold text-white">Document Types</h2>
+                    <p class="text-sm text-gray-400">Configure document verification rules</p>
+                </div>
+                <button onclick="openDocModal()" class="px-4 py-2 rounded-lg btn-primary text-white text-sm font-medium">
+                    <i class="fas fa-plus mr-2"></i>Add Document Type
+                </button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="docTypeGrid"></div>
+        </div>
+
+        <!-- Users Section -->
+        <div id="sec-users" class="hidden slide-in">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-bold text-white">Users</h2>
+            </div>
+            <div class="glass rounded-xl overflow-hidden">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-800/50 text-xs text-gray-400 uppercase">
+                        <tr>
+                            <th class="px-4 py-2.5 text-left">ID</th>
+                            <th class="px-4 py-2.5 text-left">Name</th>
+                            <th class="px-4 py-2.5 text-left">Email</th>
+                            <th class="px-4 py-2.5 text-left">Role</th>
+                            <th class="px-4 py-2.5 text-left">Status</th>
+                            <th class="px-4 py-2.5 text-left">Created</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTable" class="divide-y divide-gray-800/50"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Audit Log Section -->
+        <div id="sec-audit" class="hidden slide-in">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-bold text-white">Audit Log</h2>
+                <button onclick="loadAudit()" class="px-3 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-300 hover:bg-gray-700">
+                    <i class="fas fa-sync-alt mr-1"></i> Refresh
+                </button>
+            </div>
+            <div class="glass rounded-xl overflow-hidden">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-800/50 text-xs text-gray-400 uppercase">
+                        <tr>
+                            <th class="px-4 py-2.5 text-left">Time</th>
+                            <th class="px-4 py-2.5 text-left">User</th>
+                            <th class="px-4 py-2.5 text-left">Action</th>
+                            <th class="px-4 py-2.5 text-left">Resource</th>
+                            <th class="px-4 py-2.5 text-left">Details</th>
+                        </tr>
+                    </thead>
+                    <tbody id="auditTable" class="divide-y divide-gray-800/50"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Detail Modal -->
+    <div id="detailModal" class="fixed inset-0 z-50 hidden flex items-center justify-center modal-overlay">
+        <div class="bg-gray-900 rounded-2xl border border-gray-700 w-full max-w-2xl max-h-[85vh] overflow-y-auto slide-in m-4">
+            <div class="flex justify-between items-center px-6 py-4 border-b border-gray-800 sticky top-0 bg-gray-900 z-10">
+                <h3 class="font-bold text-white"><i class="fas fa-file-circle-check mr-2 text-blue-400"></i>Request Detail</h3>
+                <button onclick="closeModal('detailModal')" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="detailContent" class="p-6"></div>
+        </div>
+    </div>
+
+    <!-- Document Type Modal -->
+    <div id="docModal" class="fixed inset-0 z-50 hidden flex items-center justify-center modal-overlay">
+        <div class="bg-gray-900 rounded-2xl border border-gray-700 w-full max-w-lg max-h-[85vh] overflow-y-auto slide-in m-4">
+            <div class="flex justify-between items-center px-6 py-4 border-b border-gray-800">
+                <h3 class="font-bold text-white" id="docModalTitle"><i class="fas fa-file-circle-plus mr-2 text-blue-400"></i>Add Document Type</h3>
+                <button onclick="closeModal('docModal')" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+            </div>
+            <form onsubmit="saveDocType(event)" class="p-6 space-y-4">
+                <input type="hidden" id="docEditId">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Name</label>
+                        <input type="text" id="docName" required class="w-full px-3 py-2 rounded-lg input-dark text-sm" placeholder="Aadhaar Card">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Code</label>
+                        <input type="text" id="docCode" required class="w-full px-3 py-2 rounded-lg input-dark text-sm" placeholder="aadhaar">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Allowed Formats</label>
+                        <input type="text" id="docFormats" class="w-full px-3 py-2 rounded-lg input-dark text-sm" placeholder="jpg,png,pdf">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Max Size (MB)</label>
+                        <input type="number" id="docMaxSize" class="w-full px-3 py-2 rounded-lg input-dark text-sm" value="5">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Required Fields (comma-separated)</label>
+                    <input type="text" id="docFields" class="w-full px-3 py-2 rounded-lg input-dark text-sm" placeholder="name,dob,id_number">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Validation Rules (JSON)</label>
+                    <textarea id="docRules" rows="3" class="w-full px-3 py-2 rounded-lg input-dark text-sm font-mono" placeholder='{"id_number": "^[0-9]{12}$"}'></textarea>
+                </div>
+                <button type="submit" class="w-full py-2.5 rounded-lg btn-primary text-white font-medium text-sm">
+                    <i class="fas fa-save mr-2"></i>Save
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('v1_token');
+        const user = JSON.parse(localStorage.getItem('v1_user') || '{}');
+        if (!token || user.role !== 'admin') { window.location.href = '/v1/login'; }
+
+        document.getElementById('userName').textContent = user.name || 'Admin';
+        document.getElementById('userRole').textContent = user.role;
+        document.getElementById('userAvatar').textContent = (user.name || 'A')[0].toUpperCase();
+
+        async function apiFetch(url, opts = {}) {
+            const res = await fetch(url, {
+                ...opts,
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, ...(opts.headers || {}) }
+            });
+            if (res.status === 401) { localStorage.clear(); window.location.href = '/v1/login'; return; }
+            return res.json();
+        }
+
+        function showSection(name) {
+            ['dashboard', 'requests', 'documents', 'users', 'audit'].forEach(s => {
+                document.getElementById('sec-' + s).classList.toggle('hidden', s !== name);
+                document.getElementById('nav-' + s).classList.toggle('active', s === name);
+            });
+            if (name === 'dashboard') loadDashboard();
+            if (name === 'requests') loadRequests();
+            if (name === 'documents') loadDocTypes();
+            if (name === 'users') loadUsers();
+            if (name === 'audit') loadAudit();
+        }
+
+        function statusBadge(status) {
+            const cls = { verified: 'badge-verified', rejected: 'badge-rejected', processing: 'badge-processing', accepted: 'badge-accepted', failed: 'badge-failed' };
+            return `<span class="px-2 py-0.5 rounded-full text-xs font-medium ${cls[status] || 'badge-failed'}">${status}</span>`;
+        }
+
+        function riskBadge(score) {
+            if (score == null) return '<span class="text-gray-500">-</span>';
+            const s = parseFloat(score);
+            const color = s > 0.7 ? 'text-red-400' : s > 0.3 ? 'text-yellow-400' : 'text-green-400';
+            return `<span class="font-mono text-xs ${color}">${s.toFixed(4)}</span>`;
+        }
+
+        function fmtDate(d) {
+            if (!d) return '-';
+            return new Date(d).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+        }
+
+        // ========== DASHBOARD ==========
+        async function loadDashboard() {
+            const data = await apiFetch('/v1/admin/analytics');
+            if (!data?.success) return;
+            const d = data.data;
+            const vs = d.verification_stats;
+
+            const getCount = (s) => (vs.status_breakdown.find(x => x.status === s)?.count || 0);
+            const total = vs.totals.total_requests || 0;
+
+            document.getElementById('statCards').innerHTML = `
+                <div class="glass rounded-xl p-5 stat-card">
+                    <div class="flex justify-between items-start">
+                        <div><p class="text-xs text-gray-400">Total Requests</p><p class="text-2xl font-bold text-white mt-1">${total}</p></div>
+                        <i class="fas fa-file-lines text-xl text-blue-400 opacity-60"></i>
+                    </div>
+                </div>
+                <div class="glass rounded-xl p-5 stat-card">
+                    <div class="flex justify-between items-start">
+                        <div><p class="text-xs text-gray-400">Verified</p><p class="text-2xl font-bold text-green-400 mt-1">${getCount('verified')}</p></div>
+                        <i class="fas fa-circle-check text-xl text-green-400 opacity-60"></i>
+                    </div>
+                </div>
+                <div class="glass rounded-xl p-5 stat-card">
+                    <div class="flex justify-between items-start">
+                        <div><p class="text-xs text-gray-400">Rejected</p><p class="text-2xl font-bold text-red-400 mt-1">${getCount('rejected')}</p></div>
+                        <i class="fas fa-circle-xmark text-xl text-red-400 opacity-60"></i>
+                    </div>
+                </div>
+                <div class="glass rounded-xl p-5 stat-card">
+                    <div class="flex justify-between items-start">
+                        <div><p class="text-xs text-gray-400">Processing</p><p class="text-2xl font-bold text-yellow-400 mt-1">${getCount('accepted') + getCount('processing')}</p></div>
+                        <i class="fas fa-spinner text-xl text-yellow-400 opacity-60"></i>
+                    </div>
+                </div>`;
+
+            // Status breakdown bars
+            const breakdown = vs.status_breakdown || [];
+            document.getElementById('statusBreakdown').innerHTML = breakdown.map(s => {
+                const pct = total > 0 ? ((s.count / total) * 100).toFixed(1) : 0;
+                const barColor = { verified: 'bg-green-500', rejected: 'bg-red-500', processing: 'bg-blue-500', accepted: 'bg-yellow-500', failed: 'bg-gray-500' };
+                return `<div class="flex items-center gap-3">
+                    <span class="text-xs text-gray-400 w-20 capitalize">${s.status}</span>
+                    <div class="flex-1 bg-gray-800 rounded-full h-2"><div class="${barColor[s.status] || 'bg-gray-600'} h-2 rounded-full transition-all" style="width: ${pct}%"></div></div>
+                    <span class="text-xs text-gray-300 w-16 text-right">${s.count} (${pct}%)</span>
+                </div>`;
+            }).join('') || '<p class="text-gray-500 text-sm">No data yet</p>';
+
+            // Queue status
+            document.getElementById('queueStatus').innerHTML = `
+                <div class="flex justify-between"><span class="text-sm text-gray-400">Status</span><span class="text-sm font-medium ${d.queue.isRunning ? 'text-green-400' : 'text-gray-400'}">${d.queue.isRunning ? 'Running' : 'Idle'}</span></div>
+                <div class="flex justify-between"><span class="text-sm text-gray-400">Queue Length</span><span class="text-sm font-medium text-white">${d.queue.queueLength}</span></div>
+                <div class="flex justify-between"><span class="text-sm text-gray-400">Active Jobs</span><span class="text-sm font-medium text-white">${d.queue.activeJobs}</span></div>
+                <div class="flex justify-between"><span class="text-sm text-gray-400">Concurrency</span><span class="text-sm font-medium text-white">${d.queue.concurrency}</span></div>
+                <div class="flex justify-between"><span class="text-sm text-gray-400">Avg Confidence</span><span class="text-sm font-medium text-white">${vs.totals.avg_confidence || '-'}%</span></div>
+                <div class="flex justify-between"><span class="text-sm text-gray-400">Avg Processing</span><span class="text-sm font-medium text-white">${vs.totals.avg_processing_seconds ? vs.totals.avg_processing_seconds + 's' : '-'}</span></div>
+                <div class="flex justify-between"><span class="text-sm text-gray-400">Total Users</span><span class="text-sm font-medium text-white">${d.total_users}</span></div>`;
+
+            // Recent requests table
+            document.getElementById('recentTable').innerHTML = (vs.recent_requests || []).slice(0, 15).map(r => `
+                <tr class="hover:bg-gray-800/30 transition cursor-pointer" onclick="viewDetail(${r.id})">
+                    <td class="px-4 py-2.5 font-mono text-xs text-blue-300">${r.system_reference_id}</td>
+                    <td class="px-4 py-2.5 text-xs">${r.user_name || '-'}</td>
+                    <td class="px-4 py-2.5 text-xs capitalize">${r.document_type}</td>
+                    <td class="px-4 py-2.5">${statusBadge(r.status)}</td>
+                    <td class="px-4 py-2.5 text-xs">${r.confidence != null ? r.confidence + '%' : '-'}</td>
+                    <td class="px-4 py-2.5">${riskBadge(r.risk_score)}</td>
+                    <td class="px-4 py-2.5 text-xs text-gray-400">${fmtDate(r.created_at)}</td>
+                    <td class="px-4 py-2.5">
+                        <button onclick="event.stopPropagation();viewDetail(${r.id})" class="text-blue-400 hover:text-blue-300 text-xs mr-2"><i class="fas fa-eye"></i></button>
+                        ${['verified','rejected','failed'].includes(r.status) ? `<button onclick="event.stopPropagation();reprocessRequest(${r.id})" class="text-yellow-400 hover:text-yellow-300 text-xs" title="Reprocess"><i class="fas fa-rotate"></i></button>` : ''}
+                    </td>
+                </tr>`).join('') || '<tr><td colspan="8" class="px-4 py-8 text-center text-gray-500">No requests yet</td></tr>';
+        }
+
+        // ========== REQUESTS ==========
+        async function loadRequests() {
+            const status = document.getElementById('filterStatus').value;
+            const url = '/v1/admin/requests' + (status ? '?status=' + status : '');
+            const data = await apiFetch(url);
+            if (!data?.success) return;
+            document.getElementById('requestsTable').innerHTML = (data.data || []).map(r => `
+                <tr class="hover:bg-gray-800/30 transition cursor-pointer" onclick="viewDetail(${r.id})">
+                    <td class="px-4 py-2.5 font-mono text-xs text-blue-300">${r.system_reference_id}</td>
+                    <td class="px-4 py-2.5 text-xs">${r.client_reference_id || '-'}</td>
+                    <td class="px-4 py-2.5 text-xs">${r.user_name || '-'}</td>
+                    <td class="px-4 py-2.5 text-xs capitalize">${r.document_type}</td>
+                    <td class="px-4 py-2.5">${statusBadge(r.status)}</td>
+                    <td class="px-4 py-2.5 text-xs">${r.confidence != null ? r.confidence + '%' : '-'}</td>
+                    <td class="px-4 py-2.5">${riskBadge(r.risk_score)}</td>
+                    <td class="px-4 py-2.5 text-xs text-gray-400">${fmtDate(r.created_at)}</td>
+                    <td class="px-4 py-2.5 flex gap-1">
+                        <button onclick="event.stopPropagation();viewDetail(${r.id})" class="text-blue-400 hover:text-blue-300 text-xs"><i class="fas fa-eye"></i></button>
+                        <button onclick="event.stopPropagation();overrideRequest(${r.id},'verified')" class="text-green-400 hover:text-green-300 text-xs" title="Verify"><i class="fas fa-check"></i></button>
+                        <button onclick="event.stopPropagation();overrideRequest(${r.id},'rejected')" class="text-red-400 hover:text-red-300 text-xs" title="Reject"><i class="fas fa-xmark"></i></button>
+                        <button onclick="event.stopPropagation();reprocessRequest(${r.id})" class="text-yellow-400 hover:text-yellow-300 text-xs" title="Reprocess"><i class="fas fa-rotate"></i></button>
+                    </td>
+                </tr>`).join('') || '<tr><td colspan="9" class="px-4 py-8 text-center text-gray-500">No requests found</td></tr>';
+        }
+
+        async function viewDetail(id) {
+            const data = await apiFetch('/v1/admin/requests?limit=100');
+            const req = (data?.data || []).find(r => r.id === id);
+            if (!req) return;
+
+            let extracted = '';
+            try {
+                const ed = typeof req.extracted_data === 'string' ? JSON.parse(req.extracted_data) : req.extracted_data;
+                if (ed && Object.keys(ed).length) {
+                    extracted = `<div class="mt-4"><h4 class="text-sm font-medium text-gray-300 mb-2">Extracted Data</h4>
+                        <div class="bg-gray-800/50 rounded-lg p-3 space-y-1">${Object.entries(ed).map(([k,v]) =>
+                            `<div class="flex justify-between text-xs"><span class="text-gray-400">${k}</span><span class="text-white">${v}</span></div>`
+                        ).join('')}</div></div>`;
+                }
+            } catch(e) {}
+
+            let issues = '';
+            try {
+                const iss = typeof req.issues === 'string' ? JSON.parse(req.issues) : req.issues;
+                if (iss && iss.length) {
+                    issues = `<div class="mt-4"><h4 class="text-sm font-medium text-gray-300 mb-2">Issues</h4>
+                        <ul class="space-y-1">${iss.map(i => `<li class="text-xs text-red-300 flex gap-2"><i class="fas fa-triangle-exclamation mt-0.5"></i>${i}</li>`).join('')}</ul></div>`;
+                }
+            } catch(e) {}
+
+            document.getElementById('detailContent').innerHTML = `
+                <div class="space-y-3">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500 uppercase">System Ref</p><p class="text-sm text-blue-300 font-mono">${req.system_reference_id}</p></div>
+                        <div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500 uppercase">Client Ref</p><p class="text-sm text-white">${req.client_reference_id || '-'}</p></div>
+                        <div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500 uppercase">Status</p><p class="mt-1">${statusBadge(req.status)}</p></div>
+                        <div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500 uppercase">Document Type</p><p class="text-sm text-white capitalize">${req.document_type}</p></div>
+                        <div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500 uppercase">Confidence</p><p class="text-sm text-white">${req.confidence != null ? req.confidence + '%' : '-'}</p></div>
+                        <div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500 uppercase">Risk Score</p><p class="text-sm">${riskBadge(req.risk_score)}</p></div>
+                        <div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500 uppercase">User</p><p class="text-sm text-white">${req.user_name || '-'} (${req.user_email || ''})</p></div>
+                        <div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500 uppercase">Created</p><p class="text-sm text-white">${fmtDate(req.created_at)}</p></div>
+                    </div>
+                    <div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500 uppercase mb-1">File URL</p><a href="${req.file_url}" target="_blank" class="text-xs text-blue-400 hover:underline break-all">${req.file_url}</a></div>
+                    ${extracted}${issues}
+                    <div class="flex gap-2 mt-4">
+                        <button onclick="overrideRequest(${req.id},'verified');closeModal('detailModal')" class="flex-1 py-2 rounded-lg bg-green-600/20 text-green-400 text-sm font-medium hover:bg-green-600/30 border border-green-600/30"><i class="fas fa-check mr-1"></i>Verify</button>
+                        <button onclick="overrideRequest(${req.id},'rejected');closeModal('detailModal')" class="flex-1 py-2 rounded-lg bg-red-600/20 text-red-400 text-sm font-medium hover:bg-red-600/30 border border-red-600/30"><i class="fas fa-xmark mr-1"></i>Reject</button>
+                        <button onclick="reprocessRequest(${req.id});closeModal('detailModal')" class="flex-1 py-2 rounded-lg bg-yellow-600/20 text-yellow-400 text-sm font-medium hover:bg-yellow-600/30 border border-yellow-600/30"><i class="fas fa-rotate mr-1"></i>Reprocess</button>
+                    </div>
+                </div>`;
+            document.getElementById('detailModal').classList.remove('hidden');
+        }
+
+        async function overrideRequest(id, status) {
+            if (!confirm(`Override this request to "${status}"?`)) return;
+            await apiFetch('/v1/admin/requests/' + id + '/override', { method: 'POST', body: JSON.stringify({ status }) });
+            loadDashboard(); loadRequests();
+        }
+
+        async function reprocessRequest(id) {
+            if (!confirm('Reprocess this document?')) return;
+            await apiFetch('/v1/admin/requests/' + id + '/reprocess', { method: 'POST' });
+            loadDashboard(); loadRequests();
+        }
+
+        // ========== DOCUMENT TYPES ==========
+        async function loadDocTypes() {
+            const data = await apiFetch('/v1/admin/document?active=false');
+            if (!data?.success) return;
+            document.getElementById('docTypeGrid').innerHTML = (data.data || []).map(d => {
+                const formats = (typeof d.allowed_formats === 'string' ? JSON.parse(d.allowed_formats) : d.allowed_formats) || [];
+                const fields = (typeof d.required_fields === 'string' ? JSON.parse(d.required_fields) : d.required_fields) || [];
+                return `<div class="glass rounded-xl p-5">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h4 class="font-medium text-white">${d.name}</h4>
+                            <p class="text-xs text-gray-500 font-mono">${d.code}</p>
+                        </div>
+                        <div class="flex gap-1">
+                            <button onclick='editDocType(${JSON.stringify(d).replace(/'/g,"&#39;")})' class="text-blue-400 hover:text-blue-300 text-xs p-1"><i class="fas fa-edit"></i></button>
+                            <button onclick="deleteDocType(${d.id})" class="text-red-400 hover:text-red-300 text-xs p-1"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                    <div class="space-y-2 text-xs">
+                        <div class="flex gap-1 flex-wrap">${formats.map(f => `<span class="px-1.5 py-0.5 rounded bg-gray-800 text-gray-300">${f}</span>`).join('')}</div>
+                        <p class="text-gray-400">Max: ${d.max_size_mb}MB</p>
+                        <p class="text-gray-400">Fields: ${fields.length > 0 ? fields.join(', ') : 'None configured'}</p>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-medium ${d.is_active ? 'badge-verified' : 'badge-failed'}">${d.is_active ? 'Active' : 'Inactive'}</span>
+                    </div>
+                </div>`;
+            }).join('') || '<p class="text-gray-500 col-span-3 text-center py-8">No document types configured</p>';
+        }
+
+        function openDocModal(doc = null) {
+            document.getElementById('docEditId').value = doc?.id || '';
+            document.getElementById('docName').value = doc?.name || '';
+            document.getElementById('docCode').value = doc?.code || '';
+            const formats = doc ? (typeof doc.allowed_formats === 'string' ? JSON.parse(doc.allowed_formats) : doc.allowed_formats) : [];
+            document.getElementById('docFormats').value = formats.join(',') || 'jpg,png,pdf';
+            document.getElementById('docMaxSize').value = doc?.max_size_mb || 5;
+            const fields = doc ? (typeof doc.required_fields === 'string' ? JSON.parse(doc.required_fields) : doc.required_fields) : [];
+            document.getElementById('docFields').value = fields.join(',') || '';
+            const rules = doc ? (typeof doc.validation_rules === 'string' ? JSON.parse(doc.validation_rules) : doc.validation_rules) : {};
+            document.getElementById('docRules').value = Object.keys(rules).length ? JSON.stringify(rules, null, 2) : '';
+            document.getElementById('docModalTitle').innerHTML = doc ? '<i class="fas fa-edit mr-2 text-blue-400"></i>Edit Document Type' : '<i class="fas fa-file-circle-plus mr-2 text-blue-400"></i>Add Document Type';
+            document.getElementById('docModal').classList.remove('hidden');
+        }
+
+        function editDocType(doc) { openDocModal(doc); }
+
+        async function saveDocType(e) {
+            e.preventDefault();
+            const id = document.getElementById('docEditId').value;
+            const body = {
+                name: document.getElementById('docName').value,
+                code: document.getElementById('docCode').value,
+                allowed_formats: document.getElementById('docFormats').value.split(',').map(s => s.trim()).filter(Boolean),
+                max_size_mb: parseInt(document.getElementById('docMaxSize').value) || 5,
+                required_fields: document.getElementById('docFields').value.split(',').map(s => s.trim()).filter(Boolean),
+                validation_rules: document.getElementById('docRules').value ? JSON.parse(document.getElementById('docRules').value) : {}
+            };
+            if (id) {
+                await apiFetch('/v1/admin/document/' + id, { method: 'PUT', body: JSON.stringify(body) });
+            } else {
+                await apiFetch('/v1/admin/document', { method: 'POST', body: JSON.stringify(body) });
+            }
+            closeModal('docModal');
+            loadDocTypes();
+        }
+
+        async function deleteDocType(id) {
+            if (!confirm('Delete this document type?')) return;
+            await apiFetch('/v1/admin/document/' + id, { method: 'DELETE' });
+            loadDocTypes();
+        }
+
+        // ========== USERS ==========
+        async function loadUsers() {
+            const data = await apiFetch('/v1/admin/users');
+            if (!data?.success) return;
+            document.getElementById('usersTable').innerHTML = (data.data.users || []).map(u => `
+                <tr class="hover:bg-gray-800/30 transition">
+                    <td class="px-4 py-2.5 text-xs text-gray-400">${u.id}</td>
+                    <td class="px-4 py-2.5 text-sm text-white">${u.name}</td>
+                    <td class="px-4 py-2.5 text-xs">${u.email}</td>
+                    <td class="px-4 py-2.5"><span class="px-2 py-0.5 rounded-full text-xs font-medium ${u.role === 'admin' ? 'badge-processing' : 'badge-verified'}">${u.role}</span></td>
+                    <td class="px-4 py-2.5"><span class="px-2 py-0.5 rounded-full text-xs ${u.is_active ? 'badge-verified' : 'badge-failed'}">${u.is_active ? 'Active' : 'Inactive'}</span></td>
+                    <td class="px-4 py-2.5 text-xs text-gray-400">${fmtDate(u.created_at)}</td>
+                </tr>`).join('') || '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No users</td></tr>';
+        }
+
+        // ========== AUDIT ==========
+        async function loadAudit() {
+            const data = await apiFetch('/v1/admin/audit');
+            if (!data?.success) return;
+            document.getElementById('auditTable').innerHTML = (data.data || []).map(a => {
+                let details = '';
+                try { details = typeof a.details === 'string' ? a.details : JSON.stringify(a.details); } catch(e) {}
+                return `<tr class="hover:bg-gray-800/30 transition">
+                    <td class="px-4 py-2.5 text-xs text-gray-400">${fmtDate(a.created_at)}</td>
+                    <td class="px-4 py-2.5 text-xs">${a.user_name || '-'}</td>
+                    <td class="px-4 py-2.5 text-xs font-mono text-blue-300">${a.action}</td>
+                    <td class="px-4 py-2.5 text-xs">${a.resource_type ? a.resource_type + '/' + a.resource_id : '-'}</td>
+                    <td class="px-4 py-2.5 text-xs text-gray-400 max-w-xs truncate">${details}</td>
+                </tr>`;
+            }).join('') || '<tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">No audit entries</td></tr>';
+        }
+
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+        function logout() { localStorage.clear(); window.location.href = '/v1/login'; }
+
+        // Initial load
+        loadDashboard();
+    </script>
+</body>
+</html>
