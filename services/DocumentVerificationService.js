@@ -1,10 +1,6 @@
 const Anthropic = require('@anthropic-ai/sdk');
 const OpenAI = require('openai');
 const sharp = require('sharp');
-const { execFile } = require('child_process');
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
 
 const MAX_IMAGE_BYTES = 4.5 * 1024 * 1024; // 4.5MB to stay safely under 5MB API limit
 
@@ -176,56 +172,6 @@ Be strict but fair. Only approve if reasonably confident the document is correct
         return { buffer: compressed, mediaType: 'image/jpeg' };
     }
 
-    /**
-     * Convert a PDF buffer to a JPEG image (first page) using pdftoppm (poppler-utils).
-     */
-    async convertPdfToImage(fileBuffer) {
-        const tmpDir = os.tmpdir();
-        const tmpPdf = path.join(tmpDir, `doc_verify_${Date.now()}.pdf`);
-        const tmpOutPrefix = path.join(tmpDir, `doc_verify_${Date.now()}_out`);
-
-        try {
-            // Write PDF to temp file
-            fs.writeFileSync(tmpPdf, fileBuffer);
-
-            // Use pdftoppm to convert first page to JPEG
-            const imageBuffer = await new Promise((resolve, reject) => {
-                execFile('pdftoppm', [
-                    '-jpeg',         // output JPEG format
-                    '-r', '200',     // 200 DPI resolution
-                    '-f', '1',       // first page
-                    '-l', '1',       // last page (only page 1)
-                    '-singlefile',   // don't add page number suffix
-                    tmpPdf,
-                    tmpOutPrefix
-                ], { timeout: 30000 }, (err) => {
-                    if (err) {
-                        return reject(new Error(`pdftoppm failed: ${err.message}`));
-                    }
-
-                    const outFile = tmpOutPrefix + '.jpg';
-                    if (!fs.existsSync(outFile)) {
-                        return reject(new Error('pdftoppm produced no output'));
-                    }
-
-                    const buf = fs.readFileSync(outFile);
-                    // Clean up output file
-                    try { fs.unlinkSync(outFile); } catch (_) {}
-                    resolve(buf);
-                });
-            });
-
-            console.log(`[Verification] PDF converted to JPEG (${(imageBuffer.length / 1024 / 1024).toFixed(1)}MB)`);
-            return imageBuffer;
-        } catch (err) {
-            console.log(`[Verification] PDF to image conversion failed: ${err.message}`);
-            throw new Error(`PDF processing failed: ${err.message}. If using OpenAI, try switching to AI_PROVIDER=claude which natively supports PDFs.`);
-        } finally {
-            // Clean up temp PDF
-            try { fs.unlinkSync(tmpPdf); } catch (_) {}
-        }
-    }
-
     async verifyWithClaude(fileBuffer, document) {
         // Detect media type using magic bytes
         let mediaType = this.getMediaType(document.filename, document.contentType, fileBuffer);
@@ -278,31 +224,34 @@ Be strict but fair. Only approve if reasonably confident the document is correct
         // Detect media type using magic bytes
         let mediaType = this.getMediaType(document.filename, document.contentType, fileBuffer);
 
-        // If PDF, convert to image first since OpenAI vision API doesn't accept PDFs
-        if (mediaType === 'application/pdf') {
-            console.log(`[Verification] Converting PDF to image for OpenAI processing...`);
-            fileBuffer = await this.convertPdfToImage(fileBuffer);
-            mediaType = 'image/jpeg';
-        }
-
-        // Compress if needed
-        const compressed = await this.compressImage(fileBuffer, mediaType);
-        fileBuffer = compressed.buffer;
-        mediaType = compressed.mediaType;
-
         const base64Data = fileBuffer.toString('base64');
         const userPrompt = this.buildDocumentPrompt(document);
+        const contentParts = [];
 
-        const contentParts = [
-            {
+        if (mediaType === 'application/pdf') {
+            // GPT-4o supports PDFs natively via file content type
+            console.log(`[Verification] Sending PDF to OpenAI (${(fileBuffer.length / 1024 / 1024).toFixed(1)}MB)`);
+            contentParts.push({
+                type: 'file',
+                file: {
+                    filename: document.filename || 'document.pdf',
+                    file_data: `data:application/pdf;base64,${base64Data}`
+                }
+            });
+        } else {
+            // Compress images if needed
+            const compressed = await this.compressImage(fileBuffer, mediaType);
+            const compressedBase64 = compressed.buffer.toString('base64');
+            contentParts.push({
                 type: 'image_url',
                 image_url: {
-                    url: `data:${mediaType};base64,${base64Data}`,
+                    url: `data:${compressed.mediaType};base64,${compressedBase64}`,
                     detail: 'high'
                 }
-            },
-            { type: 'text', text: userPrompt }
-        ];
+            });
+        }
+
+        contentParts.push({ type: 'text', text: userPrompt });
 
         const response = await this.openai.chat.completions.create({
             model: process.env.OPENAI_MODEL || 'gpt-4o',
