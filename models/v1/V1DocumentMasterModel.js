@@ -1,9 +1,17 @@
 const pool = require('../../config/database');
 
 class V1DocumentMasterModel {
-    static async create({ name, code, allowedFormats, maxSizeMb, requiredFields, validationRules, createdBy }) {
+    static _parseJsonFields(row) {
+        if (!row) return null;
+        row.allowed_formats = typeof row.allowed_formats === 'string' ? JSON.parse(row.allowed_formats) : row.allowed_formats;
+        row.required_fields = typeof row.required_fields === 'string' ? JSON.parse(row.required_fields) : row.required_fields;
+        row.validation_rules = typeof row.validation_rules === 'string' ? JSON.parse(row.validation_rules) : row.validation_rules;
+        return row;
+    }
+
+    static async create({ name, code, allowedFormats, maxSizeMb, requiredFields, validationRules, userId, createdBy }) {
         const [result] = await pool.query(
-            'INSERT INTO v1_document_master (name, code, allowed_formats, max_size_mb, required_fields, validation_rules, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO v1_document_master (name, code, allowed_formats, max_size_mb, required_fields, validation_rules, user_id, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
             [
                 name,
                 code,
@@ -11,7 +19,8 @@ class V1DocumentMasterModel {
                 maxSizeMb || 5,
                 JSON.stringify(requiredFields || []),
                 JSON.stringify(validationRules || {}),
-                createdBy
+                userId || null,
+                createdBy || null
             ]
         );
         return result.insertId;
@@ -19,38 +28,74 @@ class V1DocumentMasterModel {
 
     static async findById(id) {
         const [rows] = await pool.query('SELECT * FROM v1_document_master WHERE id = ?', [id]);
-        if (rows[0]) {
-            rows[0].allowed_formats = typeof rows[0].allowed_formats === 'string' ? JSON.parse(rows[0].allowed_formats) : rows[0].allowed_formats;
-            rows[0].required_fields = typeof rows[0].required_fields === 'string' ? JSON.parse(rows[0].required_fields) : rows[0].required_fields;
-            rows[0].validation_rules = typeof rows[0].validation_rules === 'string' ? JSON.parse(rows[0].validation_rules) : rows[0].validation_rules;
-        }
-        return rows[0] || null;
+        return this._parseJsonFields(rows[0]) || null;
     }
 
     static async findByCode(code) {
-        const [rows] = await pool.query('SELECT * FROM v1_document_master WHERE code = ?', [code]);
-        if (rows[0]) {
-            rows[0].allowed_formats = typeof rows[0].allowed_formats === 'string' ? JSON.parse(rows[0].allowed_formats) : rows[0].allowed_formats;
-            rows[0].required_fields = typeof rows[0].required_fields === 'string' ? JSON.parse(rows[0].required_fields) : rows[0].required_fields;
-            rows[0].validation_rules = typeof rows[0].validation_rules === 'string' ? JSON.parse(rows[0].validation_rules) : rows[0].validation_rules;
-        }
-        return rows[0] || null;
+        // Find global document type (user_id IS NULL)
+        const [rows] = await pool.query('SELECT * FROM v1_document_master WHERE code = ? AND user_id IS NULL', [code]);
+        return this._parseJsonFields(rows[0]) || null;
     }
 
+    /**
+     * Find document type by code for a specific user.
+     * First checks user-specific types, then falls back to global types.
+     */
+    static async findByCodeForUser(code, userId) {
+        // Check user-specific first
+        const [userRows] = await pool.query(
+            'SELECT * FROM v1_document_master WHERE code = ? AND user_id = ?', [code, userId]
+        );
+        if (userRows[0]) return this._parseJsonFields(userRows[0]);
+
+        // Fallback to global
+        const [globalRows] = await pool.query(
+            'SELECT * FROM v1_document_master WHERE code = ? AND user_id IS NULL', [code]
+        );
+        return this._parseJsonFields(globalRows[0]) || null;
+    }
+
+    /**
+     * Get all global (admin) document types
+     */
     static async getAll({ active = true } = {}) {
-        let query = 'SELECT * FROM v1_document_master';
-        const params = [];
+        let query = 'SELECT * FROM v1_document_master WHERE user_id IS NULL';
         if (active) {
-            query += ' WHERE is_active = 1';
+            query += ' AND is_active = 1';
+        }
+        query += ' ORDER BY name ASC';
+        const [rows] = await pool.query(query);
+        return rows.map(row => this._parseJsonFields(row));
+    }
+
+    /**
+     * Get all document types available to a specific user:
+     * - All global (admin-created) types
+     * - All user's own custom types
+     */
+    static async getAllForUser(userId, { active = true } = {}) {
+        let query = 'SELECT * FROM v1_document_master WHERE (user_id IS NULL OR user_id = ?)';
+        const params = [userId];
+        if (active) {
+            query += ' AND is_active = 1';
+        }
+        query += ' ORDER BY user_id IS NULL DESC, name ASC';
+        const [rows] = await pool.query(query, params);
+        return rows.map(row => this._parseJsonFields(row));
+    }
+
+    /**
+     * Get only user's own custom document types
+     */
+    static async getByUserId(userId, { active = true } = {}) {
+        let query = 'SELECT * FROM v1_document_master WHERE user_id = ?';
+        const params = [userId];
+        if (active) {
+            query += ' AND is_active = 1';
         }
         query += ' ORDER BY name ASC';
         const [rows] = await pool.query(query, params);
-        return rows.map(row => {
-            row.allowed_formats = typeof row.allowed_formats === 'string' ? JSON.parse(row.allowed_formats) : row.allowed_formats;
-            row.required_fields = typeof row.required_fields === 'string' ? JSON.parse(row.required_fields) : row.required_fields;
-            row.validation_rules = typeof row.validation_rules === 'string' ? JSON.parse(row.validation_rules) : row.validation_rules;
-            return row;
-        });
+        return rows.map(row => this._parseJsonFields(row));
     }
 
     static async update(id, { name, code, allowedFormats, maxSizeMb, requiredFields, validationRules, isActive }) {
@@ -69,8 +114,25 @@ class V1DocumentMasterModel {
         return result.affectedRows > 0;
     }
 
+    /**
+     * Update only if the user owns the document type
+     */
+    static async updateByUser(id, userId, updates) {
+        const doc = await this.findById(id);
+        if (!doc || doc.user_id !== userId) return false;
+        return this.update(id, updates);
+    }
+
     static async delete(id) {
         const [result] = await pool.query('DELETE FROM v1_document_master WHERE id = ?', [id]);
+        return result.affectedRows > 0;
+    }
+
+    /**
+     * Delete only if the user owns the document type
+     */
+    static async deleteByUser(id, userId) {
+        const [result] = await pool.query('DELETE FROM v1_document_master WHERE id = ? AND user_id = ?', [id, userId]);
         return result.affectedRows > 0;
     }
 }

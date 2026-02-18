@@ -8,13 +8,15 @@ class RuleEngineService {
     /**
      * Validate extracted data against document master rules
      */
-    async validate(documentTypeCode, extractedData, aiResult) {
+    async validate(documentTypeCode, extractedData, aiResult, userId) {
         const issues = [...(aiResult.issues || [])];
         let confidenceAdjustment = 0;
         let riskAdjustment = 0;
 
-        // Get document master config
-        const docMaster = await V1DocumentMasterModel.findByCode(documentTypeCode);
+        // Get document master config (user-specific first, then global)
+        const docMaster = userId
+            ? await V1DocumentMasterModel.findByCodeForUser(documentTypeCode, userId)
+            : await V1DocumentMasterModel.findByCode(documentTypeCode);
         if (!docMaster) {
             return {
                 status: aiResult.status,
