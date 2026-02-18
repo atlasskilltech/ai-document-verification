@@ -29,6 +29,9 @@ class VerificationScheduler {
         this.logs = [];       // rolling log buffer (keep last 500)
         this.maxLogs = 500;
         this.maxRuns = 50;
+
+        // Persistent student results store: { applnID -> { student data + documents + verification } }
+        this.studentResults = new Map();
     }
 
     // ===================== LOGGING =====================
@@ -101,11 +104,13 @@ class VerificationScheduler {
             startTime: new Date().toISOString(),
             endTime: null,
             totalDocs: 0,
+            uploaded: 0,
             approved: 0,
             rejected: 0,
             errors: 0,
             skipped: 0,
-            documents: []
+            allDocuments: [],     // ALL documents (uploaded + not uploaded)
+            documents: []         // only verified documents with AI results
         };
 
         try {
@@ -119,11 +124,33 @@ class VerificationScheduler {
                 studentResult.status = 'skipped';
                 studentResult.endTime = new Date().toISOString();
                 this.log('warn', `Student ${applnID}: No document list returned`);
+                this.studentResults.set(String(applnID), studentResult);
                 return studentResult;
             }
 
             const allDocs = docListResponse.data.document_status;
+
+            // Store ALL documents (uploaded and not uploaded) for display
+            studentResult.allDocuments = allDocs.map(doc => ({
+                document_type_id: doc.document_type_id,
+                document_type_name: doc.document_type_name,
+                document_label: doc.document_label,
+                document_description: doc.document_description,
+                is_required: doc.document_is_required === '1',
+                is_uploaded: !!(doc.file_url && doc.file_url.trim()),
+                filename: doc.filename || null,
+                file_url: doc.file_url || null,
+                verify_status: doc.verify_status,
+                doc_upload_id: doc.doc_upload_id,
+                ai_status: null,
+                confidence: null,
+                remark: null,
+                issues: null,
+                extracted_data: null
+            }));
+
             let uploadedDocs = allDocs.filter(doc => doc.file_url && doc.file_url.trim() !== '');
+            studentResult.uploaded = uploadedDocs.length;
 
             // Skip already verified if configured
             if (this.config.skipAlreadyVerified) {
@@ -136,6 +163,7 @@ class VerificationScheduler {
                 studentResult.status = 'skipped';
                 studentResult.endTime = new Date().toISOString();
                 this.log('info', `Student ${applnID}: No documents to verify`);
+                this.studentResults.set(String(applnID), studentResult);
                 return studentResult;
             }
 
@@ -168,14 +196,32 @@ class VerificationScheduler {
                             doc_ai_remark: verification.remark
                         });
 
-                        studentResult.documents.push({
+                        const docResult = {
                             document_type_id: doc.document_type_id,
                             document_label: doc.document_label,
+                            document_type_name: doc.document_type_name,
                             filename: doc.filename,
+                            file_url: doc.file_url,
                             ai_status: aiStatus,
                             confidence: verification.confidence,
-                            remark: verification.remark
-                        });
+                            remark: verification.remark,
+                            issues: verification.issues,
+                            extracted_data: verification.extracted_data
+                        };
+
+                        studentResult.documents.push(docResult);
+
+                        // Also update in allDocuments
+                        const allDocEntry = studentResult.allDocuments.find(
+                            d => d.document_type_id === doc.document_type_id
+                        );
+                        if (allDocEntry) {
+                            allDocEntry.ai_status = aiStatus;
+                            allDocEntry.confidence = verification.confidence;
+                            allDocEntry.remark = verification.remark;
+                            allDocEntry.issues = verification.issues;
+                            allDocEntry.extracted_data = verification.extracted_data;
+                        }
 
                         if (aiStatus === 'Verified') {
                             studentResult.approved++;
@@ -196,14 +242,29 @@ class VerificationScheduler {
                             doc_ai_remark: `Verification failed: ${errMsg}`
                         });
 
-                        studentResult.documents.push({
+                        const docResult = {
                             document_type_id: doc.document_type_id,
                             document_label: doc.document_label,
+                            document_type_name: doc.document_type_name,
                             filename: doc.filename,
+                            file_url: doc.file_url,
                             ai_status: 'error',
                             confidence: 0,
-                            remark: errMsg
-                        });
+                            remark: errMsg,
+                            issues: ['Verification process error'],
+                            extracted_data: {}
+                        };
+
+                        studentResult.documents.push(docResult);
+
+                        const allDocEntry = studentResult.allDocuments.find(
+                            d => d.document_type_id === doc.document_type_id
+                        );
+                        if (allDocEntry) {
+                            allDocEntry.ai_status = 'error';
+                            allDocEntry.confidence = 0;
+                            allDocEntry.remark = errMsg;
+                        }
 
                         this.log('error', `${applnID} - ${doc.document_label}: Error`, { error: errMsg });
                     }
@@ -236,6 +297,10 @@ class VerificationScheduler {
         }
 
         studentResult.endTime = new Date().toISOString();
+
+        // Persist to student results store
+        this.studentResults.set(String(applnID), studentResult);
+
         return studentResult;
     }
 
@@ -510,6 +575,30 @@ class VerificationScheduler {
         }
         this.log('info', 'Configuration updated', updates);
         return this.config;
+    }
+
+    // ===================== STUDENT RESULTS =====================
+
+    getStudentResult(applnID) {
+        return this.studentResults.get(String(applnID)) || null;
+    }
+
+    getAllStudentResults() {
+        const results = [];
+        for (const [applnID, result] of this.studentResults) {
+            results.push({
+                applnID: result.applnID,
+                studentName: result.studentName,
+                status: result.status,
+                totalDocs: result.allDocuments ? result.allDocuments.length : 0,
+                uploaded: result.uploaded || 0,
+                approved: result.approved,
+                rejected: result.rejected,
+                errors: result.errors,
+                verifiedAt: result.endTime
+            });
+        }
+        return results;
     }
 
     // ===================== HELPERS =====================

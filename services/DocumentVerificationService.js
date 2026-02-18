@@ -17,45 +17,55 @@ class DocumentVerificationService {
         }
     }
 
-    /**
-     * Build the verification system prompt
-     */
     getSystemPrompt() {
         return `You are a document verification AI assistant for an educational admissions system.
 
-Your job is to verify uploaded documents against their expected type and description.
+Your job is to verify uploaded documents against their expected type and description, AND extract all readable data from the document.
 
-For each document, you must analyze:
-1. DOCUMENT TYPE MATCH: Does the uploaded document match the expected document type (e.g., marksheet, certificate, ID proof, photograph)?
-2. DESCRIPTION COMPLIANCE: Does the document satisfy the requirements described in the document_description?
-3. LEGIBILITY: Is the document clear, readable, and not blurry or cut off?
-4. AUTHENTICITY INDICATORS: Does the document appear to be a genuine document (has proper formatting, stamps, signatures where expected)?
-5. COMPLETENESS: Is the full document visible or is it partially cropped/missing sections?
+For each document, you must:
 
-You must respond ONLY with a valid JSON object (no markdown, no code fences) with these fields:
+1. VERIFY the document:
+   - DOCUMENT TYPE MATCH: Does the uploaded document match the expected document type?
+   - DESCRIPTION COMPLIANCE: Does it satisfy the document_description requirements?
+   - LEGIBILITY: Is it clear, readable, not blurry or cut off?
+   - AUTHENTICITY INDICATORS: Proper formatting, stamps, signatures where expected?
+   - COMPLETENESS: Is the full document visible?
+
+2. EXTRACT all readable data from the document. Depending on the document type, extract fields like:
+   - For Photographs: description of the photo (formal/informal, background color, attire)
+   - For Marksheets: student name, roll number, board/university, year, subjects with marks/grades, total/percentage, result
+   - For Certificates (passing, leaving, migration, birth): student name, date of birth, certificate number, issuing authority, date of issue, institution name
+   - For ID Proofs (Aadhar): name, Aadhar number (last 4 digits only), date of birth, address
+   - For PAN Card: name, PAN number, date of birth
+   - For Affidavits/Undertakings: signatory names, stamp paper value, notary details, date
+   - For ABC ID: ABC ID number, student name, institution
+   - For any document: extract ALL readable text fields you can identify
+
+You must respond ONLY with a valid JSON object (no markdown, no code fences):
 {
   "status": "approve" or "reject",
   "confidence": 0.0 to 1.0,
   "remark": "Brief explanation of the verification result",
-  "issues": ["list of specific issues found, if any"]
+  "issues": ["list of specific issues found, if any"],
+  "extracted_data": {
+    "document_title": "Title or heading visible on the document",
+    "student_name": "Name found on document if applicable",
+    "additional_field_1": "value",
+    "additional_field_2": "value"
+  }
 }
 
-Status guidelines:
-- "approve": Document matches the expected type, satisfies the description, is legible, and appears authentic.
-- "reject": Document does not match the expected type, fails to meet the description requirements, is illegible, appears tampered with, or has significant issues.
+The extracted_data object should contain ALL key-value pairs you can read from the document. Use descriptive field names. If a field is not readable, do not include it.
 
-Be strict but fair. Only approve if you are reasonably confident the document is correct.
-For photographs: Check if it appears to be a passport-size photo with appropriate background.
-For marksheets/certificates: Check if they appear to be official academic documents.
-For ID proofs (Aadhar, PAN): Check if they appear to be valid government-issued identity documents.
-For affidavits/undertakings: Check if they appear to be on proper stamp paper with signatures.`;
+Status guidelines:
+- "approve": Document matches expected type, satisfies description, is legible, appears authentic.
+- "reject": Does not match expected type, fails description requirements, illegible, tampered, or significant issues.
+
+Be strict but fair. Only approve if reasonably confident the document is correct.`;
     }
 
-    /**
-     * Build the user prompt for a specific document
-     */
     buildDocumentPrompt(document) {
-        let prompt = `Please verify the following uploaded document:\n\n`;
+        let prompt = `Please verify and extract data from the following uploaded document:\n\n`;
         prompt += `Expected Document Type: ${document.document_label}\n`;
         prompt += `Document Category: ${document.document_type_name}\n`;
 
@@ -63,19 +73,15 @@ For affidavits/undertakings: Check if they appear to be on proper stamp paper wi
             prompt += `Requirements/Description: ${document.document_description}\n`;
         }
 
-        prompt += `\nAnalyze the attached document image/file and determine if it matches the expected type and satisfies the requirements described above. Respond with a JSON object.`;
+        prompt += `\nAnalyze the attached document. Verify it matches the expected type and requirements, then extract ALL readable data fields. Respond with a JSON object including both verification result and extracted_data.`;
 
         return prompt;
     }
 
-    /**
-     * Get the media type for Claude API from file extension or content type
-     */
     getMediaType(filename, contentType) {
         const ext = filename.split('.').pop().toLowerCase();
 
         if (contentType && contentType !== 'application/octet-stream') {
-            // Map common content types
             if (contentType.includes('jpeg') || contentType.includes('jpg')) return 'image/jpeg';
             if (contentType.includes('png')) return 'image/png';
             if (contentType.includes('gif')) return 'image/gif';
@@ -95,12 +101,6 @@ For affidavits/undertakings: Check if they appear to be on proper stamp paper wi
         return extMap[ext] || 'image/jpeg';
     }
 
-    /**
-     * Verify a single document using Claude's vision API
-     * @param {Buffer} fileBuffer - The document file as a buffer
-     * @param {Object} document - Document metadata from the API
-     * @returns {Object} Verification result
-     */
     async verifyWithClaude(fileBuffer, document) {
         const mediaType = this.getMediaType(document.filename, document.contentType);
         const base64Data = fileBuffer.toString('base64');
@@ -128,33 +128,19 @@ For affidavits/undertakings: Check if they appear to be on proper stamp paper wi
             });
         }
 
-        contentBlocks.push({
-            type: 'text',
-            text: userPrompt
-        });
+        contentBlocks.push({ type: 'text', text: userPrompt });
 
         const response = await this.claude.messages.create({
             model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-20250514',
-            max_tokens: 1024,
+            max_tokens: 2048,
             system: this.getSystemPrompt(),
-            messages: [
-                {
-                    role: 'user',
-                    content: contentBlocks
-                }
-            ]
+            messages: [{ role: 'user', content: contentBlocks }]
         });
 
         const text = response.content[0].text;
         return this.parseAIResponse(text);
     }
 
-    /**
-     * Verify a single document using OpenAI's vision API
-     * @param {Buffer} fileBuffer - The document file as a buffer
-     * @param {Object} document - Document metadata from the API
-     * @returns {Object} Verification result
-     */
     async verifyWithOpenAI(fileBuffer, document) {
         const mediaType = this.getMediaType(document.filename, document.contentType);
         const base64Data = fileBuffer.toString('base64');
@@ -168,24 +154,15 @@ For affidavits/undertakings: Check if they appear to be on proper stamp paper wi
                     detail: 'high'
                 }
             },
-            {
-                type: 'text',
-                text: userPrompt
-            }
+            { type: 'text', text: userPrompt }
         ];
 
         const response = await this.openai.chat.completions.create({
             model: process.env.OPENAI_MODEL || 'gpt-4o',
-            max_tokens: 1024,
+            max_tokens: 2048,
             messages: [
-                {
-                    role: 'system',
-                    content: this.getSystemPrompt()
-                },
-                {
-                    role: 'user',
-                    content: contentParts
-                }
+                { role: 'system', content: this.getSystemPrompt() },
+                { role: 'user', content: contentParts }
             ]
         });
 
@@ -193,12 +170,8 @@ For affidavits/undertakings: Check if they appear to be on proper stamp paper wi
         return this.parseAIResponse(text);
     }
 
-    /**
-     * Parse the AI response text into a structured object
-     */
     parseAIResponse(text) {
         try {
-            // Strip markdown code fences if present
             let cleaned = text.trim();
             if (cleaned.startsWith('```')) {
                 cleaned = cleaned.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
@@ -208,25 +181,20 @@ For affidavits/undertakings: Check if they appear to be on proper stamp paper wi
                 status: result.status || 'reject',
                 confidence: result.confidence || 0,
                 remark: result.remark || 'Unable to determine',
-                issues: result.issues || []
+                issues: result.issues || [],
+                extracted_data: result.extracted_data || {}
             };
         } catch (e) {
-            // If parsing fails, treat as a rejection with the raw text as remark
             return {
                 status: 'reject',
                 confidence: 0,
                 remark: `AI response parsing failed: ${text.substring(0, 200)}`,
-                issues: ['Could not parse AI verification response']
+                issues: ['Could not parse AI verification response'],
+                extracted_data: {}
             };
         }
     }
 
-    /**
-     * Main verification method - routes to the configured AI provider
-     * @param {Buffer} fileBuffer - The document file as a buffer
-     * @param {Object} document - Document metadata
-     * @returns {Object} Verification result { status, confidence, remark, issues }
-     */
     async verify(fileBuffer, document) {
         if (this.provider === 'claude') {
             return this.verifyWithClaude(fileBuffer, document);
