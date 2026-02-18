@@ -1,5 +1,8 @@
 const Anthropic = require('@anthropic-ai/sdk');
 const OpenAI = require('openai');
+const sharp = require('sharp');
+
+const MAX_IMAGE_BYTES = 4.5 * 1024 * 1024; // 4.5MB to stay safely under 5MB API limit
 
 class DocumentVerificationService {
 
@@ -101,8 +104,58 @@ Be strict but fair. Only approve if reasonably confident the document is correct
         return extMap[ext] || 'image/jpeg';
     }
 
+    /**
+     * Compress an image buffer if it exceeds the max size.
+     * Returns { buffer, mediaType } with the (possibly compressed) result.
+     */
+    async compressImage(fileBuffer, mediaType) {
+        // Skip PDFs — they use the document block, not image block
+        if (mediaType === 'application/pdf') {
+            return { buffer: fileBuffer, mediaType };
+        }
+
+        // If already under limit, return as-is
+        if (fileBuffer.length <= MAX_IMAGE_BYTES) {
+            return { buffer: fileBuffer, mediaType };
+        }
+
+        console.log(`[Verification] Image too large (${(fileBuffer.length / 1024 / 1024).toFixed(1)}MB), compressing...`);
+
+        // Try progressive quality reduction
+        const qualities = [85, 70, 55, 40];
+        let compressed = fileBuffer;
+
+        for (const quality of qualities) {
+            compressed = await sharp(fileBuffer)
+                .resize({ width: 2400, height: 2400, fit: 'inside', withoutEnlargement: true })
+                .jpeg({ quality, mozjpeg: true })
+                .toBuffer();
+
+            console.log(`[Verification] Compressed to ${(compressed.length / 1024 / 1024).toFixed(1)}MB at quality=${quality}`);
+
+            if (compressed.length <= MAX_IMAGE_BYTES) {
+                return { buffer: compressed, mediaType: 'image/jpeg' };
+            }
+        }
+
+        // Final fallback: aggressive resize
+        compressed = await sharp(fileBuffer)
+            .resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true })
+            .jpeg({ quality: 35, mozjpeg: true })
+            .toBuffer();
+
+        console.log(`[Verification] Final compression: ${(compressed.length / 1024 / 1024).toFixed(1)}MB`);
+        return { buffer: compressed, mediaType: 'image/jpeg' };
+    }
+
     async verifyWithClaude(fileBuffer, document) {
-        const mediaType = this.getMediaType(document.filename, document.contentType);
+        let mediaType = this.getMediaType(document.filename, document.contentType);
+
+        // Compress if needed
+        const compressed = await this.compressImage(fileBuffer, mediaType);
+        fileBuffer = compressed.buffer;
+        mediaType = compressed.mediaType;
+
         const base64Data = fileBuffer.toString('base64');
         const userPrompt = this.buildDocumentPrompt(document);
 
@@ -142,7 +195,13 @@ Be strict but fair. Only approve if reasonably confident the document is correct
     }
 
     async verifyWithOpenAI(fileBuffer, document) {
-        const mediaType = this.getMediaType(document.filename, document.contentType);
+        let mediaType = this.getMediaType(document.filename, document.contentType);
+
+        // Compress if needed
+        const compressed = await this.compressImage(fileBuffer, mediaType);
+        fileBuffer = compressed.buffer;
+        mediaType = compressed.mediaType;
+
         const base64Data = fileBuffer.toString('base64');
         const userPrompt = this.buildDocumentPrompt(document);
 
