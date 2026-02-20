@@ -8,9 +8,9 @@
     <link rel="stylesheet" href="/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        body { background: #1a2a3a; }
-        .glass { background: rgba(30, 41, 59, 0.6); backdrop-filter: blur(8px); border: 1px solid rgba(71, 85, 105, 0.3); }
-        .input-dark { background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(71, 85, 105, 0.5); color: #e2e8f0; }
+        body { background: #F8F9FA; }
+        .glass { background: #FFFFFF; border: 1px solid #E2E8F0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .input-dark { background: #F9FAFB; border: 1px solid #D1D5DB; color: #374151; }
         .input-dark:focus { border-color: #16A085; outline: none; box-shadow: 0 0 0 3px rgba(22, 160, 133, 0.15); }
         .btn-primary { background: linear-gradient(135deg, #16A085, #138D75); }
         .btn-primary:hover { background: linear-gradient(135deg, #138D75, #117A65); }
@@ -18,17 +18,17 @@
         .sidebar-link:hover, .sidebar-link.active { background: rgba(22, 160, 133, 0.15); color: #76D7C4; }
         .stat-card { transition: transform 0.2s; }
         .stat-card:hover { transform: translateY(-2px); }
-        .badge-verified { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
-        .badge-rejected { background: rgba(239, 68, 68, 0.15); color: #f87171; }
-        .badge-processing { background: rgba(22, 160, 133, 0.15); color: #76D7C4; }
-        .badge-accepted { background: rgba(234, 179, 8, 0.15); color: #facc15; }
-        .badge-failed { background: rgba(156, 163, 175, 0.15); color: #9ca3af; }
+        .badge-verified { background: rgba(34, 197, 94, 0.1); color: #16a34a; }
+        .badge-rejected { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
+        .badge-processing { background: rgba(22, 160, 133, 0.1); color: #0f766e; }
+        .badge-accepted { background: rgba(234, 179, 8, 0.1); color: #ca8a04; }
+        .badge-failed { background: rgba(156, 163, 175, 0.1); color: #6b7280; }
         .slide-in { animation: slideIn 0.3s ease-out; }
         @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        .modal-overlay { background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
+        .modal-overlay { background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
     </style>
 </head>
-<body class="text-gray-200 min-h-screen">
+<body class="text-gray-700 min-h-screen">
     <!-- Sidebar -->
     <aside class="fixed left-0 top-0 bottom-0 w-64 bg-[#2C3E50] border-r border-[#34495E] z-40 flex flex-col">
         <div class="p-5 border-b border-[#34495E]">
@@ -78,42 +78,42 @@
         <div id="sec-dashboard" class="slide-in">
             <div class="flex items-center justify-between mb-6">
                 <div>
-                    <h2 class="text-xl font-bold text-white">Dashboard</h2>
-                    <p class="text-sm text-gray-400">System overview & analytics</p>
+                    <h2 class="text-xl font-bold text-gray-800">Dashboard</h2>
+                    <p class="text-sm text-gray-500">System overview & analytics</p>
                 </div>
-                <button onclick="loadDashboard()" class="px-3 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-300 hover:bg-gray-700 transition">
+                <button onclick="loadDashboard()" class="px-3 py-1.5 rounded-lg bg-white border border-gray-300 text-sm text-gray-600 hover:bg-gray-200 transition">
                     <i class="fas fa-sync-alt mr-1"></i> Refresh
                 </button>
             </div>
 
             <!-- Stat Cards -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6" id="statCards">
-                <div class="glass rounded-xl p-5 stat-card"><div class="animate-pulse bg-gray-700 h-16 rounded"></div></div>
-                <div class="glass rounded-xl p-5 stat-card"><div class="animate-pulse bg-gray-700 h-16 rounded"></div></div>
-                <div class="glass rounded-xl p-5 stat-card"><div class="animate-pulse bg-gray-700 h-16 rounded"></div></div>
-                <div class="glass rounded-xl p-5 stat-card"><div class="animate-pulse bg-gray-700 h-16 rounded"></div></div>
+                <div class="glass rounded-xl p-5 stat-card"><div class="animate-pulse bg-gray-200 h-16 rounded"></div></div>
+                <div class="glass rounded-xl p-5 stat-card"><div class="animate-pulse bg-gray-200 h-16 rounded"></div></div>
+                <div class="glass rounded-xl p-5 stat-card"><div class="animate-pulse bg-gray-200 h-16 rounded"></div></div>
+                <div class="glass rounded-xl p-5 stat-card"><div class="animate-pulse bg-gray-200 h-16 rounded"></div></div>
             </div>
 
             <!-- Status Breakdown + Queue -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
                 <div class="glass rounded-xl p-5 lg:col-span-2">
-                    <h3 class="font-semibold text-white mb-4"><i class="fas fa-chart-bar mr-2 text-[#16A085]"></i>Status Breakdown</h3>
+                    <h3 class="font-semibold text-gray-800 mb-4"><i class="fas fa-chart-bar mr-2 text-[#16A085]"></i>Status Breakdown</h3>
                     <div id="statusBreakdown" class="space-y-3"></div>
                 </div>
                 <div class="glass rounded-xl p-5">
-                    <h3 class="font-semibold text-white mb-4"><i class="fas fa-server mr-2 text-green-400"></i>Queue Status</h3>
+                    <h3 class="font-semibold text-gray-800 mb-4"><i class="fas fa-server mr-2 text-green-400"></i>Queue Status</h3>
                     <div id="queueStatus" class="space-y-3"></div>
                 </div>
             </div>
 
             <!-- Recent Requests -->
             <div class="glass rounded-xl overflow-hidden">
-                <div class="px-5 py-4 border-b border-gray-700/50">
-                    <h3 class="font-semibold text-white"><i class="fas fa-clock mr-2 text-yellow-400"></i>Recent Requests</h3>
+                <div class="px-5 py-4 border-b border-gray-200">
+                    <h3 class="font-semibold text-gray-800"><i class="fas fa-clock mr-2 text-yellow-400"></i>Recent Requests</h3>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
-                        <thead class="bg-gray-800/50 text-xs text-gray-400 uppercase">
+                        <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
                             <tr>
                                 <th class="px-4 py-2.5 text-left">Reference</th>
                                 <th class="px-4 py-2.5 text-left">User</th>
@@ -125,7 +125,7 @@
                                 <th class="px-4 py-2.5 text-left">Actions</th>
                             </tr>
                         </thead>
-                        <tbody id="recentTable" class="divide-y divide-gray-800/50"></tbody>
+                        <tbody id="recentTable" class="divide-y divide-gray-200"></tbody>
                     </table>
                 </div>
             </div>
@@ -135,8 +135,8 @@
         <div id="sec-requests" class="hidden slide-in">
             <div class="flex items-center justify-between mb-6">
                 <div>
-                    <h2 class="text-xl font-bold text-white">All Verification Requests</h2>
-                    <p class="text-sm text-gray-400">View and manage all requests</p>
+                    <h2 class="text-xl font-bold text-gray-800">All Verification Requests</h2>
+                    <p class="text-sm text-gray-500">View and manage all requests</p>
                 </div>
                 <div class="flex gap-2">
                     <select id="filterStatus" onchange="loadRequests()" class="px-3 py-1.5 rounded-lg input-dark text-sm">
@@ -147,7 +147,7 @@
                         <option value="rejected">Rejected</option>
                         <option value="failed">Failed</option>
                     </select>
-                    <button onclick="loadRequests()" class="px-3 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-300 hover:bg-gray-700">
+                    <button onclick="loadRequests()" class="px-3 py-1.5 rounded-lg bg-white border border-gray-300 text-sm text-gray-600 hover:bg-gray-200">
                         <i class="fas fa-sync-alt"></i>
                     </button>
                 </div>
@@ -155,7 +155,7 @@
             <div class="glass rounded-xl overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
-                        <thead class="bg-gray-800/50 text-xs text-gray-400 uppercase">
+                        <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
                             <tr>
                                 <th class="px-4 py-2.5 text-left">System Ref</th>
                                 <th class="px-4 py-2.5 text-left">Client Ref</th>
@@ -168,7 +168,7 @@
                                 <th class="px-4 py-2.5 text-left">Actions</th>
                             </tr>
                         </thead>
-                        <tbody id="requestsTable" class="divide-y divide-gray-800/50"></tbody>
+                        <tbody id="requestsTable" class="divide-y divide-gray-200"></tbody>
                     </table>
                 </div>
             </div>
@@ -178,8 +178,8 @@
         <div id="sec-documents" class="hidden slide-in">
             <div class="flex items-center justify-between mb-6">
                 <div>
-                    <h2 class="text-xl font-bold text-white">Document Types</h2>
-                    <p class="text-sm text-gray-400">Configure document verification rules</p>
+                    <h2 class="text-xl font-bold text-gray-800">Document Types</h2>
+                    <p class="text-sm text-gray-500">Configure document verification rules</p>
                 </div>
                 <button onclick="openDocModal()" class="px-4 py-2 rounded-lg btn-primary text-white text-sm font-medium">
                     <i class="fas fa-plus mr-2"></i>Add Document Type
@@ -191,11 +191,11 @@
         <!-- Users Section -->
         <div id="sec-users" class="hidden slide-in">
             <div class="flex items-center justify-between mb-6">
-                <h2 class="text-xl font-bold text-white">Users</h2>
+                <h2 class="text-xl font-bold text-gray-800">Users</h2>
             </div>
             <div class="glass rounded-xl overflow-hidden">
                 <table class="w-full text-sm">
-                    <thead class="bg-gray-800/50 text-xs text-gray-400 uppercase">
+                    <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
                         <tr>
                             <th class="px-4 py-2.5 text-left">ID</th>
                             <th class="px-4 py-2.5 text-left">Name</th>
@@ -205,7 +205,7 @@
                             <th class="px-4 py-2.5 text-left">Created</th>
                         </tr>
                     </thead>
-                    <tbody id="usersTable" class="divide-y divide-gray-800/50"></tbody>
+                    <tbody id="usersTable" class="divide-y divide-gray-200"></tbody>
                 </table>
             </div>
         </div>
@@ -213,14 +213,14 @@
         <!-- Audit Log Section -->
         <div id="sec-audit" class="hidden slide-in">
             <div class="flex items-center justify-between mb-6">
-                <h2 class="text-xl font-bold text-white">Audit Log</h2>
-                <button onclick="loadAudit()" class="px-3 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-sm text-gray-300 hover:bg-gray-700">
+                <h2 class="text-xl font-bold text-gray-800">Audit Log</h2>
+                <button onclick="loadAudit()" class="px-3 py-1.5 rounded-lg bg-white border border-gray-300 text-sm text-gray-600 hover:bg-gray-200">
                     <i class="fas fa-sync-alt mr-1"></i> Refresh
                 </button>
             </div>
             <div class="glass rounded-xl overflow-hidden">
                 <table class="w-full text-sm">
-                    <thead class="bg-gray-800/50 text-xs text-gray-400 uppercase">
+                    <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
                         <tr>
                             <th class="px-4 py-2.5 text-left">Time</th>
                             <th class="px-4 py-2.5 text-left">User</th>
@@ -229,7 +229,7 @@
                             <th class="px-4 py-2.5 text-left">Details</th>
                         </tr>
                     </thead>
-                    <tbody id="auditTable" class="divide-y divide-gray-800/50"></tbody>
+                    <tbody id="auditTable" class="divide-y divide-gray-200"></tbody>
                 </table>
             </div>
         </div>
@@ -237,10 +237,10 @@
 
     <!-- Detail Modal -->
     <div id="detailModal" class="fixed inset-0 z-50 hidden flex items-center justify-center modal-overlay">
-        <div class="bg-gray-900 rounded-2xl border border-gray-700 w-full max-w-2xl max-h-[85vh] overflow-y-auto slide-in m-4">
-            <div class="flex justify-between items-center px-6 py-4 border-b border-gray-800 sticky top-0 bg-gray-900 z-10">
-                <h3 class="font-bold text-white"><i class="fas fa-file-circle-check mr-2 text-[#16A085]"></i>Request Detail</h3>
-                <button onclick="closeModal('detailModal')" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+        <div class="bg-white rounded-2xl border border-gray-200 w-full max-w-2xl max-h-[85vh] overflow-y-auto slide-in m-4">
+            <div class="flex justify-between items-center px-6 py-4 border-b border-gray-200 sticky top-0 bg-white z-10">
+                <h3 class="font-bold text-gray-800"><i class="fas fa-file-circle-check mr-2 text-[#16A085]"></i>Request Detail</h3>
+                <button onclick="closeModal('detailModal')" class="text-gray-500 hover:text-gray-800"><i class="fas fa-times"></i></button>
             </div>
             <div id="detailContent" class="p-6"></div>
         </div>
@@ -248,39 +248,39 @@
 
     <!-- Document Type Modal -->
     <div id="docModal" class="fixed inset-0 z-50 hidden flex items-center justify-center modal-overlay">
-        <div class="bg-gray-900 rounded-2xl border border-gray-700 w-full max-w-lg max-h-[85vh] overflow-y-auto slide-in m-4">
-            <div class="flex justify-between items-center px-6 py-4 border-b border-gray-800">
-                <h3 class="font-bold text-white" id="docModalTitle"><i class="fas fa-file-circle-plus mr-2 text-[#16A085]"></i>Add Document Type</h3>
-                <button onclick="closeModal('docModal')" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+        <div class="bg-white rounded-2xl border border-gray-200 w-full max-w-lg max-h-[85vh] overflow-y-auto slide-in m-4">
+            <div class="flex justify-between items-center px-6 py-4 border-b border-gray-200">
+                <h3 class="font-bold text-gray-800" id="docModalTitle"><i class="fas fa-file-circle-plus mr-2 text-[#16A085]"></i>Add Document Type</h3>
+                <button onclick="closeModal('docModal')" class="text-gray-500 hover:text-gray-800"><i class="fas fa-times"></i></button>
             </div>
             <form onsubmit="saveDocType(event)" class="p-6 space-y-4">
                 <input type="hidden" id="docEditId">
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-1">Name</label>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Name</label>
                         <input type="text" id="docName" required class="w-full px-3 py-2 rounded-lg input-dark text-sm" placeholder="Aadhaar Card">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-1">Code</label>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Code</label>
                         <input type="text" id="docCode" required class="w-full px-3 py-2 rounded-lg input-dark text-sm" placeholder="aadhaar">
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-1">Allowed Formats</label>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Allowed Formats</label>
                         <input type="text" id="docFormats" class="w-full px-3 py-2 rounded-lg input-dark text-sm" placeholder="jpg,png,pdf">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-1">Max Size (MB)</label>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Max Size (MB)</label>
                         <input type="number" id="docMaxSize" class="w-full px-3 py-2 rounded-lg input-dark text-sm" value="5">
                     </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-300 mb-1">Required Fields (comma-separated)</label>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Required Fields (comma-separated)</label>
                     <input type="text" id="docFields" class="w-full px-3 py-2 rounded-lg input-dark text-sm" placeholder="name,dob,id_number">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-300 mb-1">Validation Rules (JSON)</label>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Validation Rules (JSON)</label>
                     <textarea id="docRules" rows="3" class="w-full px-3 py-2 rounded-lg input-dark text-sm font-mono" placeholder='{"id_number": "^[0-9]{12}$"}'></textarea>
                 </div>
                 <button type="submit" class="w-full py-2.5 rounded-lg btn-primary text-white font-medium text-sm">
@@ -350,25 +350,25 @@
             document.getElementById('statCards').innerHTML = `
                 <div class="glass rounded-xl p-5 stat-card">
                     <div class="flex justify-between items-start">
-                        <div><p class="text-xs text-gray-400">Total Requests</p><p class="text-2xl font-bold text-white mt-1">${total}</p></div>
+                        <div><p class="text-xs text-gray-500">Total Requests</p><p class="text-2xl font-bold text-gray-800 mt-1">${total}</p></div>
                         <i class="fas fa-file-lines text-xl text-[#16A085] opacity-60"></i>
                     </div>
                 </div>
                 <div class="glass rounded-xl p-5 stat-card">
                     <div class="flex justify-between items-start">
-                        <div><p class="text-xs text-gray-400">Verified</p><p class="text-2xl font-bold text-green-400 mt-1">${getCount('verified')}</p></div>
+                        <div><p class="text-xs text-gray-500">Verified</p><p class="text-2xl font-bold text-green-400 mt-1">${getCount('verified')}</p></div>
                         <i class="fas fa-circle-check text-xl text-green-400 opacity-60"></i>
                     </div>
                 </div>
                 <div class="glass rounded-xl p-5 stat-card">
                     <div class="flex justify-between items-start">
-                        <div><p class="text-xs text-gray-400">Rejected</p><p class="text-2xl font-bold text-red-400 mt-1">${getCount('rejected')}</p></div>
+                        <div><p class="text-xs text-gray-500">Rejected</p><p class="text-2xl font-bold text-red-400 mt-1">${getCount('rejected')}</p></div>
                         <i class="fas fa-circle-xmark text-xl text-red-400 opacity-60"></i>
                     </div>
                 </div>
                 <div class="glass rounded-xl p-5 stat-card">
                     <div class="flex justify-between items-start">
-                        <div><p class="text-xs text-gray-400">Processing</p><p class="text-2xl font-bold text-yellow-400 mt-1">${getCount('accepted') + getCount('processing')}</p></div>
+                        <div><p class="text-xs text-gray-500">Processing</p><p class="text-2xl font-bold text-yellow-400 mt-1">${getCount('accepted') + getCount('processing')}</p></div>
                         <i class="fas fa-spinner text-xl text-yellow-400 opacity-60"></i>
                     </div>
                 </div>`;
@@ -379,32 +379,32 @@
                 const pct = total > 0 ? ((s.count / total) * 100).toFixed(1) : 0;
                 const barColor = { verified: 'bg-green-500', rejected: 'bg-red-500', processing: 'bg-[#16A085]', accepted: 'bg-yellow-500', failed: 'bg-gray-500' };
                 return `<div class="flex items-center gap-3">
-                    <span class="text-xs text-gray-400 w-20 capitalize">${s.status}</span>
-                    <div class="flex-1 bg-gray-800 rounded-full h-2"><div class="${barColor[s.status] || 'bg-gray-600'} h-2 rounded-full transition-all" style="width: ${pct}%"></div></div>
-                    <span class="text-xs text-gray-300 w-16 text-right">${s.count} (${pct}%)</span>
+                    <span class="text-xs text-gray-500 w-20 capitalize">${s.status}</span>
+                    <div class="flex-1 bg-gray-200 rounded-full h-2"><div class="${barColor[s.status] || 'bg-gray-300'} h-2 rounded-full transition-all" style="width: ${pct}%"></div></div>
+                    <span class="text-xs text-gray-600 w-16 text-right">${s.count} (${pct}%)</span>
                 </div>`;
             }).join('') || '<p class="text-gray-500 text-sm">No data yet</p>';
 
             // Queue status
             document.getElementById('queueStatus').innerHTML = `
-                <div class="flex justify-between"><span class="text-sm text-gray-400">Status</span><span class="text-sm font-medium ${d.queue.isRunning ? 'text-green-400' : 'text-gray-400'}">${d.queue.isRunning ? 'Running' : 'Idle'}</span></div>
-                <div class="flex justify-between"><span class="text-sm text-gray-400">Queue Length</span><span class="text-sm font-medium text-white">${d.queue.queueLength}</span></div>
-                <div class="flex justify-between"><span class="text-sm text-gray-400">Active Jobs</span><span class="text-sm font-medium text-white">${d.queue.activeJobs}</span></div>
-                <div class="flex justify-between"><span class="text-sm text-gray-400">Concurrency</span><span class="text-sm font-medium text-white">${d.queue.concurrency}</span></div>
-                <div class="flex justify-between"><span class="text-sm text-gray-400">Avg Confidence</span><span class="text-sm font-medium text-white">${vs.totals.avg_confidence || '-'}%</span></div>
-                <div class="flex justify-between"><span class="text-sm text-gray-400">Avg Processing</span><span class="text-sm font-medium text-white">${vs.totals.avg_processing_seconds ? vs.totals.avg_processing_seconds + 's' : '-'}</span></div>
-                <div class="flex justify-between"><span class="text-sm text-gray-400">Total Users</span><span class="text-sm font-medium text-white">${d.total_users}</span></div>`;
+                <div class="flex justify-between"><span class="text-sm text-gray-500">Status</span><span class="text-sm font-medium ${d.queue.isRunning ? 'text-green-400' : 'text-gray-500'}">${d.queue.isRunning ? 'Running' : 'Idle'}</span></div>
+                <div class="flex justify-between"><span class="text-sm text-gray-500">Queue Length</span><span class="text-sm font-medium text-gray-800">${d.queue.queueLength}</span></div>
+                <div class="flex justify-between"><span class="text-sm text-gray-500">Active Jobs</span><span class="text-sm font-medium text-gray-800">${d.queue.activeJobs}</span></div>
+                <div class="flex justify-between"><span class="text-sm text-gray-500">Concurrency</span><span class="text-sm font-medium text-gray-800">${d.queue.concurrency}</span></div>
+                <div class="flex justify-between"><span class="text-sm text-gray-500">Avg Confidence</span><span class="text-sm font-medium text-gray-800">${vs.totals.avg_confidence || '-'}%</span></div>
+                <div class="flex justify-between"><span class="text-sm text-gray-500">Avg Processing</span><span class="text-sm font-medium text-gray-800">${vs.totals.avg_processing_seconds ? vs.totals.avg_processing_seconds + 's' : '-'}</span></div>
+                <div class="flex justify-between"><span class="text-sm text-gray-500">Total Users</span><span class="text-sm font-medium text-gray-800">${d.total_users}</span></div>`;
 
             // Recent requests table
             document.getElementById('recentTable').innerHTML = (vs.recent_requests || []).slice(0, 15).map(r => `
-                <tr class="hover:bg-gray-800/30 transition cursor-pointer" onclick="viewDetail(${r.id})">
+                <tr class="hover:bg-gray-50 transition cursor-pointer" onclick="viewDetail(${r.id})">
                     <td class="px-4 py-2.5 font-mono text-xs text-[#76D7C4]">${r.system_reference_id}</td>
                     <td class="px-4 py-2.5 text-xs">${r.user_name || '-'}</td>
                     <td class="px-4 py-2.5 text-xs capitalize">${r.document_type}</td>
                     <td class="px-4 py-2.5">${statusBadge(r.status)}</td>
                     <td class="px-4 py-2.5 text-xs">${r.confidence != null ? r.confidence + '%' : '-'}</td>
                     <td class="px-4 py-2.5">${riskBadge(r.risk_score)}</td>
-                    <td class="px-4 py-2.5 text-xs text-gray-400">${fmtDate(r.created_at)}</td>
+                    <td class="px-4 py-2.5 text-xs text-gray-500">${fmtDate(r.created_at)}</td>
                     <td class="px-4 py-2.5">
                         <button onclick="event.stopPropagation();viewDetail(${r.id})" class="text-[#16A085] hover:text-[#76D7C4] text-xs mr-2"><i class="fas fa-eye"></i></button>
                         ${['verified','rejected','failed'].includes(r.status) ? `<button onclick="event.stopPropagation();reprocessRequest(${r.id})" class="text-yellow-400 hover:text-yellow-300 text-xs" title="Reprocess"><i class="fas fa-rotate"></i></button>` : ''}
@@ -419,7 +419,7 @@
             const data = await apiFetch(url);
             if (!data?.success) return;
             document.getElementById('requestsTable').innerHTML = (data.data || []).map(r => `
-                <tr class="hover:bg-gray-800/30 transition cursor-pointer" onclick="viewDetail(${r.id})">
+                <tr class="hover:bg-gray-50 transition cursor-pointer" onclick="viewDetail(${r.id})">
                     <td class="px-4 py-2.5 font-mono text-xs text-[#76D7C4]">${r.system_reference_id}</td>
                     <td class="px-4 py-2.5 text-xs">${r.client_reference_id || '-'}</td>
                     <td class="px-4 py-2.5 text-xs">${r.user_name || '-'}</td>
@@ -427,7 +427,7 @@
                     <td class="px-4 py-2.5">${statusBadge(r.status)}</td>
                     <td class="px-4 py-2.5 text-xs">${r.confidence != null ? r.confidence + '%' : '-'}</td>
                     <td class="px-4 py-2.5">${riskBadge(r.risk_score)}</td>
-                    <td class="px-4 py-2.5 text-xs text-gray-400">${fmtDate(r.created_at)}</td>
+                    <td class="px-4 py-2.5 text-xs text-gray-500">${fmtDate(r.created_at)}</td>
                     <td class="px-4 py-2.5 flex gap-1">
                         <button onclick="event.stopPropagation();viewDetail(${r.id})" class="text-[#16A085] hover:text-[#76D7C4] text-xs"><i class="fas fa-eye"></i></button>
                         <button onclick="event.stopPropagation();overrideRequest(${r.id},'verified')" class="text-green-400 hover:text-green-300 text-xs" title="Verify"><i class="fas fa-check"></i></button>
@@ -446,9 +446,9 @@
             try {
                 const ed = typeof req.extracted_data === 'string' ? JSON.parse(req.extracted_data) : req.extracted_data;
                 if (ed && Object.keys(ed).length) {
-                    extracted = `<div class="mt-4"><h4 class="text-sm font-medium text-gray-300 mb-2">Extracted Data</h4>
-                        <div class="bg-gray-800/50 rounded-lg p-3 space-y-1">${Object.entries(ed).map(([k,v]) =>
-                            `<div class="flex justify-between text-xs"><span class="text-gray-400">${k}</span><span class="text-white">${v}</span></div>`
+                    extracted = `<div class="mt-4"><h4 class="text-sm font-medium text-gray-600 mb-2">Extracted Data</h4>
+                        <div class="bg-gray-50 rounded-lg p-3 space-y-1">${Object.entries(ed).map(([k,v]) =>
+                            `<div class="flex justify-between text-xs"><span class="text-gray-500">${k}</span><span class="text-gray-800">${v}</span></div>`
                         ).join('')}</div></div>`;
                 }
             } catch(e) {}
@@ -457,24 +457,24 @@
             try {
                 const iss = typeof req.issues === 'string' ? JSON.parse(req.issues) : req.issues;
                 if (iss && iss.length) {
-                    issues = `<div class="mt-4"><h4 class="text-sm font-medium text-gray-300 mb-2">Issues</h4>
-                        <ul class="space-y-1">${iss.map(i => `<li class="text-xs text-red-300 flex gap-2"><i class="fas fa-triangle-exclamation mt-0.5"></i>${i}</li>`).join('')}</ul></div>`;
+                    issues = `<div class="mt-4"><h4 class="text-sm font-medium text-gray-600 mb-2">Issues</h4>
+                        <ul class="space-y-1">${iss.map(i => `<li class="text-xs text-red-500 flex gap-2"><i class="fas fa-triangle-exclamation mt-0.5"></i>${i}</li>`).join('')}</ul></div>`;
                 }
             } catch(e) {}
 
             document.getElementById('detailContent').innerHTML = `
                 <div class="space-y-3">
                     <div class="grid grid-cols-2 gap-3">
-                        <div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500 uppercase">System Ref</p><p class="text-sm text-[#76D7C4] font-mono">${req.system_reference_id}</p></div>
-                        <div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500 uppercase">Client Ref</p><p class="text-sm text-white">${req.client_reference_id || '-'}</p></div>
-                        <div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500 uppercase">Status</p><p class="mt-1">${statusBadge(req.status)}</p></div>
-                        <div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500 uppercase">Document Type</p><p class="text-sm text-white capitalize">${req.document_type}</p></div>
-                        <div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500 uppercase">Confidence</p><p class="text-sm text-white">${req.confidence != null ? req.confidence + '%' : '-'}</p></div>
-                        <div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500 uppercase">Risk Score</p><p class="text-sm">${riskBadge(req.risk_score)}</p></div>
-                        <div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500 uppercase">User</p><p class="text-sm text-white">${req.user_name || '-'} (${req.user_email || ''})</p></div>
-                        <div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500 uppercase">Created</p><p class="text-sm text-white">${fmtDate(req.created_at)}</p></div>
+                        <div class="bg-gray-50 rounded-lg p-3"><p class="text-[10px] text-gray-500 uppercase">System Ref</p><p class="text-sm text-[#76D7C4] font-mono">${req.system_reference_id}</p></div>
+                        <div class="bg-gray-50 rounded-lg p-3"><p class="text-[10px] text-gray-500 uppercase">Client Ref</p><p class="text-sm text-gray-800">${req.client_reference_id || '-'}</p></div>
+                        <div class="bg-gray-50 rounded-lg p-3"><p class="text-[10px] text-gray-500 uppercase">Status</p><p class="mt-1">${statusBadge(req.status)}</p></div>
+                        <div class="bg-gray-50 rounded-lg p-3"><p class="text-[10px] text-gray-500 uppercase">Document Type</p><p class="text-sm text-gray-800 capitalize">${req.document_type}</p></div>
+                        <div class="bg-gray-50 rounded-lg p-3"><p class="text-[10px] text-gray-500 uppercase">Confidence</p><p class="text-sm text-gray-800">${req.confidence != null ? req.confidence + '%' : '-'}</p></div>
+                        <div class="bg-gray-50 rounded-lg p-3"><p class="text-[10px] text-gray-500 uppercase">Risk Score</p><p class="text-sm">${riskBadge(req.risk_score)}</p></div>
+                        <div class="bg-gray-50 rounded-lg p-3"><p class="text-[10px] text-gray-500 uppercase">User</p><p class="text-sm text-gray-800">${req.user_name || '-'} (${req.user_email || ''})</p></div>
+                        <div class="bg-gray-50 rounded-lg p-3"><p class="text-[10px] text-gray-500 uppercase">Created</p><p class="text-sm text-gray-800">${fmtDate(req.created_at)}</p></div>
                     </div>
-                    <div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500 uppercase mb-1">File URL</p><a href="${req.file_url}" target="_blank" class="text-xs text-[#16A085] hover:underline break-all">${req.file_url}</a></div>
+                    <div class="bg-gray-50 rounded-lg p-3"><p class="text-[10px] text-gray-500 uppercase mb-1">File URL</p><a href="${req.file_url}" target="_blank" class="text-xs text-[#16A085] hover:underline break-all">${req.file_url}</a></div>
                     ${extracted}${issues}
                     <div class="flex gap-2 mt-4">
                         <button onclick="overrideRequest(${req.id},'verified');closeModal('detailModal')" class="flex-1 py-2 rounded-lg bg-green-600/20 text-green-400 text-sm font-medium hover:bg-green-600/30 border border-green-600/30"><i class="fas fa-check mr-1"></i>Verify</button>
@@ -507,7 +507,7 @@
                 return `<div class="glass rounded-xl p-5">
                     <div class="flex justify-between items-start mb-3">
                         <div>
-                            <h4 class="font-medium text-white">${d.name}</h4>
+                            <h4 class="font-medium text-gray-800">${d.name}</h4>
                             <p class="text-xs text-gray-500 font-mono">${d.code}</p>
                         </div>
                         <div class="flex gap-1">
@@ -516,9 +516,9 @@
                         </div>
                     </div>
                     <div class="space-y-2 text-xs">
-                        <div class="flex gap-1 flex-wrap">${formats.map(f => `<span class="px-1.5 py-0.5 rounded bg-gray-800 text-gray-300">${f}</span>`).join('')}</div>
-                        <p class="text-gray-400">Max: ${d.max_size_mb}MB</p>
-                        <p class="text-gray-400">Fields: ${fields.length > 0 ? fields.join(', ') : 'None configured'}</p>
+                        <div class="flex gap-1 flex-wrap">${formats.map(f => `<span class="px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">${f}</span>`).join('')}</div>
+                        <p class="text-gray-500">Max: ${d.max_size_mb}MB</p>
+                        <p class="text-gray-500">Fields: ${fields.length > 0 ? fields.join(', ') : 'None configured'}</p>
                         <span class="px-2 py-0.5 rounded-full text-[10px] font-medium ${d.is_active ? 'badge-verified' : 'badge-failed'}">${d.is_active ? 'Active' : 'Inactive'}</span>
                     </div>
                 </div>`;
@@ -573,13 +573,13 @@
             const data = await apiFetch('/v1/admin/users');
             if (!data?.success) return;
             document.getElementById('usersTable').innerHTML = (data.data.users || []).map(u => `
-                <tr class="hover:bg-gray-800/30 transition">
-                    <td class="px-4 py-2.5 text-xs text-gray-400">${u.id}</td>
-                    <td class="px-4 py-2.5 text-sm text-white">${u.name}</td>
+                <tr class="hover:bg-gray-50 transition">
+                    <td class="px-4 py-2.5 text-xs text-gray-500">${u.id}</td>
+                    <td class="px-4 py-2.5 text-sm text-gray-800">${u.name}</td>
                     <td class="px-4 py-2.5 text-xs">${u.email}</td>
                     <td class="px-4 py-2.5"><span class="px-2 py-0.5 rounded-full text-xs font-medium ${u.role === 'admin' ? 'badge-processing' : 'badge-verified'}">${u.role}</span></td>
                     <td class="px-4 py-2.5"><span class="px-2 py-0.5 rounded-full text-xs ${u.is_active ? 'badge-verified' : 'badge-failed'}">${u.is_active ? 'Active' : 'Inactive'}</span></td>
-                    <td class="px-4 py-2.5 text-xs text-gray-400">${fmtDate(u.created_at)}</td>
+                    <td class="px-4 py-2.5 text-xs text-gray-500">${fmtDate(u.created_at)}</td>
                 </tr>`).join('') || '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No users</td></tr>';
         }
 
@@ -590,12 +590,12 @@
             document.getElementById('auditTable').innerHTML = (data.data || []).map(a => {
                 let details = '';
                 try { details = typeof a.details === 'string' ? a.details : JSON.stringify(a.details); } catch(e) {}
-                return `<tr class="hover:bg-gray-800/30 transition">
-                    <td class="px-4 py-2.5 text-xs text-gray-400">${fmtDate(a.created_at)}</td>
+                return `<tr class="hover:bg-gray-50 transition">
+                    <td class="px-4 py-2.5 text-xs text-gray-500">${fmtDate(a.created_at)}</td>
                     <td class="px-4 py-2.5 text-xs">${a.user_name || '-'}</td>
                     <td class="px-4 py-2.5 text-xs font-mono text-[#76D7C4]">${a.action}</td>
                     <td class="px-4 py-2.5 text-xs">${a.resource_type ? a.resource_type + '/' + a.resource_id : '-'}</td>
-                    <td class="px-4 py-2.5 text-xs text-gray-400 max-w-xs truncate">${details}</td>
+                    <td class="px-4 py-2.5 text-xs text-gray-500 max-w-xs truncate">${details}</td>
                 </tr>`;
             }).join('') || '<tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">No audit entries</td></tr>';
         }
