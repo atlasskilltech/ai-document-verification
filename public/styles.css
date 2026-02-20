@@ -1,0 +1,35 @@
+/* ATLAS Color Scheme Variables */
+:root {
+  /* Primary Colors */
+  --primary-color: #16A085;
+  --primary-hover: #138D75;
+  --primary-dark: #117A65;
+  --secondary-color: #48BB78;
+  --danger-color: #F56565;
+  --warning-color: #ED8936;
+  --info-color: #4299E1;
+  --success-color: #38C77D;
+
+  /* Background Colors */
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F8F9FA;
+  --bg-tertiary: #E9ECEF;
+  --sidebar-bg: #2C3E50;
+  --sidebar-active: #16A085;
+
+  /* Text Colors */
+  --text-primary: #2D3748;
+  --text-secondary: #718096;
+  --text-tertiary: #A0AEC0;
+  --text-white: #FFFFFF;
+
+  /* Border Colors */
+  --border-color: #E2E8F0;
+  --border-light: #EDF2F7;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.12);
+}

@@ -5,14 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document Verification Platform - Login</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        body { background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%); min-height: 100vh; }
+        body { background: linear-gradient(135deg, #1a2a3a 0%, #2C3E50 50%, #1a2a3a 100%); min-height: 100vh; }
         .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(71, 85, 105, 0.4); }
         .input-dark { background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(71, 85, 105, 0.5); color: #e2e8f0; }
-        .input-dark:focus { border-color: #3b82f6; outline: none; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); }
-        .btn-primary { background: linear-gradient(135deg, #3b82f6, #2563eb); }
-        .btn-primary:hover { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+        .input-dark:focus { border-color: #16A085; outline: none; box-shadow: 0 0 0 3px rgba(22, 160, 133, 0.2); }
+        .btn-primary { background: linear-gradient(135deg, #16A085, #138D75); }
+        .btn-primary:hover { background: linear-gradient(135deg, #138D75, #117A65); }
         .slide-in { animation: slideIn 0.4s ease-out; }
         @keyframes slideIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
     </style>
@@ -21,8 +22,8 @@
     <div class="w-full max-w-md">
         <!-- Logo / Header -->
         <div class="text-center mb-8 slide-in">
-            <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-600/20 border border-blue-500/30 mb-4">
-                <i class="fas fa-shield-halved text-3xl text-blue-400"></i>
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#16A085]/20 border border-[#16A085]/30 mb-4">
+                <i class="fas fa-shield-halved text-3xl text-[#16A085]"></i>
             </div>
             <h1 class="text-2xl font-bold text-white">Document Verification</h1>
             <p class="text-gray-400 text-sm mt-1">AI-Powered Document Verification Platform</p>
@@ -48,7 +49,7 @@
                 </button>
             </form>
             <p class="text-center text-gray-400 text-sm mt-5">
-                Don't have an account? <a href="#" onclick="toggleForm('register')" class="text-blue-400 hover:text-blue-300">Create one</a>
+                Don't have an account? <a href="#" onclick="toggleForm('register')" class="text-[#16A085] hover:text-[#48CAB0]">Create one</a>
             </p>
         </div>
 
@@ -85,7 +86,7 @@
                 </button>
             </form>
             <p class="text-center text-gray-400 text-sm mt-5">
-                Already have an account? <a href="#" onclick="toggleForm('login')" class="text-blue-400 hover:text-blue-300">Sign In</a>
+                Already have an account? <a href="#" onclick="toggleForm('login')" class="text-[#16A085] hover:text-[#48CAB0]">Sign In</a>
             </p>
         </div>
     </div>
@@ -161,7 +162,7 @@
                 });
                 const data = await res.json();
                 if (data.success) {
-                    successDiv.innerHTML = `Account created! Your API Key: <code class="bg-gray-800 px-2 py-0.5 rounded text-blue-300">${data.data.api_key}</code><br><small class="text-gray-400">Save this key securely. You can now sign in.</small>`;
+                    successDiv.innerHTML = `Account created! Your API Key: <code class="bg-gray-800 px-2 py-0.5 rounded text-[#76D7C4]">${data.data.api_key}</code><br><small class="text-gray-400">Save this key securely. You can now sign in.</small>`;
                     successDiv.classList.remove('hidden');
                 } else {
                     errorDiv.textContent = data.message || 'Registration failed';

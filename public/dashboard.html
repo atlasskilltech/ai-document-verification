@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admissions Document Review Agent - Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         .sidebar { transition: width 0.3s; }
@@ -14,7 +15,7 @@
         .status-pending { background: #fef3c7; color: #92400e; }
         .status-rejected { background: #fecaca; color: #991b1b; }
         .status-escalated { background: #fee2e2; color: #7f1d1d; }
-        .status-review { background: #dbeafe; color: #1e40af; }
+        .status-review { background: #E8F8F5; color: #117A65; }
         .status-conditional { background: #e0e7ff; color: #3730a3; }
         .risk-critical { background: #dc2626; } .risk-high { background: #ea580c; }
         .risk-medium { background: #f59e0b; } .risk-low { background: #22c55e; }
@@ -24,10 +25,10 @@
 <body class="bg-gray-50 min-h-screen">
 
 <!-- Sidebar -->
-<aside id="sidebar" class="sidebar fixed top-0 left-0 h-full w-64 bg-gray-900 text-white z-50 overflow-y-auto">
-    <div class="p-4 border-b border-gray-700">
+<aside id="sidebar" class="sidebar fixed top-0 left-0 h-full w-64 bg-[#2C3E50] text-white z-50 overflow-y-auto">
+    <div class="p-4 border-b border-[#34495E]">
         <h1 class="text-lg font-bold flex items-center gap-2">
-            <i class="fas fa-file-shield text-blue-400"></i>
+            <i class="fas fa-file-shield text-[#16A085]"></i>
             <span>DocReview Agent</span>
         </h1>
         <p class="text-xs text-gray-400 mt-1">Admissions Document System</p>
@@ -44,7 +45,7 @@
                 <i class="fas fa-exclamation-triangle w-5 text-red-400"></i> High Risk Cases</a></li>
             <li><a href="#" onclick="showSection('notifications')" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white transition">
                 <i class="fas fa-bell w-5"></i> Alerts <span id="alertBadge" class="hidden ml-auto bg-red-500 text-xs rounded-full px-2 py-0.5 badge-pulse"></span></a></li>
-            <li class="pt-2 mt-2 border-t border-gray-700"><a href="/verification" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 text-blue-400 hover:text-blue-300 transition">
+            <li class="pt-2 mt-2 border-t border-[#34495E]"><a href="/verification" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800 text-[#16A085] hover:text-[#76D7C4] transition">
                 <i class="fas fa-robot w-5"></i> AI Verification</a></li>
         </ul>
     </nav>
@@ -118,7 +119,7 @@
                     <label class="text-xs text-gray-500 block mb-1">Min Risk</label>
                     <input type="number" id="filterMinRisk" min="0" max="10" placeholder="0" class="border rounded-lg px-3 py-2 text-sm w-20">
                 </div>
-                <button onclick="loadApplicants()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition">
+                <button onclick="loadApplicants()" class="bg-[#16A085] text-white px-4 py-2 rounded-lg text-sm hover:bg-[#138D75] transition">
                     <i class="fas fa-search mr-1"></i> Filter
                 </button>
             </div>
@@ -144,7 +145,7 @@
     <!-- ==================== NEW APPLICANT SECTION ==================== -->
     <section id="sec-new-applicant" class="hidden">
         <div class="max-w-2xl mx-auto bg-white rounded-xl shadow-sm p-6 border">
-            <h3 class="text-lg font-semibold mb-4"><i class="fas fa-user-plus text-blue-500 mr-2"></i>Register New Applicant</h3>
+            <h3 class="text-lg font-semibold mb-4"><i class="fas fa-user-plus text-[#16A085] mr-2"></i>Register New Applicant</h3>
             <form id="newApplicantForm" class="space-y-4">
                 <div class="grid grid-cols-2 gap-4">
                     <div>
@@ -188,7 +189,7 @@
                         <select name="program_id" id="programSelect" required class="w-full border rounded-lg px-3 py-2 text-sm"></select>
                     </div>
                 </div>
-                <button type="submit" class="w-full bg-blue-600 text-white py-2.5 rounded-lg font-medium hover:bg-blue-700 transition">
+                <button type="submit" class="w-full bg-[#16A085] text-white py-2.5 rounded-lg font-medium hover:bg-[#138D75] transition">
                     <i class="fas fa-plus mr-2"></i>Create Application
                 </button>
             </form>
@@ -213,8 +214,8 @@
     <!-- ==================== NOTIFICATIONS SECTION ==================== -->
     <section id="sec-notifications" class="hidden">
         <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
-            <div class="p-4 bg-blue-50 border-b">
-                <h3 class="font-semibold text-blue-700"><i class="fas fa-bell mr-2"></i>System Alerts & Notifications</h3>
+            <div class="p-4 bg-[#E8F8F5] border-b">
+                <h3 class="font-semibold text-[#117A65]"><i class="fas fa-bell mr-2"></i>System Alerts & Notifications</h3>
             </div>
             <div id="notificationsList" class="divide-y"></div>
         </div>
@@ -269,10 +270,10 @@ async function loadDashboard() {
 
     // Status chart (simple bar)
     const statuses = [
-        { label: 'Submitted', val: s.submitted || 0, color: 'bg-blue-400' },
-        { label: 'Under Review', val: s.under_review || 0, color: 'bg-blue-500' },
+        { label: 'Submitted', val: s.submitted || 0, color: 'bg-[#48CAB0]' },
+        { label: 'Under Review', val: s.under_review || 0, color: 'bg-[#16A085]' },
         { label: 'Verified', val: s.verified || 0, color: 'bg-green-500' },
-        { label: 'Conditional', val: s.conditional || 0, color: 'bg-indigo-500' },
+        { label: 'Conditional', val: s.conditional || 0, color: 'bg-[#48BB78]' },
         { label: 'Pending Docs', val: s.pending_docs || 0, color: 'bg-yellow-500' },
         { label: 'Rejected', val: s.rejected || 0, color: 'bg-red-400' },
         { label: 'Escalated', val: s.escalated || 0, color: 'bg-red-600' }
@@ -316,7 +317,7 @@ async function loadDashboard() {
 }
 
 function statCard(title, value, icon, color) {
-    const colors = { blue: 'from-blue-500 to-blue-600', green: 'from-green-500 to-green-600',
+    const colors = { blue: 'from-[#16A085] to-[#138D75]', green: 'from-green-500 to-green-600',
         yellow: 'from-yellow-500 to-yellow-600', red: 'from-red-500 to-red-600' };
     return `<div class="bg-gradient-to-br ${colors[color]} rounded-xl p-5 text-white shadow-lg">
         <div class="flex justify-between items-start">
@@ -343,14 +344,14 @@ async function loadApplicants() {
         ? '<tr><td colspan="7" class="text-center py-8 text-gray-400">No applicants found</td></tr>'
         : data.map(a => `
             <tr class="border-b hover:bg-gray-50 cursor-pointer" onclick="loadDetail(${a.id})">
-                <td class="px-4 py-3 font-mono text-xs text-blue-600">${a.application_number}</td>
+                <td class="px-4 py-3 font-mono text-xs text-[#16A085]">${a.application_number}</td>
                 <td class="px-4 py-3 font-medium">${a.first_name} ${a.last_name}</td>
                 <td class="px-4 py-3 text-gray-500">${a.program_name}</td>
                 <td class="px-4 py-3">${statusBadge(a.status)}</td>
                 <td class="px-4 py-3 text-center">${riskBadge(a.overall_risk_score || 0)}</td>
                 <td class="px-4 py-3 text-gray-500 text-xs">${formatDate(a.submitted_at)}</td>
                 <td class="px-4 py-3 text-center">
-                    <button onclick="event.stopPropagation(); loadDetail(${a.id})" class="text-blue-500 hover:text-blue-700 text-xs"><i class="fas fa-eye"></i> View</button>
+                    <button onclick="event.stopPropagation(); loadDetail(${a.id})" class="text-[#16A085] hover:text-[#138D75] text-xs"><i class="fas fa-eye"></i> View</button>
                 </td>
             </tr>
         `).join('');
@@ -361,7 +362,7 @@ function renderApplicantTable(list) {
         <thead class="text-xs text-gray-500"><tr><th class="text-left pb-2">App#</th><th class="text-left pb-2">Name</th><th class="text-left pb-2">Program</th><th class="pb-2">Status</th><th class="pb-2">Risk</th></tr></thead>
         <tbody>${list.map(a => `
             <tr class="border-t cursor-pointer hover:bg-gray-50" onclick="loadDetail(${a.id})">
-                <td class="py-2 font-mono text-xs text-blue-600">${a.application_number}</td>
+                <td class="py-2 font-mono text-xs text-[#16A085]">${a.application_number}</td>
                 <td class="py-2">${a.first_name} ${a.last_name}</td>
                 <td class="py-2 text-gray-500">${a.program_name}</td>
                 <td class="py-2 text-center">${statusBadge(a.status)}</td>
@@ -388,7 +389,7 @@ async function loadDetail(id) {
                 <p class="text-sm text-gray-500">${a.application_number} &middot; ${a.program_name} &middot; ${a.campus_name}</p>
             </div>
             <div class="flex gap-2">
-                <button onclick="validateApp(${a.id})" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition">
+                <button onclick="validateApp(${a.id})" class="bg-[#16A085] text-white px-4 py-2 rounded-lg text-sm hover:bg-[#138D75] transition">
                     <i class="fas fa-play mr-1"></i> Run Validation
                 </button>
                 ${a.status === 'Draft' ? `<button onclick="submitApp(${a.id})" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 transition">
@@ -420,7 +421,7 @@ async function loadDetail(id) {
 
         <!-- Applicant Info -->
         <div class="bg-white rounded-xl shadow-sm p-5 border mb-6">
-            <h4 class="font-semibold text-gray-700 mb-3"><i class="fas fa-user mr-2 text-blue-500"></i>Applicant Information</h4>
+            <h4 class="font-semibold text-gray-700 mb-3"><i class="fas fa-user mr-2 text-[#16A085]"></i>Applicant Information</h4>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div><span class="text-gray-400 block text-xs">Email</span>${a.email}</div>
                 <div><span class="text-gray-400 block text-xs">Phone</span>${a.phone || '—'}</div>
@@ -559,7 +560,7 @@ async function loadNotifications() {
                     <div>
                         <span class="inline-block px-2 py-0.5 text-xs rounded font-medium mr-2 ${
                             n.alert_type.includes('Fraud') || n.alert_type.includes('HighRisk') ? 'bg-red-100 text-red-700' :
-                            n.alert_type.includes('Missing') ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'
+                            n.alert_type.includes('Missing') ? 'bg-yellow-100 text-yellow-700' : 'bg-[#E8F8F5] text-[#117A65]'
                         }">${n.alert_type.replace(/([A-Z])/g, ' $1').trim()}</span>
                         <span class="font-medium text-sm">${n.title}</span>
                         ${n.application_number ? `<span class="text-xs text-gray-400 ml-2">${n.application_number}</span>` : ''}
