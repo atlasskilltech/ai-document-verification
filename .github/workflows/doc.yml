@@ -24,10 +24,10 @@ jobs:
           chmod 600 ~/.ssh/key.pem
 
           ssh -i ~/.ssh/key.pem -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << 'EOF'
-            cd /home/ubuntu/ai-doc-verify
+            cd /home/ubuntu/ai-document-verification
             git pull origin main
             npm install --production
-            pm2 restart ai-doc-verify || pm2 start server.js --name ai-doc-verify
+            pm2 restart ai-document-verification || pm2 start server.js --name ai-document-verification
             pm2 save
           EOF
 
