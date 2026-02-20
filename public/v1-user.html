@@ -812,18 +812,18 @@
                     ${wrongDocBanner}
                     ${fakeDocBanner}
                     <div class="grid grid-cols-2 gap-3">
-                        <div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500">System Ref</p><p class="text-sm text-[#76D7C4] font-mono">${data.system_reference_id}</p></div>
-                        <div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500">Status</p><p class="mt-1">${statusBadge(data.status)}</p></div>
-                        ${data.confidence != null ? `<div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500">Confidence</p><p class="text-sm text-white">${data.confidence}%</p></div>` : ''}
-                        ${data.risk_score != null ? `<div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500">Risk Score</p><p class="text-sm">${riskBadge(data.risk_score)}</p></div>` : ''}
-                        ${data.document_type ? `<div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500">Doc Type</p><p class="text-sm text-white capitalize">${data.document_type}</p></div>` : ''}
-                        <div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500">Genuine</p><p class="text-sm font-medium ${data.is_genuine !== false ? 'auth-check-pass' : 'auth-check-fail'}">${data.is_genuine !== false ? 'Yes - Authentic' : 'No - Suspicious'}</p></div>
+                        <div class="bg-gray-50 rounded-lg p-3"><p class="text-[10px] text-gray-500">System Ref</p><p class="text-sm text-[#76D7C4] font-mono">${data.system_reference_id}</p></div>
+                        <div class="bg-gray-50 rounded-lg p-3"><p class="text-[10px] text-gray-500">Status</p><p class="mt-1">${statusBadge(data.status)}</p></div>
+                        ${data.confidence != null ? `<div class="bg-gray-50 rounded-lg p-3"><p class="text-[10px] text-gray-500">Confidence</p><p class="text-sm text-gray-800">${data.confidence}%</p></div>` : ''}
+                        ${data.risk_score != null ? `<div class="bg-gray-50 rounded-lg p-3"><p class="text-[10px] text-gray-500">Risk Score</p><p class="text-sm">${riskBadge(data.risk_score)}</p></div>` : ''}
+                        ${data.document_type ? `<div class="bg-gray-50 rounded-lg p-3"><p class="text-[10px] text-gray-500">Doc Type</p><p class="text-sm text-gray-800 capitalize">${data.document_type}</p></div>` : ''}
+                        <div class="bg-gray-50 rounded-lg p-3"><p class="text-[10px] text-gray-500">Genuine</p><p class="text-sm font-medium ${data.is_genuine !== false ? 'auth-check-pass' : 'auth-check-fail'}">${data.is_genuine !== false ? 'Yes - Authentic' : 'No - Suspicious'}</p></div>
                     </div>
                     ${authSection}
                     ${consistencySection}
                     ${extracted}
                     ${fraudSection}
-                    ${data.issues && data.issues.length ? `<div class="mt-3"><h4 class="text-sm font-medium text-gray-300 mb-2">Issues</h4><ul class="space-y-1">${data.issues.map(i => `<li class="text-xs text-red-300"><i class="fas fa-triangle-exclamation mr-1"></i>${i}</li>`).join('')}</ul></div>` : ''}
+                    ${data.issues && data.issues.length ? `<div class="mt-3"><h4 class="text-sm font-medium text-gray-600 mb-2">Issues</h4><ul class="space-y-1">${data.issues.map(i => `<li class="text-xs text-red-300"><i class="fas fa-triangle-exclamation mr-1"></i>${i}</li>`).join('')}</ul></div>` : ''}
                 </div>`;
             document.getElementById('resultModal').classList.remove('hidden');
         }
@@ -836,14 +836,14 @@
             const data = await apiFetch(url);
             if (!data?.success) return;
             document.getElementById('myRequestsTable').innerHTML = (data.data.requests || []).map(r => `
-                <tr class="hover:bg-gray-800/30 transition cursor-pointer" onclick="viewResult('${r.system_reference_id}')">
+                <tr class="hover:bg-gray-50 transition cursor-pointer" onclick="viewResult('${r.system_reference_id}')">
                     <td class="px-4 py-2.5 font-mono text-xs text-[#76D7C4]">${r.system_reference_id}</td>
                     <td class="px-4 py-2.5 text-xs">${r.client_reference_id || '-'}</td>
                     <td class="px-4 py-2.5 text-xs capitalize">${r.document_type}</td>
                     <td class="px-4 py-2.5">${statusBadge(r.status)}</td>
                     <td class="px-4 py-2.5 text-xs">${r.confidence != null ? r.confidence + '%' : '-'}</td>
                     <td class="px-4 py-2.5">${riskBadge(r.risk_score)}</td>
-                    <td class="px-4 py-2.5 text-xs text-gray-400">${fmtDate(r.created_at)}</td>
+                    <td class="px-4 py-2.5 text-xs text-gray-500">${fmtDate(r.created_at)}</td>
                     <td class="px-4 py-2.5"><button class="text-[#16A085] hover:text-[#76D7C4] text-xs"><i class="fas fa-eye"></i></button></td>
                 </tr>`).join('') || '<tr><td colspan="8" class="px-4 py-8 text-center text-gray-500">No requests found</td></tr>';
         }
