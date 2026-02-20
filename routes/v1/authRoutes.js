@@ -186,11 +186,9 @@ router.post('/api/generate', jwtAuth, async (req, res) => {
     try {
         const { name, rate_limit, burst_limit, expires_in_days } = req.body;
 
-        let expiresAt = null;
-        if (expires_in_days) {
-            expiresAt = new Date();
-            expiresAt.setDate(expiresAt.getDate() + parseInt(expires_in_days));
-        }
+        const days = parseInt(expires_in_days) || 365; // Default: 1 year
+        let expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + days);
 
         const result = await V1ApiKeyModel.create({
             userId: req.user.userId,
