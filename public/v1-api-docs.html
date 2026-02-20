@@ -15,7 +15,7 @@
         .method-post { background: rgba(22, 160, 133, 0.1); color: #0f766e; border: 1px solid rgba(22, 160, 133, 0.2); }
         .method-put { background: rgba(234, 179, 8, 0.1); color: #ca8a04; border: 1px solid rgba(234, 179, 8, 0.2); }
         .method-delete { background: rgba(239, 68, 68, 0.1); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.2); }
-        .sidebar-link { transition: all 0.15s; }
+        .sidebar-link { transition: all 0.15s; color: #CBD5E1; }
         .sidebar-link:hover, .sidebar-link.active { background: rgba(22, 160, 133, 0.15); color: #76D7C4; }
         .endpoint-card { transition: all 0.2s; border: 1px solid #E2E8F0; }
         .endpoint-card:hover { border-color: rgba(22, 160, 133, 0.4); }
@@ -47,9 +47,9 @@
 
     <div class="flex pt-14">
         <!-- Sidebar Navigation -->
-        <aside class="fixed left-0 top-14 bottom-0 w-64 bg-gray-900 border-r border-gray-800 overflow-y-auto z-30">
+        <aside class="fixed left-0 top-14 bottom-0 w-64 bg-gray-900 text-gray-300 border-r border-gray-800 overflow-y-auto z-30">
             <nav class="p-3">
-                <p class="px-3 py-2 text-[10px] text-gray-500 uppercase font-semibold tracking-wider">Getting Started</p>
+                <p class="px-3 py-2 text-[10px] text-gray-400 uppercase font-semibold tracking-wider">Getting Started</p>
                 <ul class="space-y-0.5 mb-4">
                     <li><a href="#overview" class="sidebar-link active flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" onclick="scrollToSection('overview')">
                         <i class="fas fa-home w-4 text-center"></i> Overview</a></li>
@@ -63,7 +63,7 @@
                         <i class="fas fa-gauge w-4 text-center"></i> Rate Limits</a></li>
                 </ul>
 
-                <p class="px-3 py-2 text-[10px] text-gray-500 uppercase font-semibold tracking-wider">Auth Endpoints</p>
+                <p class="px-3 py-2 text-[10px] text-gray-400 uppercase font-semibold tracking-wider">Auth Endpoints</p>
                 <ul class="space-y-0.5 mb-4">
                     <li><a href="#auth-register" class="sidebar-link flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" onclick="scrollToSection('auth-register')">
                         <span class="px-1 rounded text-[9px] font-bold method-post">POST</span> Register</a></li>
@@ -73,7 +73,7 @@
                         <span class="px-1 rounded text-[9px] font-bold method-post">POST</span> Generate API Key</a></li>
                 </ul>
 
-                <p class="px-3 py-2 text-[10px] text-gray-500 uppercase font-semibold tracking-wider">Verification</p>
+                <p class="px-3 py-2 text-[10px] text-gray-400 uppercase font-semibold tracking-wider">Verification</p>
                 <ul class="space-y-0.5 mb-4">
                     <li><a href="#verify-single" class="sidebar-link flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" onclick="scrollToSection('verify-single')">
                         <span class="px-1 rounded text-[9px] font-bold method-post">POST</span> Verify Document</a></li>
@@ -91,7 +91,7 @@
                         <span class="px-1 rounded text-[9px] font-bold method-get">GET</span> Document Types</a></li>
                 </ul>
 
-                <p class="px-3 py-2 text-[10px] text-gray-500 uppercase font-semibold tracking-wider">Document Setup</p>
+                <p class="px-3 py-2 text-[10px] text-gray-400 uppercase font-semibold tracking-wider">Document Setup</p>
                 <ul class="space-y-0.5 mb-4">
                     <li><a href="#doctype-create" class="sidebar-link flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" onclick="scrollToSection('doctype-create')">
                         <span class="px-1 rounded text-[9px] font-bold method-post">POST</span> Create Type</a></li>
@@ -101,7 +101,7 @@
                         <span class="px-1 rounded text-[9px] font-bold method-delete">DEL</span> Delete Type</a></li>
                 </ul>
 
-                <p class="px-3 py-2 text-[10px] text-gray-500 uppercase font-semibold tracking-wider">Webhooks</p>
+                <p class="px-3 py-2 text-[10px] text-gray-400 uppercase font-semibold tracking-wider">Webhooks</p>
                 <ul class="space-y-0.5 mb-4">
                     <li><a href="#webhook-register" class="sidebar-link flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" onclick="scrollToSection('webhook-register')">
                         <span class="px-1 rounded text-[9px] font-bold method-post">POST</span> Register</a></li>
@@ -109,7 +109,7 @@
                         <i class="fas fa-bolt w-4 text-center"></i> Events & Signatures</a></li>
                 </ul>
 
-                <p class="px-3 py-2 text-[10px] text-gray-500 uppercase font-semibold tracking-wider">Code Samples</p>
+                <p class="px-3 py-2 text-[10px] text-gray-400 uppercase font-semibold tracking-wider">Code Samples</p>
                 <ul class="space-y-0.5">
                     <li><a href="#code-node" class="sidebar-link flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" onclick="scrollToSection('code-node')">
                         <i class="fab fa-node-js w-4 text-center"></i> Node.js</a></li>
