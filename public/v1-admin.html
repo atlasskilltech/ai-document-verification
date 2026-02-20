@@ -14,7 +14,7 @@
         .input-dark:focus { border-color: #16A085; outline: none; box-shadow: 0 0 0 3px rgba(22, 160, 133, 0.15); }
         .btn-primary { background: linear-gradient(135deg, #16A085, #138D75); }
         .btn-primary:hover { background: linear-gradient(135deg, #138D75, #117A65); }
-        .sidebar-link { transition: all 0.15s; }
+        .sidebar-link { transition: all 0.15s; color: #CBD5E1; }
         .sidebar-link:hover, .sidebar-link.active { background: rgba(22, 160, 133, 0.15); color: #76D7C4; }
         .stat-card { transition: transform 0.2s; }
         .stat-card:hover { transform: translateY(-2px); }
@@ -30,7 +30,7 @@
 </head>
 <body class="text-gray-700 min-h-screen">
     <!-- Sidebar -->
-    <aside class="fixed left-0 top-0 bottom-0 w-64 bg-[#2C3E50] border-r border-[#34495E] z-40 flex flex-col">
+    <aside class="fixed left-0 top-0 bottom-0 w-64 bg-[#2C3E50] text-gray-300 border-r border-[#34495E] z-40 flex flex-col">
         <div class="p-5 border-b border-[#34495E]">
             <div class="flex items-center gap-3">
                 <div class="w-9 h-9 rounded-lg bg-[#16A085]/20 flex items-center justify-center">
@@ -38,19 +38,19 @@
                 </div>
                 <div>
                     <h1 class="font-bold text-white text-sm">Doc Verification</h1>
-                    <p class="text-[10px] text-gray-500">Admin Panel</p>
+                    <p class="text-[10px] text-gray-400">Admin Panel</p>
                 </div>
             </div>
         </div>
         <nav class="p-3 flex-1 overflow-y-auto">
-            <p class="text-[10px] uppercase tracking-wider text-gray-500 px-3 mb-2">Overview</p>
+            <p class="text-[10px] uppercase tracking-wider text-gray-400 px-3 mb-2">Overview</p>
             <ul class="space-y-0.5 mb-4">
                 <li><a href="#" onclick="showSection('dashboard')" class="sidebar-link active flex items-center gap-3 px-3 py-2 rounded-lg text-sm" id="nav-dashboard">
                     <i class="fas fa-chart-pie w-5 text-center"></i> Dashboard</a></li>
                 <li><a href="#" onclick="showSection('requests')" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm" id="nav-requests">
                     <i class="fas fa-file-lines w-5 text-center"></i> Requests</a></li>
             </ul>
-            <p class="text-[10px] uppercase tracking-wider text-gray-500 px-3 mb-2">Management</p>
+            <p class="text-[10px] uppercase tracking-wider text-gray-400 px-3 mb-2">Management</p>
             <ul class="space-y-0.5 mb-4">
                 <li><a href="#" onclick="showSection('documents')" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm" id="nav-documents">
                     <i class="fas fa-folder-open w-5 text-center"></i> Document Types</a></li>
@@ -65,9 +65,9 @@
                 <div class="w-8 h-8 rounded-full bg-[#16A085]/30 flex items-center justify-center text-sm font-bold text-[#76D7C4]" id="userAvatar">A</div>
                 <div class="flex-1 min-w-0">
                     <p class="text-sm font-medium text-white truncate" id="userName">Admin</p>
-                    <p class="text-[10px] text-gray-500" id="userRole">admin</p>
+                    <p class="text-[10px] text-gray-400" id="userRole">admin</p>
                 </div>
-                <button onclick="logout()" class="text-gray-500 hover:text-red-400" title="Logout"><i class="fas fa-right-from-bracket"></i></button>
+                <button onclick="logout()" class="text-gray-400 hover:text-red-400" title="Logout"><i class="fas fa-right-from-bracket"></i></button>
             </div>
         </div>
     </aside>
