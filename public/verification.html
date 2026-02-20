@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Document Verification</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         .log-info { color: #2563eb; } .log-warn { color: #d97706; } .log-error { color: #dc2626; }
@@ -17,7 +18,7 @@
         .status-dot.active { background: #22c55e; box-shadow: 0 0 6px #22c55e; }
         .status-dot.inactive { background: #6b7280; }
         .status-dot.running { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; animation: pulse 1s infinite; }
-        .tab-active { border-bottom: 2px solid #3b82f6; color: #3b82f6; }
+        .tab-active { border-bottom: 2px solid #16A085; color: #16A085; }
         .badge-verified { background: #065f46; color: #6ee7b7; }
         .badge-reject { background: #7f1d1d; color: #fca5a5; }
         .badge-error { background: #78350f; color: #fcd34d; }
@@ -31,7 +32,7 @@
 <!-- Top Navigation -->
 <nav class="bg-gray-900 border-b border-gray-800 px-6 py-3 flex justify-between items-center sticky top-0 z-50">
     <div class="flex items-center gap-3">
-        <i class="fas fa-robot text-blue-400 text-xl"></i>
+        <i class="fas fa-robot text-[#16A085] text-xl"></i>
         <h1 class="text-lg font-bold text-white">AI Document Verification</h1>
         <span id="engineStatus" class="ml-4 flex items-center gap-2 text-sm">
             <span class="status-dot inactive" id="statusDot"></span>
@@ -64,7 +65,7 @@
 
         <!-- Action Bar -->
         <div class="flex flex-wrap gap-3 mb-6 items-center">
-            <button onclick="loadStudentList()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition flex items-center gap-2">
+            <button onclick="loadStudentList()" class="bg-[#138D75] hover:bg-[#117A65] text-white px-4 py-2.5 rounded-lg text-sm font-medium transition flex items-center gap-2">
                 <i class="fas fa-download"></i> Fetch Student List
             </button>
             <button onclick="runBatch()" id="btnRunAll" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition flex items-center gap-2">
@@ -74,7 +75,7 @@
                 <i class="fas fa-stop"></i> Stop
             </button>
             <div class="flex items-center gap-2 ml-auto">
-                <input type="text" id="singleStudentId" placeholder="Application ID" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm w-48 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500">
+                <input type="text" id="singleStudentId" placeholder="Application ID" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm w-48 text-white placeholder-gray-500 focus:outline-none focus:border-[#16A085]">
                 <button onclick="verifySingleStudent()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition">
                     <i class="fas fa-user-check mr-1"></i> Verify
                 </button>
@@ -108,7 +109,7 @@
                     <span class="text-sm text-gray-400" id="progressPercent">0%</span>
                 </div>
                 <div class="w-full bg-gray-800 rounded-full h-3">
-                    <div id="progressBar" class="bg-gradient-to-r from-blue-500 to-blue-400 h-3 rounded-full transition-all duration-500" style="width:0%"></div>
+                    <div id="progressBar" class="bg-gradient-to-r from-[#16A085] to-[#76D7C4] h-3 rounded-full transition-all duration-500" style="width:0%"></div>
                 </div>
                 <p class="text-xs text-gray-500 mt-2" id="progressDetail"></p>
             </div>
@@ -122,7 +123,7 @@
             </div>
             <div class="bg-gray-900 rounded-lg p-3 border border-gray-800 text-center">
                 <p class="text-xs text-gray-500">Processed</p>
-                <p class="text-xl font-bold text-blue-400" id="statProcessed">-</p>
+                <p class="text-xl font-bold text-[#16A085]" id="statProcessed">-</p>
             </div>
             <div class="bg-gray-900 rounded-lg p-3 border border-gray-800 text-center">
                 <p class="text-xs text-gray-500">Docs Verified</p>
@@ -146,10 +147,10 @@
         <div id="studentListSection" class="mb-6">
             <div class="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
                 <div class="px-4 py-3 border-b border-gray-800 flex justify-between items-center flex-wrap gap-2">
-                    <h3 class="font-semibold text-sm"><i class="fas fa-users text-blue-400 mr-2"></i>Student List</h3>
+                    <h3 class="font-semibold text-sm"><i class="fas fa-users text-[#16A085] mr-2"></i>Student List</h3>
                     <!-- Filter Tabs -->
                     <div class="flex items-center gap-1" id="filterTabs">
-                        <button onclick="setFilter('all')" id="filter-all" class="px-3 py-1 rounded-full text-xs font-medium transition bg-blue-600 text-white">
+                        <button onclick="setFilter('all')" id="filter-all" class="px-3 py-1 rounded-full text-xs font-medium transition bg-[#138D75] text-white">
                             All <span id="filterCountAll" class="ml-1 opacity-75"></span>
                         </button>
                         <button onclick="setFilter('completed')" id="filter-completed" class="px-3 py-1 rounded-full text-xs font-medium transition bg-gray-800 text-gray-400 hover:bg-gray-700">
@@ -204,7 +205,7 @@
 
         <!-- Action Bar -->
         <div class="flex flex-wrap gap-3 mb-6 items-center">
-            <button onclick="loadDocumentTypes()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition flex items-center gap-2">
+            <button onclick="loadDocumentTypes()" class="bg-[#138D75] hover:bg-[#117A65] text-white px-4 py-2.5 rounded-lg text-sm font-medium transition flex items-center gap-2">
                 <i class="fas fa-sync-alt"></i> Refresh
             </button>
             <button onclick="openDocTypeModal()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition flex items-center gap-2">
@@ -215,7 +216,7 @@
         <!-- Document Types Table -->
         <div class="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden mb-6">
             <div class="px-4 py-3 border-b border-gray-800 flex justify-between items-center">
-                <h3 class="font-semibold text-sm"><i class="fas fa-file-alt text-blue-400 mr-2"></i>Document Types</h3>
+                <h3 class="font-semibold text-sm"><i class="fas fa-file-alt text-[#16A085] mr-2"></i>Document Types</h3>
                 <span class="text-xs text-gray-500" id="docTypeCount"></span>
             </div>
             <div class="overflow-x-auto">
@@ -244,7 +245,7 @@
             <div class="px-4 py-3 border-b border-gray-800 flex justify-between items-center flex-wrap gap-2">
                 <h3 class="font-semibold text-sm"><i class="fas fa-list-check text-green-400 mr-2"></i>Program Document Checklist</h3>
                 <div class="flex items-center gap-2">
-                    <select id="programSelect" onchange="loadProgramChecklist()" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+                    <select id="programSelect" onchange="loadProgramChecklist()" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#16A085]">
                         <option value="">Select Program</option>
                     </select>
                     <button onclick="openChecklistModal()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-xs font-medium transition">
@@ -339,7 +340,7 @@
                 <input type="checkbox" id="cfgSkipVerified" class="rounded">
                 <label for="cfgSkipVerified" class="text-sm text-gray-300">Skip already verified documents</label>
             </div>
-            <button onclick="saveConfig()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-medium transition">Save</button>
+            <button onclick="saveConfig()" class="w-full bg-[#138D75] hover:bg-[#117A65] text-white py-2.5 rounded-lg font-medium transition">Save</button>
         </div>
     </div>
 </div>
@@ -366,11 +367,11 @@
         <div class="space-y-4">
             <div>
                 <label class="text-xs text-gray-400 block mb-1">Document Name *</label>
-                <input type="text" id="dtName" placeholder="e.g. 10th Marksheet" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+                <input type="text" id="dtName" placeholder="e.g. 10th Marksheet" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#16A085]">
             </div>
             <div>
                 <label class="text-xs text-gray-400 block mb-1">Category *</label>
-                <select id="dtCategory" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+                <select id="dtCategory" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#16A085]">
                     <option value="Academic">Academic</option>
                     <option value="ID Proof">ID Proof</option>
                     <option value="Migration">Migration</option>
@@ -380,24 +381,24 @@
             </div>
             <div>
                 <label class="text-xs text-gray-400 block mb-1">Document Description</label>
-                <textarea id="dtDescription" rows="3" placeholder="Describe the requirements for this document..." class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 resize-y"></textarea>
+                <textarea id="dtDescription" rows="3" placeholder="Describe the requirements for this document..." class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#16A085] resize-y"></textarea>
                 <p class="text-xs text-gray-600 mt-1">This description will be shown to users and used by AI for verification</p>
             </div>
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="text-xs text-gray-400 block mb-1">Allowed Formats</label>
-                    <input type="text" id="dtFormats" value="pdf,jpg,jpeg,png" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+                    <input type="text" id="dtFormats" value="pdf,jpg,jpeg,png" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#16A085]">
                 </div>
                 <div>
                     <label class="text-xs text-gray-400 block mb-1">Max File Size (MB)</label>
-                    <input type="number" id="dtMaxSize" value="5" min="1" max="50" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+                    <input type="number" id="dtMaxSize" value="5" min="1" max="50" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#16A085]">
                 </div>
             </div>
             <div class="flex items-center gap-2">
                 <input type="checkbox" id="dtHasExpiry" class="rounded">
                 <label for="dtHasExpiry" class="text-sm text-gray-300">Has expiry date</label>
             </div>
-            <button onclick="saveDocType()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-medium transition">Save</button>
+            <button onclick="saveDocType()" class="w-full bg-[#138D75] hover:bg-[#117A65] text-white py-2.5 rounded-lg font-medium transition">Save</button>
         </div>
     </div>
 </div>
@@ -412,11 +413,11 @@
         <div class="space-y-4">
             <div>
                 <label class="text-xs text-gray-400 block mb-1">Document Type *</label>
-                <select id="clDocType" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"></select>
+                <select id="clDocType" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#16A085]"></select>
             </div>
             <div>
                 <label class="text-xs text-gray-400 block mb-1">Requirement Type</label>
-                <select id="clReqType" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+                <select id="clReqType" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#16A085]">
                     <option value="Mandatory">Mandatory</option>
                     <option value="Conditional">Conditional</option>
                     <option value="Optional">Optional</option>
@@ -424,9 +425,9 @@
             </div>
             <div>
                 <label class="text-xs text-gray-400 block mb-1">Sensitivity if Missing (1-10)</label>
-                <input type="number" id="clSensitivity" value="5" min="1" max="10" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+                <input type="number" id="clSensitivity" value="5" min="1" max="10" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#16A085]">
             </div>
-            <button onclick="saveChecklist()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-medium transition">Add</button>
+            <button onclick="saveChecklist()" class="w-full bg-[#138D75] hover:bg-[#117A65] text-white py-2.5 rounded-lg font-medium transition">Add</button>
         </div>
     </div>
 </div>
@@ -586,7 +587,7 @@ function renderStudentTable(studentArr, resultsMap) {
             } else if (r.status === 'skipped') {
                 statusBadge = '<span class="px-2 py-0.5 rounded text-xs badge-pending"><i class="fas fa-forward mr-1"></i>Skipped</span>';
             } else if (r.status === 'processing') {
-                statusBadge = '<span class="px-2 py-0.5 rounded text-xs bg-blue-900/50 text-blue-300 pulse"><i class="fas fa-spinner fa-spin mr-1"></i>Processing</span>';
+                statusBadge = '<span class="px-2 py-0.5 rounded text-xs bg-[#16A085]/20 text-[#76D7C4] pulse"><i class="fas fa-spinner fa-spin mr-1"></i>Processing</span>';
             } else {
                 statusBadge = `<span class="px-2 py-0.5 rounded text-xs badge-pending">${esc(r.status)}</span>`;
             }
@@ -596,7 +597,7 @@ function renderStudentTable(studentArr, resultsMap) {
 
             return `<tr class="border-b border-gray-800/50 hover:bg-gray-800/30 transition cursor-pointer ${rowBg}" onclick="viewStudentDocs('${id}')">
                 <td class="px-4 py-2.5 text-gray-500 text-xs">${filteredIdx + 1}</td>
-                <td class="px-4 py-2.5 font-mono text-blue-400 text-xs">${id}</td>
+                <td class="px-4 py-2.5 font-mono text-[#16A085] text-xs">${id}</td>
                 <td class="px-4 py-2.5 font-medium text-white">${esc(name)}</td>
                 <td class="px-4 py-2.5 text-center">${totalDocs}</td>
                 <td class="px-4 py-2.5 text-center">${uploaded}</td>
@@ -604,7 +605,7 @@ function renderStudentTable(studentArr, resultsMap) {
                 <td class="px-4 py-2.5 text-center text-red-400 font-medium">${rejected}</td>
                 <td class="px-4 py-2.5 text-center">${statusBadge}</td>
                 <td class="px-4 py-2.5 text-center" onclick="event.stopPropagation()">
-                    <button onclick="viewStudentDocs('${id}')" class="text-blue-400 hover:text-blue-300 text-xs mr-2" title="View Documents"><i class="fas fa-eye"></i></button>
+                    <button onclick="viewStudentDocs('${id}')" class="text-[#16A085] hover:text-[#76D7C4] text-xs mr-2" title="View Documents"><i class="fas fa-eye"></i></button>
                     <button onclick="verifySingleFromList('${id}')" class="text-green-400 hover:text-green-300 text-xs" title="Verify"><i class="fas fa-check-circle"></i></button>
                 </td>
             </tr>`;
@@ -625,7 +626,7 @@ function setFilter(filter) {
     ['all', 'completed', 'pending', 'error'].forEach(f => {
         const btn = document.getElementById(`filter-${f}`);
         if (f === filter) {
-            btn.className = 'px-3 py-1 rounded-full text-xs font-medium transition bg-blue-600 text-white';
+            btn.className = 'px-3 py-1 rounded-full text-xs font-medium transition bg-[#138D75] text-white';
         } else {
             btn.className = 'px-3 py-1 rounded-full text-xs font-medium transition bg-gray-800 text-gray-400 hover:bg-gray-700';
         }
@@ -689,7 +690,7 @@ function renderDocumentList(docs, applnID) {
     html += `<div class="flex flex-wrap gap-4 mb-4 text-xs">
         <span class="text-gray-400">Total: <strong class="text-white">${docs.length}</strong></span>
         <span class="text-gray-400">Required: <strong class="text-white">${required.length}</strong></span>
-        <span class="text-gray-400">Uploaded: <strong class="text-blue-400">${uploaded}</strong></span>
+        <span class="text-gray-400">Uploaded: <strong class="text-[#16A085]">${uploaded}</strong></span>
         <span class="text-gray-400">AI Approved: <strong class="text-green-400">${verified}</strong></span>
         <span class="text-gray-400">AI Rejected: <strong class="text-red-400">${rejected}</strong></span>
         ${errors > 0 ? `<span class="text-gray-400">Errors: <strong class="text-yellow-400">${errors}</strong></span>` : ''}
@@ -962,7 +963,7 @@ function onBatchCompleted(run) {
     setTimeout(() => {
         document.getElementById('progressSection').classList.add('hidden');
         // Reset bar color
-        document.getElementById('progressBar').className = 'bg-gradient-to-r from-blue-500 to-blue-400 h-3 rounded-full transition-all duration-500';
+        document.getElementById('progressBar').className = 'bg-gradient-to-r from-[#16A085] to-[#76D7C4] h-3 rounded-full transition-all duration-500';
     }, 4000);
 
     lastProcessedCount = -1;
@@ -984,7 +985,7 @@ function renderRunHistory(runs) {
     if (!runs.length) { el.innerHTML = '<p class="text-gray-600 text-xs text-center py-4">No runs yet</p>'; return; }
     el.innerHTML = runs.map(r => {
         const time = new Date(r.startTime).toLocaleString();
-        const color = r.status === 'completed' ? 'text-green-400' : r.status === 'stopped' ? 'text-yellow-400' : r.status === 'error' ? 'text-red-400' : 'text-blue-400';
+        const color = r.status === 'completed' ? 'text-green-400' : r.status === 'stopped' ? 'text-yellow-400' : r.status === 'error' ? 'text-red-400' : 'text-[#16A085]';
         const dur = r.endTime ? Math.round((new Date(r.endTime) - new Date(r.startTime)) / 1000) : '-';
         return `<div class="text-xs py-1.5 px-2 rounded hover:bg-gray-800 flex justify-between">
             <div><span class="${color} font-medium">${r.status}</span> <span class="text-gray-500 ml-1">${time}</span></div>
@@ -1047,7 +1048,7 @@ function renderDocTypeTable(types) {
     }
     const rows = types.map(dt => {
         const desc = dt.description ? esc(dt.description.substring(0, 80)) + (dt.description.length > 80 ? '...' : '') : '<span class="text-gray-600 italic">No description</span>';
-        const catColors = { Academic: 'text-blue-400', 'ID Proof': 'text-green-400', Migration: 'text-yellow-400', Financial: 'text-purple-400', Other: 'text-gray-400' };
+        const catColors = { Academic: 'text-[#16A085]', 'ID Proof': 'text-green-400', Migration: 'text-yellow-400', Financial: 'text-purple-400', Other: 'text-gray-400' };
         return `<tr class="border-b border-gray-800/50 hover:bg-gray-800/30 transition">
             <td class="px-4 py-2.5 text-gray-500 text-xs">${dt.id}</td>
             <td class="px-4 py-2.5 font-medium text-white">${esc(dt.name)}</td>
@@ -1057,7 +1058,7 @@ function renderDocTypeTable(types) {
             <td class="px-4 py-2.5 text-center text-xs">${dt.max_file_size_mb}MB</td>
             <td class="px-4 py-2.5 text-center text-xs">${dt.has_expiry ? '<span class="text-yellow-400">Yes</span>' : '<span class="text-gray-600">No</span>'}</td>
             <td class="px-4 py-2.5 text-center">
-                <button onclick="editDocType(${dt.id})" class="text-blue-400 hover:text-blue-300 text-xs mr-2" title="Edit"><i class="fas fa-edit"></i></button>
+                <button onclick="editDocType(${dt.id})" class="text-[#16A085] hover:text-[#76D7C4] text-xs mr-2" title="Edit"><i class="fas fa-edit"></i></button>
                 <button onclick="deleteDocType(${dt.id}, '${esc(dt.name)}')" class="text-red-400 hover:text-red-300 text-xs" title="Delete"><i class="fas fa-trash"></i></button>
             </td>
         </tr>`;

@@ -5,21 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Dashboard - Document Verification Platform</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        body { background: #0f172a; }
+        body { background: #1a2a3a; }
         .glass { background: rgba(30, 41, 59, 0.6); backdrop-filter: blur(8px); border: 1px solid rgba(71, 85, 105, 0.3); }
         .input-dark { background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(71, 85, 105, 0.5); color: #e2e8f0; }
-        .input-dark:focus { border-color: #3b82f6; outline: none; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
-        .btn-primary { background: linear-gradient(135deg, #3b82f6, #2563eb); }
-        .btn-primary:hover { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+        .input-dark:focus { border-color: #16A085; outline: none; box-shadow: 0 0 0 3px rgba(22, 160, 133, 0.15); }
+        .btn-primary { background: linear-gradient(135deg, #16A085, #138D75); }
+        .btn-primary:hover { background: linear-gradient(135deg, #138D75, #117A65); }
         .sidebar-link { transition: all 0.15s; }
-        .sidebar-link:hover, .sidebar-link.active { background: rgba(59, 130, 246, 0.15); color: #93c5fd; }
+        .sidebar-link:hover, .sidebar-link.active { background: rgba(22, 160, 133, 0.15); color: #76D7C4; }
         .stat-card { transition: transform 0.2s; }
         .stat-card:hover { transform: translateY(-2px); }
         .badge-verified { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
         .badge-rejected { background: rgba(239, 68, 68, 0.15); color: #f87171; }
-        .badge-processing { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+        .badge-processing { background: rgba(22, 160, 133, 0.15); color: #76D7C4; }
         .badge-accepted { background: rgba(234, 179, 8, 0.15); color: #facc15; }
         .badge-failed { background: rgba(156, 163, 175, 0.15); color: #9ca3af; }
         .wrong-doc-banner { background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); }
@@ -34,11 +35,11 @@
 </head>
 <body class="text-gray-200 min-h-screen">
     <!-- Sidebar -->
-    <aside class="fixed left-0 top-0 bottom-0 w-64 bg-gray-900 border-r border-gray-800 z-40 flex flex-col">
-        <div class="p-5 border-b border-gray-800">
+    <aside class="fixed left-0 top-0 bottom-0 w-64 bg-[#2C3E50] border-r border-[#34495E] z-40 flex flex-col">
+        <div class="p-5 border-b border-[#34495E]">
             <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-lg bg-blue-600/20 flex items-center justify-center">
-                    <i class="fas fa-shield-halved text-blue-400"></i>
+                <div class="w-9 h-9 rounded-lg bg-[#16A085]/20 flex items-center justify-center">
+                    <i class="fas fa-shield-halved text-[#16A085]"></i>
                 </div>
                 <div>
                     <h1 class="font-bold text-white text-sm">Doc Verification</h1>
@@ -66,7 +67,7 @@
                     <i class="fas fa-book w-5 text-center"></i> API Docs <i class="fas fa-external-link-alt text-[10px] ml-auto text-gray-600"></i></a></li>
             </ul>
         </nav>
-        <div class="p-3 border-t border-gray-800">
+        <div class="p-3 border-t border-[#34495E]">
             <div class="flex items-center gap-3 px-3 py-2">
                 <div class="w-8 h-8 rounded-full bg-green-600/30 flex items-center justify-center text-sm font-bold text-green-300" id="userAvatar">U</div>
                 <div class="flex-1 min-w-0">
@@ -113,7 +114,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <!-- Submit Form -->
                 <div class="glass rounded-xl p-6">
-                    <h3 class="font-semibold text-white mb-4"><i class="fas fa-upload mr-2 text-blue-400"></i>Push Document for Verification</h3>
+                    <h3 class="font-semibold text-white mb-4"><i class="fas fa-upload mr-2 text-[#16A085]"></i>Push Document for Verification</h3>
                     <div id="verifyError" class="hidden mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm"></div>
                     <div id="verifySuccess" class="hidden mb-4 p-3 rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 text-sm"></div>
                     <form onsubmit="submitVerification(event)" class="space-y-4">
@@ -178,7 +179,7 @@
                     <div id="bulkDocEntries" class="space-y-3 mb-4 max-h-[400px] overflow-y-auto pr-1"></div>
 
                     <div class="flex gap-2 mb-4">
-                        <button type="button" onclick="addBulkDocEntry()" class="flex-1 py-2 rounded-lg border border-dashed border-gray-600 text-gray-400 hover:border-blue-500 hover:text-blue-400 text-sm transition">
+                        <button type="button" onclick="addBulkDocEntry()" class="flex-1 py-2 rounded-lg border border-dashed border-gray-600 text-gray-400 hover:border-[#16A085] hover:text-[#16A085] text-sm transition">
                             <i class="fas fa-plus mr-2"></i>Add Document
                         </button>
                         <button type="button" onclick="showBulkJsonInput()" class="px-4 py-2 rounded-lg border border-dashed border-gray-600 text-gray-400 hover:border-purple-500 hover:text-purple-400 text-sm transition" title="Paste JSON array">
@@ -217,7 +218,7 @@
                     <div class="glass rounded-xl overflow-hidden">
                         <div class="px-5 py-4 border-b border-gray-700/50 flex justify-between items-center">
                             <h3 class="font-semibold text-white"><i class="fas fa-clock mr-2 text-yellow-400"></i>Bulk Jobs</h3>
-                            <button onclick="loadBulkJobs()" class="text-blue-400 hover:text-blue-300 text-xs"><i class="fas fa-refresh mr-1"></i>Refresh</button>
+                            <button onclick="loadBulkJobs()" class="text-[#16A085] hover:text-[#76D7C4] text-xs"><i class="fas fa-refresh mr-1"></i>Refresh</button>
                         </div>
                         <div id="bulkJobsList" class="divide-y divide-gray-800/50"></div>
                     </div>
@@ -284,7 +285,7 @@
 
             <!-- Info banner -->
             <div class="glass rounded-xl p-4 mb-6 flex items-start gap-3">
-                <i class="fas fa-info-circle text-blue-400 mt-0.5"></i>
+                <i class="fas fa-info-circle text-[#16A085] mt-0.5"></i>
                 <div class="text-sm text-gray-300">
                     <p class="font-medium text-white mb-1">How Document Setup Works</p>
                     <p class="text-gray-400 text-xs">Define your own document types with custom fields and validation rules. Your custom types will appear alongside the default system types when submitting documents for verification. The AI will use your configured <strong class="text-gray-300">required fields</strong> and <strong class="text-gray-300">validation rules</strong> to extract and verify data.</p>
@@ -331,7 +332,7 @@
     <div id="resultModal" class="fixed inset-0 z-50 hidden flex items-center justify-center modal-overlay">
         <div class="bg-gray-900 rounded-2xl border border-gray-700 w-full max-w-2xl max-h-[85vh] overflow-y-auto slide-in m-4">
             <div class="flex justify-between items-center px-6 py-4 border-b border-gray-800 sticky top-0 bg-gray-900 z-10">
-                <h3 class="font-bold text-white"><i class="fas fa-file-circle-check mr-2 text-blue-400"></i>Verification Result</h3>
+                <h3 class="font-bold text-white"><i class="fas fa-file-circle-check mr-2 text-[#16A085]"></i>Verification Result</h3>
                 <button onclick="closeModal('resultModal')" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
             </div>
             <div id="resultContent" class="p-6"></div>
@@ -372,7 +373,7 @@
     <div id="docTypeModal" class="fixed inset-0 z-50 hidden flex items-center justify-center modal-overlay">
         <div class="bg-gray-900 rounded-2xl border border-gray-700 w-full max-w-lg max-h-[85vh] overflow-y-auto slide-in m-4">
             <div class="flex justify-between items-center px-6 py-4 border-b border-gray-800">
-                <h3 class="font-bold text-white" id="docTypeModalTitle"><i class="fas fa-file-circle-plus mr-2 text-blue-400"></i>Add Document Type</h3>
+                <h3 class="font-bold text-white" id="docTypeModalTitle"><i class="fas fa-file-circle-plus mr-2 text-[#16A085]"></i>Add Document Type</h3>
                 <button onclick="closeModal('docTypeModal')" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
             </div>
             <form onsubmit="saveDocType(event)" class="p-6 space-y-4">
@@ -506,26 +507,26 @@
         // ========== DASHBOARD ==========
         async function loadUserDashboard() {
             if (!apiKey) {
-                document.getElementById('statCards').innerHTML = '<div class="col-span-4 glass rounded-xl p-6 text-center"><p class="text-gray-400">Set an API key in the <a href="#" onclick="showSection(\'apikeys\')" class="text-blue-400">API Keys</a> section to view stats.</p></div>';
+                document.getElementById('statCards').innerHTML = '<div class="col-span-4 glass rounded-xl p-6 text-center"><p class="text-gray-400">Set an API key in the <a href="#" onclick="showSection(\'apikeys\')" class="text-[#16A085]">API Keys</a> section to view stats.</p></div>';
                 return;
             }
             const data = await apiFetch('/v1/dashboard/user');
             if (!data?.success) return;
             const d = data.data;
             document.getElementById('statCards').innerHTML = `
-                <div class="glass rounded-xl p-5 stat-card"><div class="flex justify-between items-start"><div><p class="text-xs text-gray-400">Total Requests</p><p class="text-2xl font-bold text-white mt-1">${d.total_requests}</p></div><i class="fas fa-file-lines text-xl text-blue-400 opacity-60"></i></div></div>
+                <div class="glass rounded-xl p-5 stat-card"><div class="flex justify-between items-start"><div><p class="text-xs text-gray-400">Total Requests</p><p class="text-2xl font-bold text-white mt-1">${d.total_requests}</p></div><i class="fas fa-file-lines text-xl text-[#16A085] opacity-60"></i></div></div>
                 <div class="glass rounded-xl p-5 stat-card"><div class="flex justify-between items-start"><div><p class="text-xs text-gray-400">Verified</p><p class="text-2xl font-bold text-green-400 mt-1">${d.verified_count}</p></div><i class="fas fa-circle-check text-xl text-green-400 opacity-60"></i></div></div>
                 <div class="glass rounded-xl p-5 stat-card"><div class="flex justify-between items-start"><div><p class="text-xs text-gray-400">Rejected</p><p class="text-2xl font-bold text-red-400 mt-1">${d.rejected_count}</p></div><i class="fas fa-circle-xmark text-xl text-red-400 opacity-60"></i></div></div>
                 <div class="glass rounded-xl p-5 stat-card"><div class="flex justify-between items-start"><div><p class="text-xs text-gray-400">Processing</p><p class="text-2xl font-bold text-yellow-400 mt-1">${d.processing_count}</p></div><i class="fas fa-spinner text-xl text-yellow-400 opacity-60"></i></div></div>`;
 
             document.getElementById('recentTable').innerHTML = (d.recent_requests || []).map(r => `
                 <tr class="hover:bg-gray-800/30 transition cursor-pointer" onclick="viewResult('${r.system_reference_id}')">
-                    <td class="px-4 py-2.5 font-mono text-xs text-blue-300">${r.system_reference_id}</td>
+                    <td class="px-4 py-2.5 font-mono text-xs text-[#76D7C4]">${r.system_reference_id}</td>
                     <td class="px-4 py-2.5 text-xs capitalize">${r.document_type}</td>
                     <td class="px-4 py-2.5">${statusBadge(r.status)}</td>
                     <td class="px-4 py-2.5 text-xs">${r.confidence != null ? r.confidence + '%' : '-'}</td>
                     <td class="px-4 py-2.5 text-xs text-gray-400">${fmtDate(r.created_at)}</td>
-                    <td class="px-4 py-2.5"><button class="text-blue-400 hover:text-blue-300 text-xs"><i class="fas fa-eye"></i> View</button></td>
+                    <td class="px-4 py-2.5"><button class="text-[#16A085] hover:text-[#76D7C4] text-xs"><i class="fas fa-eye"></i> View</button></td>
                 </tr>`).join('') || '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No requests yet. Submit your first document!</td></tr>';
         }
 
@@ -549,7 +550,7 @@
                     <div>
                         <span class="text-sm text-white">${d.name}</span>
                         <span class="text-xs text-gray-500 ml-2 font-mono">${d.code}</span>
-                        ${d.is_own ? '<span class="ml-2 px-1.5 py-0.5 rounded bg-blue-600/20 text-blue-300 text-[10px]">Custom</span>' : ''}
+                        ${d.is_own ? '<span class="ml-2 px-1.5 py-0.5 rounded bg-[#16A085]/20 text-[#76D7C4] text-[10px]">Custom</span>' : ''}
                     </div>
                     <span class="text-[10px] text-gray-400">${(d.allowed_formats || []).join(', ')}</span>
                 </div>`).join('');
@@ -590,7 +591,7 @@
             btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Submit for Verification';
 
             if (data?.status === 'accepted') {
-                sucDiv.innerHTML = `Document accepted! Reference: <code class="bg-gray-800 px-2 py-0.5 rounded text-blue-300 font-mono">${data.system_reference_id}</code>`;
+                sucDiv.innerHTML = `Document accepted! Reference: <code class="bg-gray-800 px-2 py-0.5 rounded text-[#76D7C4] font-mono">${data.system_reference_id}</code>`;
                 sucDiv.classList.remove('hidden');
                 document.getElementById('checkRefId').value = data.system_reference_id;
             } else {
@@ -650,7 +651,7 @@
             container.innerHTML = `
                 <div class="bg-gray-800/30 rounded-lg p-4 space-y-2">
                     <div class="flex justify-between items-center">
-                        <span class="font-mono text-xs text-blue-300">${r.system_reference_id}</span>
+                        <span class="font-mono text-xs text-[#76D7C4]">${r.system_reference_id}</span>
                         ${statusBadge(r.status)}
                     </div>
                     ${wrongDocBanner}
@@ -757,7 +758,7 @@
                 ].filter(c => c.val !== undefined && c.val !== null);
 
                 if (checkItems.length) {
-                    authSection = `<div class="mt-4"><h4 class="text-sm font-medium text-gray-300 mb-2"><i class="fas fa-shield-halved mr-1 text-blue-400"></i>Authenticity Verification</h4>
+                    authSection = `<div class="mt-4"><h4 class="text-sm font-medium text-gray-300 mb-2"><i class="fas fa-shield-halved mr-1 text-[#16A085]"></i>Authenticity Verification</h4>
                         <div class="grid grid-cols-2 gap-2">
                         ${checkItems.map(c => {
                             const pass = c.invert ? c.val === false : c.val === true;
@@ -811,7 +812,7 @@
                     ${wrongDocBanner}
                     ${fakeDocBanner}
                     <div class="grid grid-cols-2 gap-3">
-                        <div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500">System Ref</p><p class="text-sm text-blue-300 font-mono">${data.system_reference_id}</p></div>
+                        <div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500">System Ref</p><p class="text-sm text-[#76D7C4] font-mono">${data.system_reference_id}</p></div>
                         <div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500">Status</p><p class="mt-1">${statusBadge(data.status)}</p></div>
                         ${data.confidence != null ? `<div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500">Confidence</p><p class="text-sm text-white">${data.confidence}%</p></div>` : ''}
                         ${data.risk_score != null ? `<div class="bg-gray-800/50 rounded-lg p-3"><p class="text-[10px] text-gray-500">Risk Score</p><p class="text-sm">${riskBadge(data.risk_score)}</p></div>` : ''}
@@ -836,14 +837,14 @@
             if (!data?.success) return;
             document.getElementById('myRequestsTable').innerHTML = (data.data.requests || []).map(r => `
                 <tr class="hover:bg-gray-800/30 transition cursor-pointer" onclick="viewResult('${r.system_reference_id}')">
-                    <td class="px-4 py-2.5 font-mono text-xs text-blue-300">${r.system_reference_id}</td>
+                    <td class="px-4 py-2.5 font-mono text-xs text-[#76D7C4]">${r.system_reference_id}</td>
                     <td class="px-4 py-2.5 text-xs">${r.client_reference_id || '-'}</td>
                     <td class="px-4 py-2.5 text-xs capitalize">${r.document_type}</td>
                     <td class="px-4 py-2.5">${statusBadge(r.status)}</td>
                     <td class="px-4 py-2.5 text-xs">${r.confidence != null ? r.confidence + '%' : '-'}</td>
                     <td class="px-4 py-2.5">${riskBadge(r.risk_score)}</td>
                     <td class="px-4 py-2.5 text-xs text-gray-400">${fmtDate(r.created_at)}</td>
-                    <td class="px-4 py-2.5"><button class="text-blue-400 hover:text-blue-300 text-xs"><i class="fas fa-eye"></i></button></td>
+                    <td class="px-4 py-2.5"><button class="text-[#16A085] hover:text-[#76D7C4] text-xs"><i class="fas fa-eye"></i></button></td>
                 </tr>`).join('') || '<tr><td colspan="8" class="px-4 py-8 text-center text-gray-500">No requests found</td></tr>';
         }
 
@@ -867,7 +868,7 @@
                         </div>
                     </div>
                     <div class="flex gap-2 ml-4">
-                        <button onclick="useKey(${k.id},'${k.api_key}')" class="px-3 py-1.5 rounded-lg bg-blue-600/20 text-blue-400 text-xs hover:bg-blue-600/30 border border-blue-600/30" title="Set as active key">
+                        <button onclick="useKey(${k.id},'${k.api_key}')" class="px-3 py-1.5 rounded-lg bg-[#16A085]/20 text-[#16A085] text-xs hover:bg-[#16A085]/30 border border-[#16A085]/30" title="Set as active key">
                             <i class="fas fa-check mr-1"></i>Use
                         </button>
                         ${k.status === 'active' ? `<button onclick="revokeKey(${k.id})" class="px-3 py-1.5 rounded-lg bg-red-600/20 text-red-400 text-xs hover:bg-red-600/30 border border-red-600/30"><i class="fas fa-ban mr-1"></i>Revoke</button>` : ''}
@@ -876,7 +877,7 @@
 
             if (apiKey) {
                 document.getElementById('apiKeysList').insertAdjacentHTML('beforebegin',
-                    `<div class="glass rounded-xl p-3 mb-4 flex items-center gap-3"><i class="fas fa-key text-yellow-400"></i><span class="text-sm text-gray-300">Active Key:</span><code class="font-mono text-xs text-blue-300">${apiKey.substring(0, 15)}...</code></div>`);
+                    `<div class="glass rounded-xl p-3 mb-4 flex items-center gap-3"><i class="fas fa-key text-yellow-400"></i><span class="text-sm text-gray-300">Active Key:</span><code class="font-mono text-xs text-[#76D7C4]">${apiKey.substring(0, 15)}...</code></div>`);
             }
         }
 
@@ -906,9 +907,9 @@
             if (data?.success) {
                 const resultDiv = document.getElementById('newKeyResult');
                 resultDiv.innerHTML = `<div class="p-3 rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 text-sm">
-                    Key generated!<br><code class="text-xs bg-gray-800 px-2 py-0.5 rounded block mt-1 break-all text-blue-300">${data.data.api_key}</code>
+                    Key generated!<br><code class="text-xs bg-gray-800 px-2 py-0.5 rounded block mt-1 break-all text-[#76D7C4]">${data.data.api_key}</code>
                     <p class="text-[10px] text-gray-400 mt-1">Save this key - it won't be shown again in full.</p>
-                    <button onclick="useKey(${data.data.id},'${data.data.api_key}')" class="mt-2 px-3 py-1 rounded bg-blue-600/30 text-blue-300 text-xs hover:bg-blue-600/40">Use This Key</button>
+                    <button onclick="useKey(${data.data.id},'${data.data.api_key}')" class="mt-2 px-3 py-1 rounded bg-[#16A085]/30 text-[#76D7C4] text-xs hover:bg-[#16A085]/40">Use This Key</button>
                 </div>`;
                 resultDiv.classList.remove('hidden');
                 loadApiKeys();
@@ -964,14 +965,14 @@
                 const formats = d.allowed_formats || [];
                 const fields = d.required_fields || [];
                 const rules = d.validation_rules || {};
-                return `<div class="glass rounded-xl p-4 border-blue-500/20">
+                return `<div class="glass rounded-xl p-4 border-[#16A085]/20">
                     <div class="flex justify-between items-start mb-2">
                         <div>
                             <h4 class="font-medium text-white text-sm">${d.name}</h4>
                             <p class="text-[10px] text-gray-500 font-mono">${d.code}</p>
                         </div>
                         <div class="flex gap-1">
-                            <button onclick='editDocType(${JSON.stringify({id:d.id,name:d.name,code:d.code,allowed_formats:d.allowed_formats,max_size_mb:d.max_size_mb,required_fields:d.required_fields,validation_rules:d.validation_rules})})' class="text-blue-400 hover:text-blue-300 text-xs p-1" title="Edit"><i class="fas fa-edit"></i></button>
+                            <button onclick='editDocType(${JSON.stringify({id:d.id,name:d.name,code:d.code,allowed_formats:d.allowed_formats,max_size_mb:d.max_size_mb,required_fields:d.required_fields,validation_rules:d.validation_rules})})' class="text-[#16A085] hover:text-[#76D7C4] text-xs p-1" title="Edit"><i class="fas fa-edit"></i></button>
                             <button onclick="deleteDocType(${d.id})" class="text-red-400 hover:text-red-300 text-xs p-1" title="Delete"><i class="fas fa-trash"></i></button>
                         </div>
                     </div>
@@ -1003,8 +1004,8 @@
             document.getElementById('dtRules').value = Object.keys(rules).length ? JSON.stringify(rules, null, 2) : '';
             document.getElementById('dtError').classList.add('hidden');
             document.getElementById('docTypeModalTitle').innerHTML = doc
-                ? '<i class="fas fa-edit mr-2 text-blue-400"></i>Edit Document Type'
-                : '<i class="fas fa-file-circle-plus mr-2 text-blue-400"></i>Add Document Type';
+                ? '<i class="fas fa-edit mr-2 text-[#16A085]"></i>Edit Document Type'
+                : '<i class="fas fa-file-circle-plus mr-2 text-[#16A085]"></i>Add Document Type';
             document.getElementById('docTypeModal').classList.remove('hidden');
         }
 
@@ -1200,7 +1201,7 @@
                         <span>${fmtDate(j.created_at)}</span>
                     </div>
                     <div class="w-full bg-gray-800 rounded-full h-1.5">
-                        <div class="h-1.5 rounded-full ${j.status === 'completed' ? 'bg-green-500' : j.status === 'failed' ? 'bg-red-500' : 'bg-blue-500'}" style="width: ${pct}%"></div>
+                        <div class="h-1.5 rounded-full ${j.status === 'completed' ? 'bg-green-500' : j.status === 'failed' ? 'bg-red-500' : 'bg-[#16A085]'}" style="width: ${pct}%"></div>
                     </div>
                     <div class="flex gap-3 mt-1.5 text-[10px] text-gray-500">
                         <span class="text-green-400">${j.verified} verified</span>
@@ -1231,7 +1232,7 @@
                     <div class="bg-gray-500/10 rounded-lg p-3 text-center"><p class="text-[10px] text-gray-400">Failed</p><p class="text-xl font-bold text-gray-400">${d.failed}</p></div>
                 </div>
                 <div class="w-full bg-gray-800 rounded-full h-2 mb-6">
-                    <div class="h-2 rounded-full transition-all ${d.status === 'completed' ? 'bg-green-500' : 'bg-blue-500'}" style="width: ${pct}%"></div>
+                    <div class="h-2 rounded-full transition-all ${d.status === 'completed' ? 'bg-green-500' : 'bg-[#16A085]'}" style="width: ${pct}%"></div>
                 </div>
                 <h4 class="text-sm font-medium text-gray-300 mb-3">Documents</h4>
                 <div class="overflow-x-auto">
@@ -1250,16 +1251,16 @@
                             ${d.documents.map(doc => `
                                 <tr class="hover:bg-gray-800/30">
                                     <td class="px-3 py-2 text-xs text-gray-500">${doc.item_index + 1}</td>
-                                    <td class="px-3 py-2 font-mono text-xs text-blue-300">${doc.system_reference_id}</td>
+                                    <td class="px-3 py-2 font-mono text-xs text-[#76D7C4]">${doc.system_reference_id}</td>
                                     <td class="px-3 py-2 text-xs capitalize">${doc.document_type}</td>
                                     <td class="px-3 py-2">${statusBadge(doc.status)}</td>
                                     <td class="px-3 py-2 text-xs">${doc.confidence != null ? doc.confidence + '%' : '-'}</td>
-                                    <td class="px-3 py-2"><button onclick="closeModal('bulkDetailModal'); viewResult('${doc.system_reference_id}')" class="text-blue-400 hover:text-blue-300 text-xs"><i class="fas fa-eye"></i></button></td>
+                                    <td class="px-3 py-2"><button onclick="closeModal('bulkDetailModal'); viewResult('${doc.system_reference_id}')" class="text-[#16A085] hover:text-[#76D7C4] text-xs"><i class="fas fa-eye"></i></button></td>
                                 </tr>`).join('')}
                         </tbody>
                     </table>
                 </div>
-                ${['processing', 'queued'].includes(d.status) ? '<div class="mt-4 text-center"><button onclick="viewBulkJob(\'' + d.bulk_id + '\')" class="px-4 py-2 rounded-lg bg-blue-600/20 text-blue-400 text-sm hover:bg-blue-600/30"><i class="fas fa-refresh mr-2"></i>Refresh Progress</button></div>' : ''}`;
+                ${['processing', 'queued'].includes(d.status) ? '<div class="mt-4 text-center"><button onclick="viewBulkJob(\'' + d.bulk_id + '\')" class="px-4 py-2 rounded-lg bg-[#16A085]/20 text-[#16A085] text-sm hover:bg-[#16A085]/30"><i class="fas fa-refresh mr-2"></i>Refresh Progress</button></div>' : ''}`;
             document.getElementById('bulkDetailModal').classList.remove('hidden');
         }
 
@@ -1299,7 +1300,7 @@
             if (data?.success) {
                 const resultDiv = document.getElementById('webhookResult');
                 resultDiv.innerHTML = `<div class="p-3 rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 text-sm">
-                    Webhook registered!<br>Secret: <code class="text-xs bg-gray-800 px-1 rounded text-blue-300">${data.data.secret}</code>
+                    Webhook registered!<br>Secret: <code class="text-xs bg-gray-800 px-1 rounded text-[#76D7C4]">${data.data.secret}</code>
                     <p class="text-[10px] text-gray-400 mt-1">Save this secret for verifying webhook signatures.</p>
                 </div>`;
                 resultDiv.classList.remove('hidden');
