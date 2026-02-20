@@ -620,8 +620,8 @@
             let extracted = '';
             if (r.extracted_data && Object.keys(r.extracted_data).length) {
                 extracted = `<div class="mt-3"><p class="text-[10px] text-gray-500 uppercase mb-1">Extracted Data</p>
-                    <div class="bg-gray-800/50 rounded-lg p-2 space-y-1">${Object.entries(r.extracted_data).map(([k,v]) =>
-                        `<div class="flex justify-between text-xs"><span class="text-gray-400">${k}</span><span class="text-white">${v}</span></div>`
+                    <div class="bg-gray-50 rounded-lg p-2 space-y-1">${Object.entries(r.extracted_data).map(([k,v]) =>
+                        `<div class="flex justify-between text-xs"><span class="text-gray-500">${k}</span><span class="text-gray-800">${v}</span></div>`
                     ).join('')}</div></div>`;
             }
             let wrongDocBanner = '';
@@ -649,17 +649,17 @@
             }
             let authSection = renderAuthChecksCompact(r);
             container.innerHTML = `
-                <div class="bg-gray-800/30 rounded-lg p-4 space-y-2">
+                <div class="bg-gray-50 rounded-lg p-4 space-y-2">
                     <div class="flex justify-between items-center">
                         <span class="font-mono text-xs text-[#76D7C4]">${r.system_reference_id}</span>
                         ${statusBadge(r.status)}
                     </div>
                     ${wrongDocBanner}
                     ${fakeDocBanner}
-                    ${r.confidence != null ? `<div class="flex justify-between text-xs"><span class="text-gray-400">Confidence</span><span class="text-white">${r.confidence}%</span></div>` : ''}
-                    ${r.risk_score != null ? `<div class="flex justify-between text-xs"><span class="text-gray-400">Risk Score</span>${riskBadge(r.risk_score)}</div>` : ''}
-                    ${r.is_genuine !== undefined ? `<div class="flex justify-between text-xs"><span class="text-gray-400">Genuine</span><span class="${r.is_genuine ? 'auth-check-pass' : 'auth-check-fail'}">${r.is_genuine ? 'Yes' : 'No'}</span></div>` : ''}
-                    ${r.message ? `<p class="text-xs text-gray-400">${r.message}</p>` : ''}
+                    ${r.confidence != null ? `<div class="flex justify-between text-xs"><span class="text-gray-500">Confidence</span><span class="text-gray-800">${r.confidence}%</span></div>` : ''}
+                    ${r.risk_score != null ? `<div class="flex justify-between text-xs"><span class="text-gray-500">Risk Score</span>${riskBadge(r.risk_score)}</div>` : ''}
+                    ${r.is_genuine !== undefined ? `<div class="flex justify-between text-xs"><span class="text-gray-500">Genuine</span><span class="${r.is_genuine ? 'auth-check-pass' : 'auth-check-fail'}">${r.is_genuine ? 'Yes' : 'No'}</span></div>` : ''}
+                    ${r.message ? `<p class="text-xs text-gray-500">${r.message}</p>` : ''}
                     ${authSection}
                     ${extracted}
                     ${r.issues && r.issues.length ? `<div class="mt-2"><p class="text-[10px] text-gray-500 uppercase mb-1">Issues</p>${r.issues.map(i => `<p class="text-xs text-red-300"><i class="fas fa-triangle-exclamation mr-1"></i>${i}</p>`).join('')}</div>` : ''}
@@ -698,9 +698,9 @@
 
             let extracted = '';
             if (data.extracted_data && Object.keys(data.extracted_data).length) {
-                extracted = `<div class="mt-4"><h4 class="text-sm font-medium text-gray-300 mb-2">Extracted Data</h4>
-                    <div class="bg-gray-800/50 rounded-lg p-3 space-y-1">${Object.entries(data.extracted_data).map(([k,v]) =>
-                        `<div class="flex justify-between text-xs"><span class="text-gray-400">${k}</span><span class="text-white">${v}</span></div>`
+                extracted = `<div class="mt-4"><h4 class="text-sm font-medium text-gray-600 mb-2">Extracted Data</h4>
+                    <div class="bg-gray-50 rounded-lg p-3 space-y-1">${Object.entries(data.extracted_data).map(([k,v]) =>
+                        `<div class="flex justify-between text-xs"><span class="text-gray-500">${k}</span><span class="text-gray-800">${v}</span></div>`
                     ).join('')}</div></div>`;
             }
 
@@ -713,13 +713,13 @@
                     </div>
                     <div>
                         <p class="text-sm font-bold text-red-300">Wrong Document Submitted</p>
-                        <p class="text-xs text-gray-300 mt-1">The uploaded document does not match the expected type.</p>
+                        <p class="text-xs text-gray-600 mt-1">The uploaded document does not match the expected type.</p>
                         <div class="grid grid-cols-2 gap-3 mt-3">
-                            <div class="bg-gray-900/50 rounded-lg p-2">
+                            <div class="bg-gray-50 rounded-lg p-2">
                                 <p class="text-[10px] text-gray-500 uppercase">Expected</p>
-                                <p class="text-sm text-white font-medium capitalize">${data.expected_document_type || data.document_type}</p>
+                                <p class="text-sm text-gray-800 font-medium capitalize">${data.expected_document_type || data.document_type}</p>
                             </div>
-                            <div class="bg-gray-900/50 rounded-lg p-2">
+                            <div class="bg-gray-50 rounded-lg p-2">
                                 <p class="text-[10px] text-gray-500 uppercase">Detected</p>
                                 <p class="text-sm text-red-300 font-medium">${data.detected_document_type || 'Unknown'}</p>
                             </div>
@@ -738,7 +738,7 @@
                     </div>
                     <div>
                         <p class="text-sm font-bold text-red-300">Fake / Tampered Document Detected</p>
-                        <p class="text-xs text-gray-300 mt-1">This document failed authenticity verification and appears to be fake or tampered.</p>
+                        <p class="text-xs text-gray-600 mt-1">This document failed authenticity verification and appears to be fake or tampered.</p>
                         ${data.fraud_indicators?.length ? `<div class="mt-2 space-y-0.5">${data.fraud_indicators.map(f => `<p class="text-xs text-red-400"><i class="fas fa-exclamation-circle mr-1"></i>${f}</p>`).join('')}</div>` : ''}
                     </div>
                 </div>`;
@@ -758,23 +758,23 @@
                 ].filter(c => c.val !== undefined && c.val !== null);
 
                 if (checkItems.length) {
-                    authSection = `<div class="mt-4"><h4 class="text-sm font-medium text-gray-300 mb-2"><i class="fas fa-shield-halved mr-1 text-[#16A085]"></i>Authenticity Verification</h4>
+                    authSection = `<div class="mt-4"><h4 class="text-sm font-medium text-gray-600 mb-2"><i class="fas fa-shield-halved mr-1 text-[#16A085]"></i>Authenticity Verification</h4>
                         <div class="grid grid-cols-2 gap-2">
                         ${checkItems.map(c => {
                             const pass = c.invert ? c.val === false : c.val === true;
-                            return `<div class="bg-gray-800/50 rounded-lg p-2.5 flex items-center gap-2">
+                            return `<div class="bg-gray-50 rounded-lg p-2.5 flex items-center gap-2">
                                 <i class="fas fa-${c.icon} text-xs ${pass ? 'text-green-400' : 'text-red-400'}"></i>
-                                <span class="text-xs text-gray-300 flex-1">${c.label}</span>
+                                <span class="text-xs text-gray-600 flex-1">${c.label}</span>
                                 <span class="text-xs font-medium ${pass ? 'auth-check-pass' : 'auth-check-fail'}"><i class="fas fa-${pass ? 'check-circle' : 'times-circle'}"></i></span>
                             </div>`;
                         }).join('')}
-                        ${ac.image_quality ? `<div class="bg-gray-800/50 rounded-lg p-2.5 flex items-center gap-2">
+                        ${ac.image_quality ? `<div class="bg-gray-50 rounded-lg p-2.5 flex items-center gap-2">
                             <i class="fas fa-image text-xs ${ac.image_quality === 'good' ? 'text-green-400' : ac.image_quality === 'suspicious' ? 'text-red-400' : 'text-yellow-400'}"></i>
-                            <span class="text-xs text-gray-300 flex-1">Image Quality</span>
+                            <span class="text-xs text-gray-600 flex-1">Image Quality</span>
                             <span class="text-xs font-medium ${ac.image_quality === 'good' ? 'auth-check-pass' : ac.image_quality === 'suspicious' ? 'auth-check-fail' : 'auth-check-warn'}">${ac.image_quality}</span>
                         </div>` : ''}
                         </div>
-                        ${ac.details ? `<p class="text-xs text-gray-400 mt-2 italic">${ac.details}</p>` : ''}
+                        ${ac.details ? `<p class="text-xs text-gray-500 mt-2 italic">${ac.details}</p>` : ''}
                     </div>`;
                 }
             }
@@ -789,13 +789,13 @@
                     { label: 'Logical Checks', val: dc.logical_checks_passed },
                 ].filter(c => c.val !== undefined && c.val !== null);
                 if (dcItems.length) {
-                    consistencySection = `<div class="mt-3"><h4 class="text-sm font-medium text-gray-300 mb-2"><i class="fas fa-check-double mr-1 text-purple-400"></i>Data Consistency</h4>
+                    consistencySection = `<div class="mt-3"><h4 class="text-sm font-medium text-gray-600 mb-2"><i class="fas fa-check-double mr-1 text-purple-400"></i>Data Consistency</h4>
                         <div class="flex flex-wrap gap-2">${dcItems.map(c => {
                             return `<span class="px-2 py-1 rounded text-xs ${c.val ? 'bg-green-500/15 text-green-400' : 'bg-red-500/15 text-red-400'}">
                                 <i class="fas fa-${c.val ? 'check' : 'xmark'} mr-1"></i>${c.label}
                             </span>`;
                         }).join('')}</div>
-                        ${dc.details ? `<p class="text-xs text-gray-400 mt-2 italic">${dc.details}</p>` : ''}
+                        ${dc.details ? `<p class="text-xs text-gray-500 mt-2 italic">${dc.details}</p>` : ''}
                     </div>`;
                 }
             }
