@@ -96,6 +96,12 @@ app.get('/v1/result/:system_reference_id', apiKeyAuth, async (req, res) => {
         result.authenticity_checks = aiResponse.authenticity_checks || {};
         result.fraud_indicators = aiResponse.fraud_indicators || [];
         result.data_consistency = aiResponse.data_consistency || {};
+        result.data_validation = {
+            dates_valid: (aiResponse.data_consistency || {}).dates_valid !== false,
+            id_format_valid: (aiResponse.data_consistency || {}).id_format_valid !== false,
+            logical_checks_passed: (aiResponse.data_consistency || {}).logical_checks_passed !== false,
+            details: (aiResponse.data_consistency || {}).details || null
+        };
         res.json(result);
     } catch (error) {
         res.status(500).json({ error: 'Internal server error' });

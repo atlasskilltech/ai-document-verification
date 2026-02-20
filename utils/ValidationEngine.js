@@ -3,6 +3,7 @@ const ValidationModel = require('../models/ValidationModel');
 const NotificationModel = require('../models/NotificationModel');
 const AuditModel = require('../models/AuditModel');
 const ApplicantModel = require('../models/ApplicantModel');
+const DataValidationService = require('../services/v1/DataValidationService');
 const path = require('path');
 
 class ValidationEngine {
@@ -95,7 +96,31 @@ class ValidationEngine {
                 }
             }
 
-            // ----- STEP 4: Save Pass result if no issues -----
+            // ----- STEP 4: Data Validation (dates, ID format, logical checks) -----
+            if (uploaded.extracted_data) {
+                const extractedData = typeof uploaded.extracted_data === 'string'
+                    ? JSON.parse(uploaded.extracted_data) : uploaded.extracted_data;
+                const docTypeCode = checkItem.document_code || checkItem.category || '';
+                const dataValidation = DataValidationService.validate(docTypeCode, extractedData);
+
+                if (!dataValidation.passed) {
+                    const validationIssue = `Data validation failed: ${dataValidation.issues.join('; ')}`;
+                    const score = 7; // High severity for data validation failures
+                    await ValidationModel.saveResult({
+                        applicant_document_id: uploaded.id,
+                        applicant_id: applicantId,
+                        validation_type: 'DataValidation',
+                        status: 'Fail',
+                        issue_description: validationIssue,
+                        sensitivity_score: score,
+                        action_required: this.getActionRequired(score)
+                    });
+                    sensitivityScores.push(score);
+                    totalFlagged++;
+                }
+            }
+
+            // ----- STEP 5: Save Pass result if no issues -----
             const docValidations = await ValidationModel.getByDocument(uploaded.id);
             const hasFails = docValidations.some(v => v.status === 'Fail');
 
@@ -230,11 +255,53 @@ class ValidationEngine {
     }
 
     /**
-     * Expiry validation (placeholder - in production, use OCR/AI to extract dates)
+     * Expiry validation - checks expiry date from extracted data
      */
     static async validateExpiry(document) {
-        // In production: OCR extract expiry date and compare
-        // For now, this is a placeholder that always passes
+        // Check if document has extracted expiry date data
+        let extractedData = document.extracted_data;
+        if (typeof extractedData === 'string') {
+            try { extractedData = JSON.parse(extractedData); } catch (e) { extractedData = null; }
+        }
+
+        if (extractedData) {
+            const expiryFields = ['expiry_date', 'date_of_expiry', 'valid_until', 'valid_till', 'expiry'];
+            for (const field of expiryFields) {
+                const value = extractedData[field];
+                if (!value) continue;
+
+                const parsed = DataValidationService._parseDate(value);
+                if (!parsed) {
+                    return {
+                        validation_type: 'Expiry',
+                        status: 'Fail',
+                        issue_description: `Cannot parse expiry date: "${value}"`,
+                        sensitivity_score: 5,
+                        action_required: this.getActionRequired(5)
+                    };
+                }
+
+                if (parsed < new Date()) {
+                    return {
+                        validation_type: 'Expiry',
+                        status: 'Fail',
+                        issue_description: `Document expired on ${value}`,
+                        sensitivity_score: 6,
+                        action_required: this.getActionRequired(6)
+                    };
+                }
+
+                return {
+                    validation_type: 'Expiry',
+                    status: 'Pass',
+                    issue_description: null,
+                    sensitivity_score: 0,
+                    action_required: null
+                };
+            }
+        }
+
+        // No expiry date found in extracted data — pass (not all documents have digital expiry data)
         return {
             validation_type: 'Expiry',
             status: 'Pass',
