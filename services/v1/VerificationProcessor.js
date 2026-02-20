@@ -2,6 +2,7 @@ const V1VerificationRequestModel = require('../../models/v1/V1VerificationReques
 const V1DocumentMasterModel = require('../../models/v1/V1DocumentMasterModel');
 const V1BulkJobModel = require('../../models/v1/V1BulkJobModel');
 const AIProcessingService = require('./AIProcessingService');
+const DataValidationService = require('./DataValidationService');
 const RuleEngineService = require('./RuleEngineService');
 const WebhookService = require('./WebhookService');
 const V1AuditModel = require('../../models/v1/V1AuditModel');
@@ -55,7 +56,26 @@ class VerificationProcessor {
                 metadata
             });
 
-            // 5. Apply rule engine (pass userId for user-scoped doc type lookup)
+            // 5. Server-side data validation (dates, ID formats, logical checks)
+            const dataValidation = DataValidationService.validate(
+                request.document_type,
+                aiResult.extracted_data,
+                metadata
+            );
+
+            // Merge data validation results into AI result for the rule engine
+            if (!dataValidation.passed) {
+                aiResult.issues = [...(aiResult.issues || []), ...dataValidation.issues];
+                aiResult.data_consistency = {
+                    ...aiResult.data_consistency,
+                    dates_valid: dataValidation.summary.dates_valid,
+                    id_format_valid: dataValidation.summary.id_format_valid,
+                    logical_checks_passed: dataValidation.summary.logical_checks_passed,
+                    details: dataValidation.summary.details
+                };
+            }
+
+            // 6. Apply rule engine (pass userId for user-scoped doc type lookup)
             const ruleResult = await RuleEngineService.validate(
                 request.document_type,
                 aiResult.extracted_data,
@@ -63,7 +83,10 @@ class VerificationProcessor {
                 request.user_id
             );
 
-            // 6. Update request with results
+            // Attach server-side validation details to rule result
+            ruleResult.data_validation = dataValidation;
+
+            // 7. Update request with results
             const finalStatus = ruleResult.status === 'verified' ? 'verified' : 'rejected';
 
             // Include document type match info in AI response for debugging
@@ -83,7 +106,7 @@ class VerificationProcessor {
                 issues: ruleResult.issues
             });
 
-            // 7. Audit log
+            // 8. Audit log
             const auditDetails = {
                 status: finalStatus,
                 confidence: ruleResult.confidence,
@@ -103,11 +126,17 @@ class VerificationProcessor {
             if (ruleResult.authenticity_checks?.tampering_detected) {
                 auditDetails.tampering_detected = true;
             }
+            if (!dataValidation.passed) {
+                auditDetails.data_validation_failed = true;
+                auditDetails.failed_checks = dataValidation.failedChecks;
+                auditDetails.validation_issues = dataValidation.issues;
+            }
 
             let auditAction = 'document.processed';
             if (ruleResult.wrong_document) auditAction = 'document.wrong_type';
             else if (ruleResult.is_genuine === false) auditAction = 'document.fake_detected';
             else if (ruleResult.authenticity_checks?.tampering_detected) auditAction = 'document.tampering_detected';
+            else if (!dataValidation.passed) auditAction = 'document.data_validation_failed';
 
             await V1AuditModel.log({
                 userId: request.user_id,
@@ -117,7 +146,7 @@ class VerificationProcessor {
                 details: auditDetails
             });
 
-            // 8. Trigger webhooks
+            // 9. Trigger webhooks
             const updatedRequest = await V1VerificationRequestModel.findBySystemRefId(request.system_reference_id);
             const webhookEvent = finalStatus === 'verified' ? 'document.verified' : 'document.rejected';
             WebhookService.trigger(request.user_id, webhookEvent, {
@@ -133,7 +162,7 @@ class VerificationProcessor {
 
             console.log(`[VerificationProcessor] Request ${request.system_reference_id} completed: ${finalStatus} (confidence: ${ruleResult.confidence}%)`);
 
-            // 9. If part of a bulk job, update progress
+            // 10. If part of a bulk job, update progress
             await this._updateBulkProgress(requestId);
 
         } catch (error) {

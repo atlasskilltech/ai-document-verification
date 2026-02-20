@@ -203,25 +203,40 @@ class RuleEngineService {
             validationResults.security_features = { status: 'failed', message: 'Security features missing' };
         }
 
-        // 7. Data consistency checks
+        // 7. Data consistency checks — if ANY check fails, force rejection
         const dataConsistency = aiResult.data_consistency || {};
+        let dataValidationFailed = false;
+
         if (dataConsistency.dates_valid === false) {
-            issues.push('Date inconsistency detected in document fields');
-            confidenceAdjustment -= 10;
-            riskAdjustment += 0.1;
+            issues.push('Date validation failed: Invalid, inconsistent, or illogical dates detected in document fields');
+            confidenceAdjustment -= 25;
+            riskAdjustment += 0.3;
+            dataValidationFailed = true;
             validationResults.date_consistency = { status: 'failed', message: 'Invalid or inconsistent dates' };
         }
         if (dataConsistency.id_format_valid === false) {
-            issues.push('ID number format does not match expected pattern for this document type');
-            confidenceAdjustment -= 10;
-            riskAdjustment += 0.1;
+            issues.push('ID format validation failed: ID number does not match expected pattern for this document type');
+            confidenceAdjustment -= 25;
+            riskAdjustment += 0.3;
+            dataValidationFailed = true;
             validationResults.id_format = { status: 'failed', message: 'ID format mismatch' };
         }
         if (dataConsistency.logical_checks_passed === false) {
-            issues.push(`Data consistency issue: ${dataConsistency.details || 'Logical inconsistencies found in document data'}`);
-            confidenceAdjustment -= 10;
-            riskAdjustment += 0.1;
-            validationResults.logical_consistency = { status: 'failed', message: dataConsistency.details || 'Logical check failed' };
+            const detail = dataConsistency.details || 'Logical inconsistencies found in document data';
+            issues.push(`Logical consistency check failed: ${detail}`);
+            confidenceAdjustment -= 25;
+            riskAdjustment += 0.3;
+            dataValidationFailed = true;
+            validationResults.logical_consistency = { status: 'failed', message: detail };
+        }
+
+        // Any data validation failure forces rejection
+        if (dataValidationFailed) {
+            forceReject = true;
+            validationResults.data_validation_verdict = {
+                status: 'rejected',
+                message: 'Document rejected: one or more data validation checks failed (dates, ID format, or logical consistency)'
+            };
         }
 
         // Calculate final scores
