@@ -8,32 +8,32 @@
     <link rel="stylesheet" href="/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        body { background: #0f172a; }
-        .glass { background: rgba(30, 41, 59, 0.6); backdrop-filter: blur(8px); border: 1px solid rgba(71, 85, 105, 0.3); }
+        body { background: #F8F9FA; }
+        .glass { background: #FFFFFF; border: 1px solid #E2E8F0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .code-block { background: #1e293b; border: 1px solid rgba(71, 85, 105, 0.4); font-family: 'Courier New', monospace; }
-        .method-get { background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
-        .method-post { background: rgba(22, 160, 133, 0.15); color: #76D7C4; border: 1px solid rgba(22, 160, 133, 0.3); }
-        .method-put { background: rgba(234, 179, 8, 0.15); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.3); }
-        .method-delete { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+        .method-get { background: rgba(34, 197, 94, 0.1); color: #16a34a; border: 1px solid rgba(34, 197, 94, 0.2); }
+        .method-post { background: rgba(22, 160, 133, 0.1); color: #0f766e; border: 1px solid rgba(22, 160, 133, 0.2); }
+        .method-put { background: rgba(234, 179, 8, 0.1); color: #ca8a04; border: 1px solid rgba(234, 179, 8, 0.2); }
+        .method-delete { background: rgba(239, 68, 68, 0.1); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.2); }
         .sidebar-link { transition: all 0.15s; }
         .sidebar-link:hover, .sidebar-link.active { background: rgba(22, 160, 133, 0.15); color: #76D7C4; }
-        .endpoint-card { transition: all 0.2s; }
+        .endpoint-card { transition: all 0.2s; border: 1px solid #E2E8F0; }
         .endpoint-card:hover { border-color: rgba(22, 160, 133, 0.4); }
-        .tab-btn.active { border-bottom: 2px solid #16A085; color: #76D7C4; }
+        .tab-btn.active { border-bottom: 2px solid #16A085; color: #0f766e; }
         pre { white-space: pre-wrap; word-wrap: break-word; }
-        .copy-btn:hover { background: rgba(22, 160, 133, 0.3); }
+        .copy-btn:hover { background: rgba(22, 160, 133, 0.2); }
     </style>
 </head>
-<body class="text-gray-200 min-h-screen">
+<body class="text-gray-700 min-h-screen">
     <!-- Header -->
-    <header class="fixed top-0 left-0 right-0 z-50 bg-gray-900/95 backdrop-blur border-b border-gray-800">
+    <header class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-b border-gray-200">
         <div class="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
             <div class="flex items-center gap-3">
                 <div class="w-9 h-9 rounded-lg bg-[#16A085]/20 flex items-center justify-center">
                     <i class="fas fa-shield-halved text-[#16A085]"></i>
                 </div>
                 <div>
-                    <h1 class="font-bold text-white text-sm">Document Verification API</h1>
+                    <h1 class="font-bold text-gray-800 text-sm">Document Verification API</h1>
                     <p class="text-[10px] text-gray-500">v1 Documentation</p>
                 </div>
             </div>
@@ -126,52 +126,52 @@
 
             <!-- Overview -->
             <section id="overview" class="mb-12">
-                <h2 class="text-2xl font-bold text-white mb-4">AI Document Verification API</h2>
-                <p class="text-gray-300 mb-4">A powerful API for verifying identity documents using AI-powered OCR and rule-based validation. Submit documents via URL, and receive structured verification results with extracted data, confidence scores, and issue reports.</p>
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">AI Document Verification API</h2>
+                <p class="text-gray-600 mb-4">A powerful API for verifying identity documents using AI-powered OCR and rule-based validation. Submit documents via URL, and receive structured verification results with extracted data, confidence scores, and issue reports.</p>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     <div class="glass rounded-xl p-5">
                         <div class="w-10 h-10 rounded-lg bg-[#16A085]/20 flex items-center justify-center mb-3"><i class="fas fa-bolt text-[#16A085]"></i></div>
-                        <h3 class="font-semibold text-white text-sm mb-1">URL Push Model</h3>
-                        <p class="text-xs text-gray-400">Push document URLs to our API. No file uploads needed. We fetch, analyze, and return results.</p>
+                        <h3 class="font-semibold text-gray-800 text-sm mb-1">URL Push Model</h3>
+                        <p class="text-xs text-gray-500">Push document URLs to our API. No file uploads needed. We fetch, analyze, and return results.</p>
                     </div>
                     <div class="glass rounded-xl p-5">
                         <div class="w-10 h-10 rounded-lg bg-green-600/20 flex items-center justify-center mb-3"><i class="fas fa-brain text-green-400"></i></div>
-                        <h3 class="font-semibold text-white text-sm mb-1">AI-Powered OCR</h3>
-                        <p class="text-xs text-gray-400">OpenAI Vision extracts fields from documents. Custom validation rules verify extracted data.</p>
+                        <h3 class="font-semibold text-gray-800 text-sm mb-1">AI-Powered OCR</h3>
+                        <p class="text-xs text-gray-500">OpenAI Vision extracts fields from documents. Custom validation rules verify extracted data.</p>
                     </div>
                     <div class="glass rounded-xl p-5">
                         <div class="w-10 h-10 rounded-lg bg-purple-600/20 flex items-center justify-center mb-3"><i class="fas fa-layer-group text-purple-400"></i></div>
-                        <h3 class="font-semibold text-white text-sm mb-1">Bulk Processing</h3>
-                        <p class="text-xs text-gray-400">Submit up to 50 documents in a single API call. Track batch progress in real-time.</p>
+                        <h3 class="font-semibold text-gray-800 text-sm mb-1">Bulk Processing</h3>
+                        <p class="text-xs text-gray-500">Submit up to 50 documents in a single API call. Track batch progress in real-time.</p>
                     </div>
                 </div>
 
                 <div class="glass rounded-xl p-5">
-                    <h3 class="font-semibold text-white text-sm mb-3">Base URL</h3>
+                    <h3 class="font-semibold text-gray-800 text-sm mb-3">Base URL</h3>
                     <div class="code-block rounded-lg p-3 flex items-center justify-between">
                         <code class="text-green-400 text-sm" id="baseUrl">http://localhost:3000</code>
-                        <button onclick="copyText(document.getElementById('baseUrl').textContent)" class="copy-btn px-2 py-1 rounded text-xs text-gray-400 hover:text-white"><i class="fas fa-copy"></i></button>
+                        <button onclick="copyText(document.getElementById('baseUrl').textContent)" class="copy-btn px-2 py-1 rounded text-xs text-gray-500 hover:text-gray-800"><i class="fas fa-copy"></i></button>
                     </div>
                 </div>
             </section>
 
             <!-- Authentication -->
             <section id="authentication" class="mb-12">
-                <h2 class="text-xl font-bold text-white mb-4"><i class="fas fa-lock mr-2 text-yellow-400"></i>Authentication</h2>
-                <p class="text-gray-300 text-sm mb-4">The API uses two authentication methods:</p>
+                <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-lock mr-2 text-yellow-400"></i>Authentication</h2>
+                <p class="text-gray-600 text-sm mb-4">The API uses two authentication methods:</p>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div class="glass rounded-xl p-5">
-                        <h3 class="font-semibold text-white text-sm mb-2"><i class="fas fa-key mr-2 text-yellow-400"></i>API Key (Primary)</h3>
-                        <p class="text-xs text-gray-400 mb-3">Used for all verification endpoints. Pass your API key as a Bearer token.</p>
+                        <h3 class="font-semibold text-gray-800 text-sm mb-2"><i class="fas fa-key mr-2 text-yellow-400"></i>API Key (Primary)</h3>
+                        <p class="text-xs text-gray-500 mb-3">Used for all verification endpoints. Pass your API key as a Bearer token.</p>
                         <div class="code-block rounded-lg p-3">
                             <pre class="text-xs text-gray-300">Authorization: Bearer vk_your_api_key_here</pre>
                         </div>
                     </div>
                     <div class="glass rounded-xl p-5">
-                        <h3 class="font-semibold text-white text-sm mb-2"><i class="fas fa-id-badge mr-2 text-[#16A085]"></i>JWT Token</h3>
-                        <p class="text-xs text-gray-400 mb-3">Used for account management (profile, key generation). Obtained via login.</p>
+                        <h3 class="font-semibold text-gray-800 text-sm mb-2"><i class="fas fa-id-badge mr-2 text-[#16A085]"></i>JWT Token</h3>
+                        <p class="text-xs text-gray-500 mb-3">Used for account management (profile, key generation). Obtained via login.</p>
                         <div class="code-block rounded-lg p-3">
                             <pre class="text-xs text-gray-300">Authorization: Bearer eyJhbGciOi...</pre>
                         </div>
@@ -180,20 +180,20 @@
 
                 <div class="glass rounded-xl p-4 flex items-start gap-3">
                     <i class="fas fa-info-circle text-[#16A085] mt-0.5"></i>
-                    <div class="text-xs text-gray-300">
-                        <strong class="text-white">Integration Flow:</strong> Register &rarr; Login (get JWT) &rarr; Generate API Key (using JWT) &rarr; Use API Key for all verification calls.
+                    <div class="text-xs text-gray-600">
+                        <strong class="text-gray-800">Integration Flow:</strong> Register &rarr; Login (get JWT) &rarr; Generate API Key (using JWT) &rarr; Use API Key for all verification calls.
                     </div>
                 </div>
             </section>
 
             <!-- Quick Start -->
             <section id="quickstart" class="mb-12">
-                <h2 class="text-xl font-bold text-white mb-4"><i class="fas fa-rocket mr-2 text-green-400"></i>Quick Start</h2>
+                <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-rocket mr-2 text-green-400"></i>Quick Start</h2>
                 <div class="space-y-4">
                     <div class="glass rounded-xl p-5">
                         <div class="flex items-center gap-3 mb-3">
                             <span class="w-7 h-7 rounded-full bg-[#16A085]/30 flex items-center justify-center text-xs font-bold text-[#76D7C4]">1</span>
-                            <h3 class="font-semibold text-white text-sm">Register an Account</h3>
+                            <h3 class="font-semibold text-gray-800 text-sm">Register an Account</h3>
                         </div>
                         <div class="code-block rounded-lg p-4">
 <pre class="text-xs text-gray-300">curl -X POST http://localhost:3000/v1/auth/register \
@@ -209,7 +209,7 @@
                     <div class="glass rounded-xl p-5">
                         <div class="flex items-center gap-3 mb-3">
                             <span class="w-7 h-7 rounded-full bg-[#16A085]/30 flex items-center justify-center text-xs font-bold text-[#76D7C4]">2</span>
-                            <h3 class="font-semibold text-white text-sm">Login & Get JWT Token</h3>
+                            <h3 class="font-semibold text-gray-800 text-sm">Login & Get JWT Token</h3>
                         </div>
                         <div class="code-block rounded-lg p-4">
 <pre class="text-xs text-gray-300">curl -X POST http://localhost:3000/v1/auth/login \
@@ -226,7 +226,7 @@
                     <div class="glass rounded-xl p-5">
                         <div class="flex items-center gap-3 mb-3">
                             <span class="w-7 h-7 rounded-full bg-[#16A085]/30 flex items-center justify-center text-xs font-bold text-[#76D7C4]">3</span>
-                            <h3 class="font-semibold text-white text-sm">Generate an API Key</h3>
+                            <h3 class="font-semibold text-gray-800 text-sm">Generate an API Key</h3>
                         </div>
                         <div class="code-block rounded-lg p-4">
 <pre class="text-xs text-gray-300">curl -X POST http://localhost:3000/v1/auth/api/generate \
@@ -241,7 +241,7 @@
                     <div class="glass rounded-xl p-5">
                         <div class="flex items-center gap-3 mb-3">
                             <span class="w-7 h-7 rounded-full bg-green-600/30 flex items-center justify-center text-xs font-bold text-green-300">4</span>
-                            <h3 class="font-semibold text-white text-sm">Verify a Document</h3>
+                            <h3 class="font-semibold text-gray-800 text-sm">Verify a Document</h3>
                         </div>
                         <div class="code-block rounded-lg p-4">
 <pre class="text-xs text-gray-300">curl -X POST http://localhost:3000/v1/verify \
@@ -261,7 +261,7 @@
                     <div class="glass rounded-xl p-5">
                         <div class="flex items-center gap-3 mb-3">
                             <span class="w-7 h-7 rounded-full bg-green-600/30 flex items-center justify-center text-xs font-bold text-green-300">5</span>
-                            <h3 class="font-semibold text-white text-sm">Fetch the Result</h3>
+                            <h3 class="font-semibold text-gray-800 text-sm">Fetch the Result</h3>
                         </div>
                         <div class="code-block rounded-lg p-4">
 <pre class="text-xs text-gray-300">curl http://localhost:3000/v1/result/DOC_REFERENCE_ID \
@@ -280,8 +280,8 @@
 
             <!-- Error Handling -->
             <section id="errors" class="mb-12">
-                <h2 class="text-xl font-bold text-white mb-4"><i class="fas fa-triangle-exclamation mr-2 text-red-400"></i>Error Handling</h2>
-                <p class="text-gray-300 text-sm mb-4">All errors return a consistent JSON structure:</p>
+                <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-triangle-exclamation mr-2 text-red-400"></i>Error Handling</h2>
+                <p class="text-gray-600 text-sm mb-4">All errors return a consistent JSON structure:</p>
                 <div class="code-block rounded-lg p-4 mb-4">
 <pre class="text-xs text-gray-300">{
   "error": "Error type",
@@ -290,17 +290,17 @@
                 </div>
                 <div class="glass rounded-xl overflow-hidden">
                     <table class="w-full text-sm">
-                        <thead class="bg-gray-800/50 text-xs text-gray-400 uppercase">
+                        <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
                             <tr><th class="px-4 py-2.5 text-left">Status</th><th class="px-4 py-2.5 text-left">Meaning</th><th class="px-4 py-2.5 text-left">Common Causes</th></tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-800/50 text-xs">
-                            <tr><td class="px-4 py-2.5 text-yellow-400 font-mono">400</td><td class="px-4 py-2.5 text-white">Bad Request</td><td class="px-4 py-2.5 text-gray-400">Missing required fields, invalid document_type, unsupported format</td></tr>
-                            <tr><td class="px-4 py-2.5 text-yellow-400 font-mono">401</td><td class="px-4 py-2.5 text-white">Unauthorized</td><td class="px-4 py-2.5 text-gray-400">Missing or invalid API key / JWT token</td></tr>
-                            <tr><td class="px-4 py-2.5 text-yellow-400 font-mono">403</td><td class="px-4 py-2.5 text-white">Forbidden</td><td class="px-4 py-2.5 text-gray-400">Accessing another user's resource, insufficient role</td></tr>
-                            <tr><td class="px-4 py-2.5 text-yellow-400 font-mono">404</td><td class="px-4 py-2.5 text-white">Not Found</td><td class="px-4 py-2.5 text-gray-400">Verification request or resource not found</td></tr>
-                            <tr><td class="px-4 py-2.5 text-yellow-400 font-mono">409</td><td class="px-4 py-2.5 text-white">Conflict</td><td class="px-4 py-2.5 text-gray-400">Duplicate document type code</td></tr>
-                            <tr><td class="px-4 py-2.5 text-yellow-400 font-mono">429</td><td class="px-4 py-2.5 text-white">Too Many Requests</td><td class="px-4 py-2.5 text-gray-400">Rate limit exceeded (hourly or burst)</td></tr>
-                            <tr><td class="px-4 py-2.5 text-red-400 font-mono">500</td><td class="px-4 py-2.5 text-white">Server Error</td><td class="px-4 py-2.5 text-gray-400">Internal error, contact support</td></tr>
+                        <tbody class="divide-y divide-gray-200 text-xs">
+                            <tr><td class="px-4 py-2.5 text-yellow-400 font-mono">400</td><td class="px-4 py-2.5 text-gray-800">Bad Request</td><td class="px-4 py-2.5 text-gray-500">Missing required fields, invalid document_type, unsupported format</td></tr>
+                            <tr><td class="px-4 py-2.5 text-yellow-400 font-mono">401</td><td class="px-4 py-2.5 text-gray-800">Unauthorized</td><td class="px-4 py-2.5 text-gray-500">Missing or invalid API key / JWT token</td></tr>
+                            <tr><td class="px-4 py-2.5 text-yellow-400 font-mono">403</td><td class="px-4 py-2.5 text-gray-800">Forbidden</td><td class="px-4 py-2.5 text-gray-500">Accessing another user's resource, insufficient role</td></tr>
+                            <tr><td class="px-4 py-2.5 text-yellow-400 font-mono">404</td><td class="px-4 py-2.5 text-gray-800">Not Found</td><td class="px-4 py-2.5 text-gray-500">Verification request or resource not found</td></tr>
+                            <tr><td class="px-4 py-2.5 text-yellow-400 font-mono">409</td><td class="px-4 py-2.5 text-gray-800">Conflict</td><td class="px-4 py-2.5 text-gray-500">Duplicate document type code</td></tr>
+                            <tr><td class="px-4 py-2.5 text-yellow-400 font-mono">429</td><td class="px-4 py-2.5 text-gray-800">Too Many Requests</td><td class="px-4 py-2.5 text-gray-500">Rate limit exceeded (hourly or burst)</td></tr>
+                            <tr><td class="px-4 py-2.5 text-red-400 font-mono">500</td><td class="px-4 py-2.5 text-gray-800">Server Error</td><td class="px-4 py-2.5 text-gray-500">Internal error, contact support</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -308,20 +308,20 @@
 
             <!-- Rate Limits -->
             <section id="ratelimits" class="mb-12">
-                <h2 class="text-xl font-bold text-white mb-4"><i class="fas fa-gauge mr-2 text-orange-400"></i>Rate Limits</h2>
+                <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-gauge mr-2 text-orange-400"></i>Rate Limits</h2>
                 <div class="glass rounded-xl p-5">
-                    <p class="text-sm text-gray-300 mb-3">Each API key has configurable rate limits (set during key generation):</p>
+                    <p class="text-sm text-gray-600 mb-3">Each API key has configurable rate limits (set during key generation):</p>
                     <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-gray-800/50 rounded-lg p-3">
+                        <div class="bg-gray-50 rounded-lg p-3">
                             <p class="text-[10px] text-gray-500 uppercase mb-1">Hourly Limit</p>
-                            <p class="text-white text-sm font-semibold">Default: 1,000 requests/hour</p>
+                            <p class="text-gray-800 text-sm font-semibold">Default: 1,000 requests/hour</p>
                         </div>
-                        <div class="bg-gray-800/50 rounded-lg p-3">
+                        <div class="bg-gray-50 rounded-lg p-3">
                             <p class="text-[10px] text-gray-500 uppercase mb-1">Burst Limit</p>
-                            <p class="text-white text-sm font-semibold">Default: 50 requests/minute</p>
+                            <p class="text-gray-800 text-sm font-semibold">Default: 50 requests/minute</p>
                         </div>
                     </div>
-                    <p class="text-xs text-gray-400 mt-3">When rate limited, you'll receive a <code class="text-yellow-400">429</code> response. Wait for the limit window to reset before retrying.</p>
+                    <p class="text-xs text-gray-500 mt-3">When rate limited, you'll receive a <code class="text-yellow-400">429</code> response. Wait for the limit window to reset before retrying.</p>
                 </div>
             </section>
 
@@ -330,11 +330,11 @@
                 <div class="glass rounded-xl p-6 endpoint-card">
                     <div class="flex items-center gap-3 mb-4">
                         <span class="px-2 py-1 rounded text-xs font-bold method-post">POST</span>
-                        <code class="text-white text-sm">/v1/auth/register</code>
+                        <code class="text-gray-800 text-sm">/v1/auth/register</code>
                         <span class="text-gray-500 text-xs ml-2">Create a new account</span>
                     </div>
-                    <p class="text-xs text-gray-400 mb-3">No authentication required.</p>
-                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Request Body</h4>
+                    <p class="text-xs text-gray-500 mb-3">No authentication required.</p>
+                    <h4 class="text-xs font-semibold text-gray-600 mb-2">Request Body</h4>
                     <div class="code-block rounded-lg p-3 mb-3">
 <pre class="text-xs text-gray-300">{
   "name": "string (required)",
@@ -342,7 +342,7 @@
   "password": "string (required, min 6 chars)"
 }</pre>
                     </div>
-                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Response <span class="text-green-400">201</span></h4>
+                    <h4 class="text-xs font-semibold text-gray-600 mb-2">Response <span class="text-green-400">201</span></h4>
                     <div class="code-block rounded-lg p-3">
 <pre class="text-xs text-gray-300">{
   "success": true,
@@ -360,17 +360,17 @@
                 <div class="glass rounded-xl p-6 endpoint-card">
                     <div class="flex items-center gap-3 mb-4">
                         <span class="px-2 py-1 rounded text-xs font-bold method-post">POST</span>
-                        <code class="text-white text-sm">/v1/auth/login</code>
+                        <code class="text-gray-800 text-sm">/v1/auth/login</code>
                         <span class="text-gray-500 text-xs ml-2">Login and get JWT token</span>
                     </div>
-                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Request Body</h4>
+                    <h4 class="text-xs font-semibold text-gray-600 mb-2">Request Body</h4>
                     <div class="code-block rounded-lg p-3 mb-3">
 <pre class="text-xs text-gray-300">{
   "email": "string (required)",
   "password": "string (required)"
 }</pre>
                     </div>
-                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Response <span class="text-green-400">200</span></h4>
+                    <h4 class="text-xs font-semibold text-gray-600 mb-2">Response <span class="text-green-400">200</span></h4>
                     <div class="code-block rounded-lg p-3">
 <pre class="text-xs text-gray-300">{
   "success": true,
@@ -387,10 +387,10 @@
                 <div class="glass rounded-xl p-6 endpoint-card">
                     <div class="flex items-center gap-3 mb-4">
                         <span class="px-2 py-1 rounded text-xs font-bold method-post">POST</span>
-                        <code class="text-white text-sm">/v1/auth/api/generate</code>
+                        <code class="text-gray-800 text-sm">/v1/auth/api/generate</code>
                         <span class="text-gray-500 text-xs ml-2">Generate API key (JWT auth required)</span>
                     </div>
-                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Request Body</h4>
+                    <h4 class="text-xs font-semibold text-gray-600 mb-2">Request Body</h4>
                     <div class="code-block rounded-lg p-3 mb-3">
 <pre class="text-xs text-gray-300">{
   "name": "string (optional, default: 'Default')",
@@ -398,7 +398,7 @@
   "burst_limit": "number (optional, default: 50, requests/minute)"
 }</pre>
                     </div>
-                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Response <span class="text-green-400">201</span></h4>
+                    <h4 class="text-xs font-semibold text-gray-600 mb-2">Response <span class="text-green-400">201</span></h4>
                     <div class="code-block rounded-lg p-3">
 <pre class="text-xs text-gray-300">{
   "success": true,
@@ -417,15 +417,15 @@
 
             <!-- Verify Single -->
             <section id="verify-single" class="mb-8">
-                <h2 class="text-xl font-bold text-white mb-4"><i class="fas fa-file-circle-check mr-2 text-green-400"></i>Verification Endpoints</h2>
+                <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-file-circle-check mr-2 text-green-400"></i>Verification Endpoints</h2>
                 <div class="glass rounded-xl p-6 endpoint-card">
                     <div class="flex items-center gap-3 mb-4">
                         <span class="px-2 py-1 rounded text-xs font-bold method-post">POST</span>
-                        <code class="text-white text-sm">/v1/verify</code>
+                        <code class="text-gray-800 text-sm">/v1/verify</code>
                         <span class="text-gray-500 text-xs ml-2">Submit single document for verification</span>
                     </div>
-                    <p class="text-xs text-gray-400 mb-3">Requires API Key auth. Async - returns immediately with a reference ID. Poll status/result endpoints for outcome.</p>
-                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Request Body</h4>
+                    <p class="text-xs text-gray-500 mb-3">Requires API Key auth. Async - returns immediately with a reference ID. Poll status/result endpoints for outcome.</p>
+                    <h4 class="text-xs font-semibold text-gray-600 mb-2">Request Body</h4>
                     <div class="code-block rounded-lg p-3 mb-3">
 <pre class="text-xs text-gray-300">{
   "document_type": "string (required) - e.g. 'aadhaar', 'pan', 'passport'",
@@ -436,7 +436,7 @@
   }
 }</pre>
                     </div>
-                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Response <span class="text-green-400">202 Accepted</span></h4>
+                    <h4 class="text-xs font-semibold text-gray-600 mb-2">Response <span class="text-green-400">202 Accepted</span></h4>
                     <div class="code-block rounded-lg p-3 mb-3">
 <pre class="text-xs text-gray-300">{
   "status": "accepted",
@@ -444,19 +444,19 @@
   "processing_status": "processing"
 }</pre>
                     </div>
-                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Available Document Types</h4>
+                    <h4 class="text-xs font-semibold text-gray-600 mb-2">Available Document Types</h4>
                     <div class="flex flex-wrap gap-2 mt-2">
-                        <span class="px-2 py-1 rounded bg-gray-800 text-xs text-gray-300">aadhaar</span>
-                        <span class="px-2 py-1 rounded bg-gray-800 text-xs text-gray-300">pan</span>
-                        <span class="px-2 py-1 rounded bg-gray-800 text-xs text-gray-300">passport</span>
-                        <span class="px-2 py-1 rounded bg-gray-800 text-xs text-gray-300">driving_license</span>
-                        <span class="px-2 py-1 rounded bg-gray-800 text-xs text-gray-300">voter_id</span>
-                        <span class="px-2 py-1 rounded bg-gray-800 text-xs text-gray-300">bank_statement</span>
-                        <span class="px-2 py-1 rounded bg-gray-800 text-xs text-gray-300">utility_bill</span>
-                        <span class="px-2 py-1 rounded bg-gray-800 text-xs text-gray-300">marksheet_10</span>
-                        <span class="px-2 py-1 rounded bg-gray-800 text-xs text-gray-300">marksheet_12</span>
-                        <span class="px-2 py-1 rounded bg-gray-800 text-xs text-gray-300">graduation_cert</span>
-                        <span class="px-2 py-1 rounded bg-gray-800 text-xs text-gray-300 italic">+ your custom types</span>
+                        <span class="px-2 py-1 rounded bg-gray-200 text-xs text-gray-600">aadhaar</span>
+                        <span class="px-2 py-1 rounded bg-gray-200 text-xs text-gray-600">pan</span>
+                        <span class="px-2 py-1 rounded bg-gray-200 text-xs text-gray-600">passport</span>
+                        <span class="px-2 py-1 rounded bg-gray-200 text-xs text-gray-600">driving_license</span>
+                        <span class="px-2 py-1 rounded bg-gray-200 text-xs text-gray-600">voter_id</span>
+                        <span class="px-2 py-1 rounded bg-gray-200 text-xs text-gray-600">bank_statement</span>
+                        <span class="px-2 py-1 rounded bg-gray-200 text-xs text-gray-600">utility_bill</span>
+                        <span class="px-2 py-1 rounded bg-gray-200 text-xs text-gray-600">marksheet_10</span>
+                        <span class="px-2 py-1 rounded bg-gray-200 text-xs text-gray-600">marksheet_12</span>
+                        <span class="px-2 py-1 rounded bg-gray-200 text-xs text-gray-600">graduation_cert</span>
+                        <span class="px-2 py-1 rounded bg-gray-200 text-xs text-gray-600 italic">+ your custom types</span>
                     </div>
                 </div>
             </section>
@@ -466,11 +466,11 @@
                 <div class="glass rounded-xl p-6 endpoint-card border-purple-500/20">
                     <div class="flex items-center gap-3 mb-4">
                         <span class="px-2 py-1 rounded text-xs font-bold method-post">POST</span>
-                        <code class="text-white text-sm">/v1/verify/bulk</code>
+                        <code class="text-gray-800 text-sm">/v1/verify/bulk</code>
                         <span class="px-2 py-0.5 rounded bg-purple-600/20 text-purple-300 text-[10px] font-medium ml-2">BULK</span>
                     </div>
-                    <p class="text-xs text-gray-400 mb-3">Submit up to 50 documents in a single request. All documents are validated before any are queued. Returns a bulk_id for tracking the batch.</p>
-                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Request Body</h4>
+                    <p class="text-xs text-gray-500 mb-3">Submit up to 50 documents in a single request. All documents are validated before any are queued. Returns a bulk_id for tracking the batch.</p>
+                    <h4 class="text-xs font-semibold text-gray-600 mb-2">Request Body</h4>
                     <div class="code-block rounded-lg p-3 mb-3">
 <pre class="text-xs text-gray-300">{
   "documents": [
@@ -494,7 +494,7 @@
   "metadata": { "batch_name": "Jan Intake" }
 }</pre>
                     </div>
-                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Response <span class="text-green-400">202 Accepted</span></h4>
+                    <h4 class="text-xs font-semibold text-gray-600 mb-2">Response <span class="text-green-400">202 Accepted</span></h4>
                     <div class="code-block rounded-lg p-3 mb-3">
 <pre class="text-xs text-gray-300">{
   "status": "accepted",
@@ -507,7 +507,7 @@
   ]
 }</pre>
                     </div>
-                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Validation Error <span class="text-red-400">400</span></h4>
+                    <h4 class="text-xs font-semibold text-gray-600 mb-2">Validation Error <span class="text-red-400">400</span></h4>
                     <div class="code-block rounded-lg p-3">
 <pre class="text-xs text-gray-300">{
   "error": "Validation failed",
@@ -529,9 +529,9 @@
                 <div class="glass rounded-xl p-6 endpoint-card">
                     <div class="flex items-center gap-3 mb-4">
                         <span class="px-2 py-1 rounded text-xs font-bold method-get">GET</span>
-                        <code class="text-white text-sm">/v1/status/<span class="text-[#76D7C4]">{system_reference_id}</span></code>
+                        <code class="text-gray-800 text-sm">/v1/status/<span class="text-[#76D7C4]">{system_reference_id}</span></code>
                     </div>
-                    <p class="text-xs text-gray-400 mb-3">Lightweight status check. Returns only status and basic info.</p>
+                    <p class="text-xs text-gray-500 mb-3">Lightweight status check. Returns only status and basic info.</p>
                     <div class="code-block rounded-lg p-3">
 <pre class="text-xs text-gray-300">{
   "system_reference_id": "DOCLXYZ12345ABC",
@@ -550,9 +550,9 @@
                 <div class="glass rounded-xl p-6 endpoint-card">
                     <div class="flex items-center gap-3 mb-4">
                         <span class="px-2 py-1 rounded text-xs font-bold method-get">GET</span>
-                        <code class="text-white text-sm">/v1/result/<span class="text-[#76D7C4]">{system_reference_id}</span></code>
+                        <code class="text-gray-800 text-sm">/v1/result/<span class="text-[#76D7C4]">{system_reference_id}</span></code>
                     </div>
-                    <p class="text-xs text-gray-400 mb-3">Full verification result with extracted data, confidence, risk score, and issues.</p>
+                    <p class="text-xs text-gray-500 mb-3">Full verification result with extracted data, confidence, risk score, and issues.</p>
                     <div class="code-block rounded-lg p-3">
 <pre class="text-xs text-gray-300">{
   "system_reference_id": "DOCLXYZ12345ABC",
@@ -571,13 +571,13 @@
   "processed_at": "2025-01-15T10:30:45Z"
 }</pre>
                     </div>
-                    <h4 class="text-xs font-semibold text-gray-300 mb-2 mt-4">Possible Statuses</h4>
+                    <h4 class="text-xs font-semibold text-gray-600 mb-2 mt-4">Possible Statuses</h4>
                     <div class="grid grid-cols-5 gap-2">
                         <div class="bg-yellow-500/10 rounded-lg p-2 text-center"><p class="text-[10px] text-yellow-300">accepted</p><p class="text-[9px] text-gray-500">Queued</p></div>
                         <div class="bg-[#16A085]/10 rounded-lg p-2 text-center"><p class="text-[10px] text-[#76D7C4]">processing</p><p class="text-[9px] text-gray-500">AI analyzing</p></div>
                         <div class="bg-green-500/10 rounded-lg p-2 text-center"><p class="text-[10px] text-green-300">verified</p><p class="text-[9px] text-gray-500">Pass</p></div>
                         <div class="bg-red-500/10 rounded-lg p-2 text-center"><p class="text-[10px] text-red-300">rejected</p><p class="text-[9px] text-gray-500">Fail</p></div>
-                        <div class="bg-gray-500/10 rounded-lg p-2 text-center"><p class="text-[10px] text-gray-300">failed</p><p class="text-[9px] text-gray-500">Error</p></div>
+                        <div class="bg-gray-500/10 rounded-lg p-2 text-center"><p class="text-[10px] text-gray-600">failed</p><p class="text-[9px] text-gray-500">Error</p></div>
                     </div>
                 </div>
             </section>
@@ -587,9 +587,9 @@
                 <div class="glass rounded-xl p-6 endpoint-card">
                     <div class="flex items-center gap-3 mb-4">
                         <span class="px-2 py-1 rounded text-xs font-bold method-get">GET</span>
-                        <code class="text-white text-sm">/v1/verify/bulk/<span class="text-purple-300">{bulk_id}</span></code>
+                        <code class="text-gray-800 text-sm">/v1/verify/bulk/<span class="text-purple-300">{bulk_id}</span></code>
                     </div>
-                    <p class="text-xs text-gray-400 mb-3">Get bulk job progress, counts, and individual document statuses.</p>
+                    <p class="text-xs text-gray-500 mb-3">Get bulk job progress, counts, and individual document statuses.</p>
                     <div class="code-block rounded-lg p-3">
 <pre class="text-xs text-gray-300">{
   "success": true,
@@ -620,10 +620,10 @@
                 <div class="glass rounded-xl p-6 endpoint-card">
                     <div class="flex items-center gap-3 mb-4">
                         <span class="px-2 py-1 rounded text-xs font-bold method-get">GET</span>
-                        <code class="text-white text-sm">/v1/verify/requests</code>
+                        <code class="text-gray-800 text-sm">/v1/verify/requests</code>
                     </div>
-                    <p class="text-xs text-gray-400 mb-3">List your verification requests with pagination and filtering.</p>
-                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Query Parameters</h4>
+                    <p class="text-xs text-gray-500 mb-3">List your verification requests with pagination and filtering.</p>
+                    <h4 class="text-xs font-semibold text-gray-600 mb-2">Query Parameters</h4>
                     <div class="code-block rounded-lg p-3">
 <pre class="text-xs text-gray-300">?status=verified    # Filter: accepted, processing, verified, rejected, failed
 &page=1             # Page number (default: 1)
@@ -637,9 +637,9 @@
                 <div class="glass rounded-xl p-6 endpoint-card">
                     <div class="flex items-center gap-3 mb-4">
                         <span class="px-2 py-1 rounded text-xs font-bold method-get">GET</span>
-                        <code class="text-white text-sm">/v1/verify/document-types</code>
+                        <code class="text-gray-800 text-sm">/v1/verify/document-types</code>
                     </div>
-                    <p class="text-xs text-gray-400 mb-3">List all available document types (system + your custom types).</p>
+                    <p class="text-xs text-gray-500 mb-3">List all available document types (system + your custom types).</p>
                     <div class="code-block rounded-lg p-3">
 <pre class="text-xs text-gray-300">{
   "success": true,
@@ -662,14 +662,14 @@
 
             <!-- Document Type CRUD -->
             <section id="doctype-create" class="mb-8">
-                <h2 class="text-xl font-bold text-white mb-4"><i class="fas fa-folder-open mr-2 text-yellow-400"></i>Custom Document Type Management</h2>
-                <p class="text-sm text-gray-400 mb-4">Create your own document types with custom fields and validation rules. Custom types are scoped to your account and can override system defaults.</p>
+                <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-folder-open mr-2 text-yellow-400"></i>Custom Document Type Management</h2>
+                <p class="text-sm text-gray-500 mb-4">Create your own document types with custom fields and validation rules. Custom types are scoped to your account and can override system defaults.</p>
                 <div class="glass rounded-xl p-6 endpoint-card">
                     <div class="flex items-center gap-3 mb-4">
                         <span class="px-2 py-1 rounded text-xs font-bold method-post">POST</span>
-                        <code class="text-white text-sm">/v1/verify/my-document-types</code>
+                        <code class="text-gray-800 text-sm">/v1/verify/my-document-types</code>
                     </div>
-                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Request Body</h4>
+                    <h4 class="text-xs font-semibold text-gray-600 mb-2">Request Body</h4>
                     <div class="code-block rounded-lg p-3 mb-3">
 <pre class="text-xs text-gray-300">{
   "name": "Employment Letter (required)",
@@ -682,7 +682,7 @@
   }
 }</pre>
                     </div>
-                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Response <span class="text-green-400">201</span></h4>
+                    <h4 class="text-xs font-semibold text-gray-600 mb-2">Response <span class="text-green-400">201</span></h4>
                     <div class="code-block rounded-lg p-3">
 <pre class="text-xs text-gray-300">{ "success": true, "message": "Document type created", "data": { ... } }</pre>
                     </div>
@@ -693,9 +693,9 @@
                 <div class="glass rounded-xl p-6 endpoint-card">
                     <div class="flex items-center gap-3 mb-4">
                         <span class="px-2 py-1 rounded text-xs font-bold method-put">PUT</span>
-                        <code class="text-white text-sm">/v1/verify/my-document-types/<span class="text-[#76D7C4]">{id}</span></code>
+                        <code class="text-gray-800 text-sm">/v1/verify/my-document-types/<span class="text-[#76D7C4]">{id}</span></code>
                     </div>
-                    <p class="text-xs text-gray-400 mb-3">Update a document type you own. Same request body as create (all fields optional).</p>
+                    <p class="text-xs text-gray-500 mb-3">Update a document type you own. Same request body as create (all fields optional).</p>
                 </div>
             </section>
 
@@ -703,28 +703,28 @@
                 <div class="glass rounded-xl p-6 endpoint-card">
                     <div class="flex items-center gap-3 mb-4">
                         <span class="px-2 py-1 rounded text-xs font-bold method-delete">DELETE</span>
-                        <code class="text-white text-sm">/v1/verify/my-document-types/<span class="text-[#76D7C4]">{id}</span></code>
+                        <code class="text-gray-800 text-sm">/v1/verify/my-document-types/<span class="text-[#76D7C4]">{id}</span></code>
                     </div>
-                    <p class="text-xs text-gray-400 mb-3">Delete a custom document type you own. System types cannot be deleted.</p>
+                    <p class="text-xs text-gray-500 mb-3">Delete a custom document type you own. System types cannot be deleted.</p>
                 </div>
             </section>
 
             <!-- Webhooks -->
             <section id="webhook-register" class="mb-8">
-                <h2 class="text-xl font-bold text-white mb-4"><i class="fas fa-bolt mr-2 text-yellow-400"></i>Webhooks</h2>
+                <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-bolt mr-2 text-yellow-400"></i>Webhooks</h2>
                 <div class="glass rounded-xl p-6 endpoint-card">
                     <div class="flex items-center gap-3 mb-4">
                         <span class="px-2 py-1 rounded text-xs font-bold method-post">POST</span>
-                        <code class="text-white text-sm">/v1/webhook/register</code>
+                        <code class="text-gray-800 text-sm">/v1/webhook/register</code>
                     </div>
-                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Request Body</h4>
+                    <h4 class="text-xs font-semibold text-gray-600 mb-2">Request Body</h4>
                     <div class="code-block rounded-lg p-3 mb-3">
 <pre class="text-xs text-gray-300">{
   "url": "https://your-server.com/webhook/verification (required)",
   "events": ["document.verified", "document.rejected", "document.failed", "bulk.completed"]
 }</pre>
                     </div>
-                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Response <span class="text-green-400">201</span></h4>
+                    <h4 class="text-xs font-semibold text-gray-600 mb-2">Response <span class="text-green-400">201</span></h4>
                     <div class="code-block rounded-lg p-3">
 <pre class="text-xs text-gray-300">{
   "success": true,
@@ -742,24 +742,24 @@
 
             <section id="webhook-events" class="mb-12">
                 <div class="glass rounded-xl p-6">
-                    <h3 class="font-semibold text-white text-sm mb-4">Webhook Events & Payload Verification</h3>
+                    <h3 class="font-semibold text-gray-800 text-sm mb-4">Webhook Events & Payload Verification</h3>
 
-                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Available Events</h4>
+                    <h4 class="text-xs font-semibold text-gray-600 mb-2">Available Events</h4>
                     <div class="grid grid-cols-2 gap-3 mb-4">
                         <div class="bg-green-500/10 rounded-lg p-3"><code class="text-xs text-green-300">document.verified</code><p class="text-[10px] text-gray-500 mt-1">Document passed verification</p></div>
                         <div class="bg-red-500/10 rounded-lg p-3"><code class="text-xs text-red-300">document.rejected</code><p class="text-[10px] text-gray-500 mt-1">Document failed verification</p></div>
-                        <div class="bg-gray-500/10 rounded-lg p-3"><code class="text-xs text-gray-300">document.failed</code><p class="text-[10px] text-gray-500 mt-1">Processing error occurred</p></div>
+                        <div class="bg-gray-500/10 rounded-lg p-3"><code class="text-xs text-gray-600">document.failed</code><p class="text-[10px] text-gray-500 mt-1">Processing error occurred</p></div>
                         <div class="bg-purple-500/10 rounded-lg p-3"><code class="text-xs text-purple-300">bulk.completed</code><p class="text-[10px] text-gray-500 mt-1">All docs in bulk job finished</p></div>
                     </div>
 
-                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Webhook Headers</h4>
+                    <h4 class="text-xs font-semibold text-gray-600 mb-2">Webhook Headers</h4>
                     <div class="code-block rounded-lg p-3 mb-4">
 <pre class="text-xs text-gray-300">X-Webhook-Signature: sha256=a1b2c3d4e5...   # HMAC-SHA256 of the payload body
 X-Webhook-Event: document.verified            # Event type
 X-Webhook-Timestamp: 1705312245000            # Unix timestamp (ms)</pre>
                     </div>
 
-                    <h4 class="text-xs font-semibold text-gray-300 mb-2">Verifying Signatures (Node.js)</h4>
+                    <h4 class="text-xs font-semibold text-gray-600 mb-2">Verifying Signatures (Node.js)</h4>
                     <div class="code-block rounded-lg p-3">
 <pre class="text-xs text-gray-300">const crypto = require('crypto');
 
@@ -779,11 +779,11 @@ function verifyWebhookSignature(payload, signature, secret) {
 
             <!-- Code Samples -->
             <section id="code-node" class="mb-8">
-                <h2 class="text-xl font-bold text-white mb-4"><i class="fas fa-code mr-2 text-cyan-400"></i>Integration Code Samples</h2>
+                <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-code mr-2 text-cyan-400"></i>Integration Code Samples</h2>
                 <div class="glass rounded-xl p-6">
                     <div class="flex items-center gap-2 mb-4">
                         <i class="fab fa-node-js text-green-400"></i>
-                        <h3 class="font-semibold text-white text-sm">Node.js Integration</h3>
+                        <h3 class="font-semibold text-gray-800 text-sm">Node.js Integration</h3>
                     </div>
                     <div class="code-block rounded-lg p-4">
 <pre class="text-xs text-gray-300">const API_KEY = 'vk_your_api_key';
@@ -861,7 +861,7 @@ async function waitForResult(systemRefId, maxWaitMs = 60000) {
                 <div class="glass rounded-xl p-6">
                     <div class="flex items-center gap-2 mb-4">
                         <i class="fab fa-python text-yellow-400"></i>
-                        <h3 class="font-semibold text-white text-sm">Python Integration</h3>
+                        <h3 class="font-semibold text-gray-800 text-sm">Python Integration</h3>
                     </div>
                     <div class="code-block rounded-lg p-4">
 <pre class="text-xs text-gray-300">import requests
@@ -921,12 +921,12 @@ print(f"Bulk submitted: {bulk['bulk_id']}")</pre>
             <section id="code-curl" class="mb-12">
                 <div class="glass rounded-xl p-6">
                     <div class="flex items-center gap-2 mb-4">
-                        <i class="fas fa-terminal text-gray-400"></i>
-                        <h3 class="font-semibold text-white text-sm">cURL Examples</h3>
+                        <i class="fas fa-terminal text-gray-500"></i>
+                        <h3 class="font-semibold text-gray-800 text-sm">cURL Examples</h3>
                     </div>
                     <div class="space-y-4">
                         <div>
-                            <p class="text-xs text-gray-400 mb-2">Single Verification</p>
+                            <p class="text-xs text-gray-500 mb-2">Single Verification</p>
                             <div class="code-block rounded-lg p-3">
 <pre class="text-xs text-gray-300">curl -X POST http://localhost:3000/v1/verify \
   -H "Content-Type: application/json" \
@@ -939,7 +939,7 @@ print(f"Bulk submitted: {bulk['bulk_id']}")</pre>
                             </div>
                         </div>
                         <div>
-                            <p class="text-xs text-gray-400 mb-2">Bulk Verification</p>
+                            <p class="text-xs text-gray-500 mb-2">Bulk Verification</p>
                             <div class="code-block rounded-lg p-3">
 <pre class="text-xs text-gray-300">curl -X POST http://localhost:3000/v1/verify/bulk \
   -H "Content-Type: application/json" \
@@ -954,21 +954,21 @@ print(f"Bulk submitted: {bulk['bulk_id']}")</pre>
                             </div>
                         </div>
                         <div>
-                            <p class="text-xs text-gray-400 mb-2">Get Result</p>
+                            <p class="text-xs text-gray-500 mb-2">Get Result</p>
                             <div class="code-block rounded-lg p-3">
 <pre class="text-xs text-gray-300">curl http://localhost:3000/v1/result/DOCLXYZ12345ABC \
   -H "Authorization: Bearer vk_your_api_key"</pre>
                             </div>
                         </div>
                         <div>
-                            <p class="text-xs text-gray-400 mb-2">Check Bulk Job Status</p>
+                            <p class="text-xs text-gray-500 mb-2">Check Bulk Job Status</p>
                             <div class="code-block rounded-lg p-3">
 <pre class="text-xs text-gray-300">curl http://localhost:3000/v1/verify/bulk/BULKLXYZ12345ABC \
   -H "Authorization: Bearer vk_your_api_key"</pre>
                             </div>
                         </div>
                         <div>
-                            <p class="text-xs text-gray-400 mb-2">Create Custom Document Type</p>
+                            <p class="text-xs text-gray-500 mb-2">Create Custom Document Type</p>
                             <div class="code-block rounded-lg p-3">
 <pre class="text-xs text-gray-300">curl -X POST http://localhost:3000/v1/verify/my-document-types \
   -H "Content-Type: application/json" \
@@ -987,7 +987,7 @@ print(f"Bulk submitted: {bulk['bulk_id']}")</pre>
 
             <!-- Footer -->
             <div class="glass rounded-xl p-6 text-center">
-                <p class="text-sm text-gray-400">AI Document Verification Platform v1.0</p>
+                <p class="text-sm text-gray-500">AI Document Verification Platform v1.0</p>
                 <p class="text-xs text-gray-600 mt-1">Need help? Contact your platform administrator.</p>
             </div>
         </main>

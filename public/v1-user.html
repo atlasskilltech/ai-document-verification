@@ -8,9 +8,9 @@
     <link rel="stylesheet" href="/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        body { background: #1a2a3a; }
-        .glass { background: rgba(30, 41, 59, 0.6); backdrop-filter: blur(8px); border: 1px solid rgba(71, 85, 105, 0.3); }
-        .input-dark { background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(71, 85, 105, 0.5); color: #e2e8f0; }
+        body { background: #F8F9FA; }
+        .glass { background: #FFFFFF; border: 1px solid #E2E8F0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .input-dark { background: #F9FAFB; border: 1px solid #D1D5DB; color: #374151; }
         .input-dark:focus { border-color: #16A085; outline: none; box-shadow: 0 0 0 3px rgba(22, 160, 133, 0.15); }
         .btn-primary { background: linear-gradient(135deg, #16A085, #138D75); }
         .btn-primary:hover { background: linear-gradient(135deg, #138D75, #117A65); }
@@ -18,22 +18,22 @@
         .sidebar-link:hover, .sidebar-link.active { background: rgba(22, 160, 133, 0.15); color: #76D7C4; }
         .stat-card { transition: transform 0.2s; }
         .stat-card:hover { transform: translateY(-2px); }
-        .badge-verified { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
-        .badge-rejected { background: rgba(239, 68, 68, 0.15); color: #f87171; }
-        .badge-processing { background: rgba(22, 160, 133, 0.15); color: #76D7C4; }
-        .badge-accepted { background: rgba(234, 179, 8, 0.15); color: #facc15; }
-        .badge-failed { background: rgba(156, 163, 175, 0.15); color: #9ca3af; }
-        .wrong-doc-banner { background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); }
-        .fake-doc-banner { background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); }
-        .auth-check-pass { color: #4ade80; }
-        .auth-check-fail { color: #f87171; }
-        .auth-check-warn { color: #facc15; }
+        .badge-verified { background: rgba(34, 197, 94, 0.1); color: #16a34a; }
+        .badge-rejected { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
+        .badge-processing { background: rgba(22, 160, 133, 0.1); color: #0f766e; }
+        .badge-accepted { background: rgba(234, 179, 8, 0.1); color: #ca8a04; }
+        .badge-failed { background: rgba(156, 163, 175, 0.1); color: #6b7280; }
+        .wrong-doc-banner { background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); }
+        .fake-doc-banner { background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); }
+        .auth-check-pass { color: #16a34a; }
+        .auth-check-fail { color: #dc2626; }
+        .auth-check-warn { color: #ca8a04; }
         .slide-in { animation: slideIn 0.3s ease-out; }
         @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        .modal-overlay { background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
+        .modal-overlay { background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
     </style>
 </head>
-<body class="text-gray-200 min-h-screen">
+<body class="text-gray-700 min-h-screen">
     <!-- Sidebar -->
     <aside class="fixed left-0 top-0 bottom-0 w-64 bg-[#2C3E50] border-r border-[#34495E] z-40 flex flex-col">
         <div class="p-5 border-b border-[#34495E]">
@@ -84,15 +84,15 @@
 
         <!-- Dashboard Section -->
         <div id="sec-dashboard" class="slide-in">
-            <h2 class="text-xl font-bold text-white mb-6">Dashboard</h2>
+            <h2 class="text-xl font-bold text-gray-800 mb-6">Dashboard</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6" id="statCards"></div>
             <div class="glass rounded-xl overflow-hidden">
-                <div class="px-5 py-4 border-b border-gray-700/50">
-                    <h3 class="font-semibold text-white"><i class="fas fa-clock mr-2 text-yellow-400"></i>Recent Requests</h3>
+                <div class="px-5 py-4 border-b border-gray-200">
+                    <h3 class="font-semibold text-gray-800"><i class="fas fa-clock mr-2 text-yellow-400"></i>Recent Requests</h3>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
-                        <thead class="bg-gray-800/50 text-xs text-gray-400 uppercase">
+                        <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
                             <tr>
                                 <th class="px-4 py-2.5 text-left">Reference</th>
                                 <th class="px-4 py-2.5 text-left">Doc Type</th>
@@ -102,7 +102,7 @@
                                 <th class="px-4 py-2.5 text-left">Actions</th>
                             </tr>
                         </thead>
-                        <tbody id="recentTable" class="divide-y divide-gray-800/50"></tbody>
+                        <tbody id="recentTable" class="divide-y divide-gray-200"></tbody>
                     </table>
                 </div>
             </div>
@@ -110,33 +110,33 @@
 
         <!-- Verify Document Section -->
         <div id="sec-verify" class="hidden slide-in">
-            <h2 class="text-xl font-bold text-white mb-6">Verify Document</h2>
+            <h2 class="text-xl font-bold text-gray-800 mb-6">Verify Document</h2>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <!-- Submit Form -->
                 <div class="glass rounded-xl p-6">
-                    <h3 class="font-semibold text-white mb-4"><i class="fas fa-upload mr-2 text-[#16A085]"></i>Push Document for Verification</h3>
+                    <h3 class="font-semibold text-gray-800 mb-4"><i class="fas fa-upload mr-2 text-[#16A085]"></i>Push Document for Verification</h3>
                     <div id="verifyError" class="hidden mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm"></div>
                     <div id="verifySuccess" class="hidden mb-4 p-3 rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 text-sm"></div>
                     <form onsubmit="submitVerification(event)" class="space-y-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-300 mb-1">Document Type</label>
+                            <label class="block text-sm font-medium text-gray-600 mb-1">Document Type</label>
                             <select id="verifyDocType" required class="w-full px-3 py-2 rounded-lg input-dark text-sm">
                                 <option value="">Select document type...</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-300 mb-1">File URL</label>
+                            <label class="block text-sm font-medium text-gray-600 mb-1">File URL</label>
                             <input type="url" id="verifyFileUrl" required placeholder="https://s3.amazonaws.com/bucket/document.jpg"
                                 class="w-full px-3 py-2 rounded-lg input-dark text-sm">
                             <p class="text-[10px] text-gray-500 mt-1">Public URL to your document (S3, CDN, etc.)</p>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-300 mb-1">Reference ID (optional)</label>
+                            <label class="block text-sm font-medium text-gray-600 mb-1">Reference ID (optional)</label>
                             <input type="text" id="verifyRefId" placeholder="TXN12345"
                                 class="w-full px-3 py-2 rounded-lg input-dark text-sm">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-300 mb-1">Metadata (JSON, optional)</label>
+                            <label class="block text-sm font-medium text-gray-600 mb-1">Metadata (JSON, optional)</label>
                             <textarea id="verifyMetadata" rows="3" class="w-full px-3 py-2 rounded-lg input-dark text-sm font-mono"
                                 placeholder='{"name": "Rahul Sharma"}'></textarea>
                         </div>
@@ -149,7 +149,7 @@
                 <!-- Check Status -->
                 <div class="space-y-6">
                     <div class="glass rounded-xl p-6">
-                        <h3 class="font-semibold text-white mb-4"><i class="fas fa-search mr-2 text-green-400"></i>Check Status / Result</h3>
+                        <h3 class="font-semibold text-gray-800 mb-4"><i class="fas fa-search mr-2 text-green-400"></i>Check Status / Result</h3>
                         <div class="flex gap-2">
                             <input type="text" id="checkRefId" placeholder="DOC98765..." class="flex-1 px-3 py-2 rounded-lg input-dark text-sm font-mono">
                             <button onclick="checkStatus()" class="px-4 py-2 rounded-lg btn-primary text-white text-sm"><i class="fas fa-search"></i></button>
@@ -158,7 +158,7 @@
                     </div>
 
                     <div class="glass rounded-xl p-6">
-                        <h3 class="font-semibold text-white mb-4"><i class="fas fa-list mr-2 text-purple-400"></i>Available Document Types</h3>
+                        <h3 class="font-semibold text-gray-800 mb-4"><i class="fas fa-list mr-2 text-purple-400"></i>Available Document Types</h3>
                         <div id="docTypeList" class="space-y-2"></div>
                     </div>
                 </div>
@@ -167,11 +167,11 @@
 
         <!-- Bulk Verify Section -->
         <div id="sec-bulk" class="hidden slide-in">
-            <h2 class="text-xl font-bold text-white mb-6">Bulk Document Verification</h2>
+            <h2 class="text-xl font-bold text-gray-800 mb-6">Bulk Document Verification</h2>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <!-- Bulk Submit Form -->
                 <div class="glass rounded-xl p-6">
-                    <h3 class="font-semibold text-white mb-4"><i class="fas fa-layer-group mr-2 text-purple-400"></i>Submit Bulk Documents</h3>
+                    <h3 class="font-semibold text-gray-800 mb-4"><i class="fas fa-layer-group mr-2 text-purple-400"></i>Submit Bulk Documents</h3>
                     <div id="bulkError" class="hidden mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm"></div>
                     <div id="bulkSuccess" class="hidden mb-4 p-3 rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 text-sm"></div>
 
@@ -189,7 +189,7 @@
 
                     <!-- JSON Input (hidden by default) -->
                     <div id="bulkJsonSection" class="hidden mb-4">
-                        <label class="block text-sm font-medium text-gray-300 mb-1">Paste JSON Array</label>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Paste JSON Array</label>
                         <textarea id="bulkJsonInput" rows="6" class="w-full px-3 py-2 rounded-lg input-dark text-sm font-mono"
                             placeholder='[
   {"document_type": "aadhaar", "file_url": "https://...jpg", "reference_id": "REF1"},
@@ -197,12 +197,12 @@
 ]'></textarea>
                         <div class="flex gap-2 mt-2">
                             <button type="button" onclick="parseBulkJson()" class="px-3 py-1.5 rounded-lg btn-primary text-white text-xs">Parse & Load</button>
-                            <button type="button" onclick="document.getElementById('bulkJsonSection').classList.add('hidden')" class="px-3 py-1.5 rounded-lg bg-gray-700 text-gray-300 text-xs">Cancel</button>
+                            <button type="button" onclick="document.getElementById('bulkJsonSection').classList.add('hidden')" class="px-3 py-1.5 rounded-lg bg-gray-200 text-gray-600 text-xs">Cancel</button>
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-1">Callback URL (optional)</label>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Callback URL (optional)</label>
                         <input type="url" id="bulkCallbackUrl" placeholder="https://your-server.com/bulk-callback"
                             class="w-full px-3 py-2 rounded-lg input-dark text-sm">
                         <p class="text-[10px] text-gray-500 mt-1">We'll POST the final summary to this URL when all docs are processed</p>
@@ -216,11 +216,11 @@
                 <!-- Bulk Jobs List -->
                 <div>
                     <div class="glass rounded-xl overflow-hidden">
-                        <div class="px-5 py-4 border-b border-gray-700/50 flex justify-between items-center">
-                            <h3 class="font-semibold text-white"><i class="fas fa-clock mr-2 text-yellow-400"></i>Bulk Jobs</h3>
+                        <div class="px-5 py-4 border-b border-gray-200 flex justify-between items-center">
+                            <h3 class="font-semibold text-gray-800"><i class="fas fa-clock mr-2 text-yellow-400"></i>Bulk Jobs</h3>
                             <button onclick="loadBulkJobs()" class="text-[#16A085] hover:text-[#76D7C4] text-xs"><i class="fas fa-refresh mr-1"></i>Refresh</button>
                         </div>
-                        <div id="bulkJobsList" class="divide-y divide-gray-800/50"></div>
+                        <div id="bulkJobsList" class="divide-y divide-gray-200"></div>
                     </div>
                 </div>
             </div>
@@ -228,10 +228,10 @@
 
         <!-- Bulk Job Detail Modal -->
         <div id="bulkDetailModal" class="fixed inset-0 z-50 hidden flex items-center justify-center modal-overlay">
-            <div class="bg-gray-900 rounded-2xl border border-gray-700 w-full max-w-3xl max-h-[85vh] overflow-y-auto slide-in m-4">
-                <div class="flex justify-between items-center px-6 py-4 border-b border-gray-800 sticky top-0 bg-gray-900 z-10">
-                    <h3 class="font-bold text-white"><i class="fas fa-layer-group mr-2 text-purple-400"></i>Bulk Job Details</h3>
-                    <button onclick="closeModal('bulkDetailModal')" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+            <div class="bg-white rounded-2xl border border-gray-200 w-full max-w-3xl max-h-[85vh] overflow-y-auto slide-in m-4">
+                <div class="flex justify-between items-center px-6 py-4 border-b border-gray-200 sticky top-0 bg-white z-10">
+                    <h3 class="font-bold text-gray-800"><i class="fas fa-layer-group mr-2 text-purple-400"></i>Bulk Job Details</h3>
+                    <button onclick="closeModal('bulkDetailModal')" class="text-gray-500 hover:text-gray-800"><i class="fas fa-times"></i></button>
                 </div>
                 <div id="bulkDetailContent" class="p-6"></div>
             </div>
@@ -240,7 +240,7 @@
         <!-- My Requests Section -->
         <div id="sec-requests" class="hidden slide-in">
             <div class="flex items-center justify-between mb-6">
-                <h2 class="text-xl font-bold text-white">My Requests</h2>
+                <h2 class="text-xl font-bold text-gray-800">My Requests</h2>
                 <div class="flex gap-2">
                     <select id="reqFilterStatus" onchange="loadMyRequests()" class="px-3 py-1.5 rounded-lg input-dark text-sm">
                         <option value="">All</option>
@@ -254,7 +254,7 @@
             </div>
             <div class="glass rounded-xl overflow-hidden">
                 <table class="w-full text-sm">
-                    <thead class="bg-gray-800/50 text-xs text-gray-400 uppercase">
+                    <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
                         <tr>
                             <th class="px-4 py-2.5 text-left">System Ref</th>
                             <th class="px-4 py-2.5 text-left">Client Ref</th>
@@ -266,7 +266,7 @@
                             <th class="px-4 py-2.5 text-left">Actions</th>
                         </tr>
                     </thead>
-                    <tbody id="myRequestsTable" class="divide-y divide-gray-800/50"></tbody>
+                    <tbody id="myRequestsTable" class="divide-y divide-gray-200"></tbody>
                 </table>
             </div>
         </div>
@@ -275,8 +275,8 @@
         <div id="sec-doctypes" class="hidden slide-in">
             <div class="flex items-center justify-between mb-6">
                 <div>
-                    <h2 class="text-xl font-bold text-white">Document Setup</h2>
-                    <p class="text-sm text-gray-400">Configure your custom document types and validation rules</p>
+                    <h2 class="text-xl font-bold text-gray-800">Document Setup</h2>
+                    <p class="text-sm text-gray-500">Configure your custom document types and validation rules</p>
                 </div>
                 <button onclick="openDocTypeModal()" class="px-4 py-2 rounded-lg btn-primary text-white text-sm font-medium">
                     <i class="fas fa-plus mr-2"></i>Add Document Type
@@ -286,21 +286,21 @@
             <!-- Info banner -->
             <div class="glass rounded-xl p-4 mb-6 flex items-start gap-3">
                 <i class="fas fa-info-circle text-[#16A085] mt-0.5"></i>
-                <div class="text-sm text-gray-300">
-                    <p class="font-medium text-white mb-1">How Document Setup Works</p>
-                    <p class="text-gray-400 text-xs">Define your own document types with custom fields and validation rules. Your custom types will appear alongside the default system types when submitting documents for verification. The AI will use your configured <strong class="text-gray-300">required fields</strong> and <strong class="text-gray-300">validation rules</strong> to extract and verify data.</p>
+                <div class="text-sm text-gray-600">
+                    <p class="font-medium text-gray-800 mb-1">How Document Setup Works</p>
+                    <p class="text-gray-500 text-xs">Define your own document types with custom fields and validation rules. Your custom types will appear alongside the default system types when submitting documents for verification. The AI will use your configured <strong class="text-gray-600">required fields</strong> and <strong class="text-gray-600">validation rules</strong> to extract and verify data.</p>
                 </div>
             </div>
 
             <!-- Global system types -->
             <div class="mb-6">
-                <h3 class="text-sm font-medium text-gray-400 mb-3"><i class="fas fa-globe mr-2"></i>System Document Types (Read-only)</h3>
+                <h3 class="text-sm font-medium text-gray-500 mb-3"><i class="fas fa-globe mr-2"></i>System Document Types (Read-only)</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3" id="globalDocTypeGrid"></div>
             </div>
 
             <!-- User's custom types -->
             <div>
-                <h3 class="text-sm font-medium text-gray-400 mb-3"><i class="fas fa-user mr-2"></i>My Custom Document Types</h3>
+                <h3 class="text-sm font-medium text-gray-500 mb-3"><i class="fas fa-user mr-2"></i>My Custom Document Types</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3" id="userDocTypeGrid"></div>
             </div>
         </div>
@@ -308,7 +308,7 @@
         <!-- API Keys Section -->
         <div id="sec-apikeys" class="hidden slide-in">
             <div class="flex items-center justify-between mb-6">
-                <h2 class="text-xl font-bold text-white">API Keys</h2>
+                <h2 class="text-xl font-bold text-gray-800">API Keys</h2>
                 <button onclick="openKeyModal()" class="px-4 py-2 rounded-lg btn-primary text-white text-sm font-medium">
                     <i class="fas fa-plus mr-2"></i>Generate New Key
                 </button>
@@ -319,7 +319,7 @@
         <!-- Webhooks Section -->
         <div id="sec-webhooks" class="hidden slide-in">
             <div class="flex items-center justify-between mb-6">
-                <h2 class="text-xl font-bold text-white">Webhooks</h2>
+                <h2 class="text-xl font-bold text-gray-800">Webhooks</h2>
                 <button onclick="openWebhookModal()" class="px-4 py-2 rounded-lg btn-primary text-white text-sm font-medium">
                     <i class="fas fa-plus mr-2"></i>Register Webhook
                 </button>
@@ -330,10 +330,10 @@
 
     <!-- Result Detail Modal -->
     <div id="resultModal" class="fixed inset-0 z-50 hidden flex items-center justify-center modal-overlay">
-        <div class="bg-gray-900 rounded-2xl border border-gray-700 w-full max-w-2xl max-h-[85vh] overflow-y-auto slide-in m-4">
-            <div class="flex justify-between items-center px-6 py-4 border-b border-gray-800 sticky top-0 bg-gray-900 z-10">
-                <h3 class="font-bold text-white"><i class="fas fa-file-circle-check mr-2 text-[#16A085]"></i>Verification Result</h3>
-                <button onclick="closeModal('resultModal')" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+        <div class="bg-white rounded-2xl border border-gray-200 w-full max-w-2xl max-h-[85vh] overflow-y-auto slide-in m-4">
+            <div class="flex justify-between items-center px-6 py-4 border-b border-gray-200 sticky top-0 bg-white z-10">
+                <h3 class="font-bold text-gray-800"><i class="fas fa-file-circle-check mr-2 text-[#16A085]"></i>Verification Result</h3>
+                <button onclick="closeModal('resultModal')" class="text-gray-500 hover:text-gray-800"><i class="fas fa-times"></i></button>
             </div>
             <div id="resultContent" class="p-6"></div>
         </div>
@@ -341,23 +341,23 @@
 
     <!-- Generate Key Modal -->
     <div id="keyModal" class="fixed inset-0 z-50 hidden flex items-center justify-center modal-overlay">
-        <div class="bg-gray-900 rounded-2xl border border-gray-700 w-full max-w-md slide-in m-4">
-            <div class="flex justify-between items-center px-6 py-4 border-b border-gray-800">
-                <h3 class="font-bold text-white"><i class="fas fa-key mr-2 text-yellow-400"></i>Generate API Key</h3>
-                <button onclick="closeModal('keyModal')" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+        <div class="bg-white rounded-2xl border border-gray-200 w-full max-w-md slide-in m-4">
+            <div class="flex justify-between items-center px-6 py-4 border-b border-gray-200">
+                <h3 class="font-bold text-gray-800"><i class="fas fa-key mr-2 text-yellow-400"></i>Generate API Key</h3>
+                <button onclick="closeModal('keyModal')" class="text-gray-500 hover:text-gray-800"><i class="fas fa-times"></i></button>
             </div>
             <form onsubmit="generateKey(event)" class="p-6 space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-300 mb-1">Key Name</label>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Key Name</label>
                     <input type="text" id="keyName" class="w-full px-3 py-2 rounded-lg input-dark text-sm" placeholder="Production Key">
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-1">Rate Limit/hr</label>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Rate Limit/hr</label>
                         <input type="number" id="keyRateLimit" value="1000" class="w-full px-3 py-2 rounded-lg input-dark text-sm">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-1">Burst Limit/min</label>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Burst Limit/min</label>
                         <input type="number" id="keyBurstLimit" value="50" class="w-full px-3 py-2 rounded-lg input-dark text-sm">
                     </div>
                 </div>
@@ -371,41 +371,41 @@
 
     <!-- Document Type Modal -->
     <div id="docTypeModal" class="fixed inset-0 z-50 hidden flex items-center justify-center modal-overlay">
-        <div class="bg-gray-900 rounded-2xl border border-gray-700 w-full max-w-lg max-h-[85vh] overflow-y-auto slide-in m-4">
-            <div class="flex justify-between items-center px-6 py-4 border-b border-gray-800">
-                <h3 class="font-bold text-white" id="docTypeModalTitle"><i class="fas fa-file-circle-plus mr-2 text-[#16A085]"></i>Add Document Type</h3>
-                <button onclick="closeModal('docTypeModal')" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+        <div class="bg-white rounded-2xl border border-gray-200 w-full max-w-lg max-h-[85vh] overflow-y-auto slide-in m-4">
+            <div class="flex justify-between items-center px-6 py-4 border-b border-gray-200">
+                <h3 class="font-bold text-gray-800" id="docTypeModalTitle"><i class="fas fa-file-circle-plus mr-2 text-[#16A085]"></i>Add Document Type</h3>
+                <button onclick="closeModal('docTypeModal')" class="text-gray-500 hover:text-gray-800"><i class="fas fa-times"></i></button>
             </div>
             <form onsubmit="saveDocType(event)" class="p-6 space-y-4">
                 <input type="hidden" id="dtEditId">
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-1">Document Name <span class="text-red-400">*</span></label>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Document Name <span class="text-red-400">*</span></label>
                         <input type="text" id="dtName" required class="w-full px-3 py-2 rounded-lg input-dark text-sm" placeholder="e.g. Employment Letter">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-1">Code <span class="text-red-400">*</span></label>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Code <span class="text-red-400">*</span></label>
                         <input type="text" id="dtCode" required pattern="[a-z0-9_-]+" class="w-full px-3 py-2 rounded-lg input-dark text-sm font-mono" placeholder="e.g. employment_letter">
                         <p class="text-[10px] text-gray-500 mt-0.5">Lowercase, underscores, hyphens only</p>
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-1">Allowed Formats</label>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Allowed Formats</label>
                         <input type="text" id="dtFormats" class="w-full px-3 py-2 rounded-lg input-dark text-sm" placeholder="jpg,png,pdf" value="jpg,png,pdf">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-1">Max File Size (MB)</label>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Max File Size (MB)</label>
                         <input type="number" id="dtMaxSize" class="w-full px-3 py-2 rounded-lg input-dark text-sm" value="5" min="1" max="50">
                     </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-300 mb-1">Required Fields <span class="text-[10px] text-gray-500">(fields AI should extract)</span></label>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Required Fields <span class="text-[10px] text-gray-500">(fields AI should extract)</span></label>
                     <input type="text" id="dtFields" class="w-full px-3 py-2 rounded-lg input-dark text-sm" placeholder="name, dob, id_number, address">
                     <p class="text-[10px] text-gray-500 mt-0.5">Comma-separated list of field names</p>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-300 mb-1">Validation Rules <span class="text-[10px] text-gray-500">(regex patterns, JSON)</span></label>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Validation Rules <span class="text-[10px] text-gray-500">(regex patterns, JSON)</span></label>
                     <textarea id="dtRules" rows="3" class="w-full px-3 py-2 rounded-lg input-dark text-sm font-mono" placeholder='{"id_number": "^[A-Z0-9]{10}$"}'></textarea>
                     <p class="text-[10px] text-gray-500 mt-0.5">JSON object mapping field names to regex patterns</p>
                 </div>
@@ -419,22 +419,22 @@
 
     <!-- Register Webhook Modal -->
     <div id="webhookModal" class="fixed inset-0 z-50 hidden flex items-center justify-center modal-overlay">
-        <div class="bg-gray-900 rounded-2xl border border-gray-700 w-full max-w-md slide-in m-4">
-            <div class="flex justify-between items-center px-6 py-4 border-b border-gray-800">
-                <h3 class="font-bold text-white"><i class="fas fa-bolt mr-2 text-yellow-400"></i>Register Webhook</h3>
-                <button onclick="closeModal('webhookModal')" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+        <div class="bg-white rounded-2xl border border-gray-200 w-full max-w-md slide-in m-4">
+            <div class="flex justify-between items-center px-6 py-4 border-b border-gray-200">
+                <h3 class="font-bold text-gray-800"><i class="fas fa-bolt mr-2 text-yellow-400"></i>Register Webhook</h3>
+                <button onclick="closeModal('webhookModal')" class="text-gray-500 hover:text-gray-800"><i class="fas fa-times"></i></button>
             </div>
             <form onsubmit="registerWebhook(event)" class="p-6 space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-300 mb-1">Webhook URL</label>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Webhook URL</label>
                     <input type="url" id="webhookUrl" required class="w-full px-3 py-2 rounded-lg input-dark text-sm" placeholder="https://your-server.com/webhook">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-300 mb-1">Events</label>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Events</label>
                     <div class="space-y-2 mt-1">
-                        <label class="flex items-center gap-2 text-sm text-gray-300"><input type="checkbox" value="document.verified" checked class="webhook-event rounded"> document.verified</label>
-                        <label class="flex items-center gap-2 text-sm text-gray-300"><input type="checkbox" value="document.rejected" checked class="webhook-event rounded"> document.rejected</label>
-                        <label class="flex items-center gap-2 text-sm text-gray-300"><input type="checkbox" value="document.failed" checked class="webhook-event rounded"> document.failed</label>
+                        <label class="flex items-center gap-2 text-sm text-gray-600"><input type="checkbox" value="document.verified" checked class="webhook-event rounded"> document.verified</label>
+                        <label class="flex items-center gap-2 text-sm text-gray-600"><input type="checkbox" value="document.rejected" checked class="webhook-event rounded"> document.rejected</label>
+                        <label class="flex items-center gap-2 text-sm text-gray-600"><input type="checkbox" value="document.failed" checked class="webhook-event rounded"> document.failed</label>
                     </div>
                 </div>
                 <div id="webhookResult" class="hidden"></div>
@@ -514,18 +514,18 @@
             if (!data?.success) return;
             const d = data.data;
             document.getElementById('statCards').innerHTML = `
-                <div class="glass rounded-xl p-5 stat-card"><div class="flex justify-between items-start"><div><p class="text-xs text-gray-400">Total Requests</p><p class="text-2xl font-bold text-white mt-1">${d.total_requests}</p></div><i class="fas fa-file-lines text-xl text-[#16A085] opacity-60"></i></div></div>
-                <div class="glass rounded-xl p-5 stat-card"><div class="flex justify-between items-start"><div><p class="text-xs text-gray-400">Verified</p><p class="text-2xl font-bold text-green-400 mt-1">${d.verified_count}</p></div><i class="fas fa-circle-check text-xl text-green-400 opacity-60"></i></div></div>
-                <div class="glass rounded-xl p-5 stat-card"><div class="flex justify-between items-start"><div><p class="text-xs text-gray-400">Rejected</p><p class="text-2xl font-bold text-red-400 mt-1">${d.rejected_count}</p></div><i class="fas fa-circle-xmark text-xl text-red-400 opacity-60"></i></div></div>
-                <div class="glass rounded-xl p-5 stat-card"><div class="flex justify-between items-start"><div><p class="text-xs text-gray-400">Processing</p><p class="text-2xl font-bold text-yellow-400 mt-1">${d.processing_count}</p></div><i class="fas fa-spinner text-xl text-yellow-400 opacity-60"></i></div></div>`;
+                <div class="glass rounded-xl p-5 stat-card"><div class="flex justify-between items-start"><div><p class="text-xs text-gray-500">Total Requests</p><p class="text-2xl font-bold text-gray-800 mt-1">${d.total_requests}</p></div><i class="fas fa-file-lines text-xl text-[#16A085] opacity-60"></i></div></div>
+                <div class="glass rounded-xl p-5 stat-card"><div class="flex justify-between items-start"><div><p class="text-xs text-gray-500">Verified</p><p class="text-2xl font-bold text-green-400 mt-1">${d.verified_count}</p></div><i class="fas fa-circle-check text-xl text-green-400 opacity-60"></i></div></div>
+                <div class="glass rounded-xl p-5 stat-card"><div class="flex justify-between items-start"><div><p class="text-xs text-gray-500">Rejected</p><p class="text-2xl font-bold text-red-400 mt-1">${d.rejected_count}</p></div><i class="fas fa-circle-xmark text-xl text-red-400 opacity-60"></i></div></div>
+                <div class="glass rounded-xl p-5 stat-card"><div class="flex justify-between items-start"><div><p class="text-xs text-gray-500">Processing</p><p class="text-2xl font-bold text-yellow-400 mt-1">${d.processing_count}</p></div><i class="fas fa-spinner text-xl text-yellow-400 opacity-60"></i></div></div>`;
 
             document.getElementById('recentTable').innerHTML = (d.recent_requests || []).map(r => `
-                <tr class="hover:bg-gray-800/30 transition cursor-pointer" onclick="viewResult('${r.system_reference_id}')">
+                <tr class="hover:bg-gray-50 transition cursor-pointer" onclick="viewResult('${r.system_reference_id}')">
                     <td class="px-4 py-2.5 font-mono text-xs text-[#76D7C4]">${r.system_reference_id}</td>
                     <td class="px-4 py-2.5 text-xs capitalize">${r.document_type}</td>
                     <td class="px-4 py-2.5">${statusBadge(r.status)}</td>
                     <td class="px-4 py-2.5 text-xs">${r.confidence != null ? r.confidence + '%' : '-'}</td>
-                    <td class="px-4 py-2.5 text-xs text-gray-400">${fmtDate(r.created_at)}</td>
+                    <td class="px-4 py-2.5 text-xs text-gray-500">${fmtDate(r.created_at)}</td>
                     <td class="px-4 py-2.5"><button class="text-[#16A085] hover:text-[#76D7C4] text-xs"><i class="fas fa-eye"></i> View</button></td>
                 </tr>`).join('') || '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No requests yet. Submit your first document!</td></tr>';
         }
@@ -546,13 +546,13 @@
             select.innerHTML = optionsHtml;
 
             document.getElementById('docTypeList').innerHTML = data.data.map(d => `
-                <div class="bg-gray-800/50 rounded-lg p-3 flex justify-between items-center">
+                <div class="bg-gray-50 rounded-lg p-3 flex justify-between items-center">
                     <div>
-                        <span class="text-sm text-white">${d.name}</span>
+                        <span class="text-sm text-gray-800">${d.name}</span>
                         <span class="text-xs text-gray-500 ml-2 font-mono">${d.code}</span>
                         ${d.is_own ? '<span class="ml-2 px-1.5 py-0.5 rounded bg-[#16A085]/20 text-[#76D7C4] text-[10px]">Custom</span>' : ''}
                     </div>
-                    <span class="text-[10px] text-gray-400">${(d.allowed_formats || []).join(', ')}</span>
+                    <span class="text-[10px] text-gray-500">${(d.allowed_formats || []).join(', ')}</span>
                 </div>`).join('');
         }
 
@@ -591,7 +591,7 @@
             btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Submit for Verification';
 
             if (data?.status === 'accepted') {
-                sucDiv.innerHTML = `Document accepted! Reference: <code class="bg-gray-800 px-2 py-0.5 rounded text-[#76D7C4] font-mono">${data.system_reference_id}</code>`;
+                sucDiv.innerHTML = `Document accepted! Reference: <code class="bg-gray-100 px-2 py-0.5 rounded text-[#76D7C4] font-mono">${data.system_reference_id}</code>`;
                 sucDiv.classList.remove('hidden');
                 document.getElementById('checkRefId').value = data.system_reference_id;
             } else {
