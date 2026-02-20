@@ -6,7 +6,16 @@ class V1ApiKeyModel {
         return 'vk_' + crypto.randomBytes(32).toString('hex');
     }
 
-    static async create({ userId, name = 'Default', rateLimit = 1000, burstLimit = 50, expiresAt = null }) {
+    static getDefaultExpiry() {
+        const expiry = new Date();
+        expiry.setFullYear(expiry.getFullYear() + 1); // 1 year validity
+        return expiry;
+    }
+
+    static async create({ userId, name = 'Default', rateLimit = 1000, burstLimit = 50, expiresAt = undefined }) {
+        if (expiresAt === undefined) {
+            expiresAt = this.getDefaultExpiry();
+        }
         const apiKey = this.generateApiKey();
         const [result] = await pool.query(
             'INSERT INTO v1_api_keys (user_id, api_key, name, rate_limit, burst_limit, expires_at) VALUES (?, ?, ?, ?, ?, ?)',
