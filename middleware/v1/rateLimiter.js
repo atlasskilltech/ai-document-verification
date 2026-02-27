@@ -45,7 +45,7 @@ function createRateLimiter({ windowMs = 60000, maxRequests = 30, message = 'Too 
 
 // Pre-configured limiters
 const loginLimiter = createRateLimiter({ windowMs: 900000, maxRequests: 10, message: 'Too many login attempts. Try again in 15 minutes.' });
-const registerLimiter = createRateLimiter({ windowMs: 3600000, maxRequests: 5, message: 'Too many registration attempts. Try again later.' });
+const registerLimiter = createRateLimiter({ windowMs: 3600000, maxRequests: 10, message: 'Too many registration attempts. Try again later.' });
 const generalLimiter = createRateLimiter({ windowMs: 60000, maxRequests: 60, message: 'Too many requests. Slow down.' });
 
 module.exports = { createRateLimiter, loginLimiter, registerLimiter, generalLimiter };
