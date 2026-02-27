@@ -39,9 +39,35 @@ app.use('/v1/verify', require('./routes/v1/verifyRoutes'));
 app.use('/v1/webhook', require('./routes/v1/webhookRoutes'));
 app.use('/v1/dashboard', require('./routes/v1/dashboardRoutes'));
 
-// V1 convenience aliases (status & result at top level)
+// V1 convenience aliases (status, result, rate-limit at top level)
 const { apiKeyAuth } = require('./middleware/v1/apiKeyAuth');
 const V1VerificationRequestModel = require('./models/v1/V1VerificationRequestModel');
+const V1ApiKeyModel = require('./models/v1/V1ApiKeyModel');
+
+// GET /v1/rate-limit - Check current rate limit usage (does not count against limits)
+app.get('/v1/rate-limit', apiKeyAuth, async (req, res) => {
+    try {
+        const keyData = await V1ApiKeyModel.findByKey(req.headers.authorization.split(' ')[1]);
+        if (!keyData) {
+            return res.status(401).json({ error: 'Unauthorized', message: 'Invalid API key' });
+        }
+
+        const status = await V1ApiKeyModel.getRateLimitStatus(
+            keyData.id,
+            keyData.rate_limit,
+            keyData.burst_limit
+        );
+
+        res.json({
+            api_key_name: keyData.name,
+            hourly: status.hourly,
+            burst: status.burst
+        });
+    } catch (error) {
+        console.error('Rate limit check error:', error);
+        res.status(500).json({ error: 'Internal server error', message: 'Failed to check rate limit status' });
+    }
+});
 
 app.get('/v1/status/:system_reference_id', apiKeyAuth, async (req, res) => {
     try {
