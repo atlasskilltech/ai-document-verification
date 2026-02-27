@@ -55,6 +55,52 @@ class V1ApiKeyModel {
         await pool.query('UPDATE v1_api_keys SET last_used_at = NOW() WHERE id = ?', [id]);
     }
 
+    static async getRateLimitStatus(apiKeyId, rateLimit, burstLimit) {
+        const conn = await pool.getConnection();
+        try {
+            const hourStart = new Date();
+            hourStart.setMinutes(0, 0, 0);
+            const [hourRows] = await conn.query(
+                'SELECT COALESCE(SUM(request_count), 0) as count FROM v1_rate_limit_log WHERE api_key_id = ? AND window_start >= ?',
+                [apiKeyId, hourStart]
+            );
+            const hourlyCount = hourRows[0].count;
+
+            const minuteStart = new Date();
+            minuteStart.setSeconds(0, 0);
+            const [minRows] = await conn.query(
+                'SELECT COALESCE(SUM(request_count), 0) as count FROM v1_rate_limit_log WHERE api_key_id = ? AND window_start >= ?',
+                [apiKeyId, minuteStart]
+            );
+            const minuteCount = minRows[0].count;
+
+            const hourReset = new Date();
+            hourReset.setMinutes(0, 0, 0);
+            hourReset.setHours(hourReset.getHours() + 1);
+
+            const minuteReset = new Date();
+            minuteReset.setSeconds(0, 0);
+            minuteReset.setMinutes(minuteReset.getMinutes() + 1);
+
+            return {
+                hourly: {
+                    limit: rateLimit,
+                    used: hourlyCount,
+                    remaining: Math.max(0, rateLimit - hourlyCount),
+                    reset: hourReset.toISOString()
+                },
+                burst: {
+                    limit: burstLimit,
+                    used: minuteCount,
+                    remaining: Math.max(0, burstLimit - minuteCount),
+                    reset: minuteReset.toISOString()
+                }
+            };
+        } finally {
+            conn.release();
+        }
+    }
+
     static async checkRateLimit(apiKeyId, rateLimit, burstLimit) {
         const conn = await pool.getConnection();
         try {

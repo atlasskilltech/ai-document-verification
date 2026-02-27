@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const { apiKeyAuth } = require('../../middleware/v1/apiKeyAuth');
+const { generalLimiter } = require('../../middleware/v1/rateLimiter');
 const V1VerificationRequestModel = require('../../models/v1/V1VerificationRequestModel');
 const V1ApiKeyModel = require('../../models/v1/V1ApiKeyModel');
 const V1AuditModel = require('../../models/v1/V1AuditModel');
@@ -30,7 +31,7 @@ const adminAuth = (req, res, next) => {
 };
 
 // GET /v1/dashboard/admin - Admin dashboard stats
-router.get('/admin', adminAuth, async (req, res) => {
+router.get('/admin', generalLimiter, adminAuth, async (req, res) => {
     try {
         const stats = await V1VerificationRequestModel.getAdminStats();
         const queueStatus = QueueService.getStatus();
@@ -77,6 +78,17 @@ router.get('/user', apiKeyAuth, async (req, res) => {
         // API usage stats
         const activeKeys = apiKeys.filter(k => k.status === 'active');
 
+        // Rate limit status for the current API key
+        const currentKey = apiKeys.find(k => k.id === req.apiUser.apiKeyId);
+        let rateLimitStatus = null;
+        if (currentKey) {
+            rateLimitStatus = await V1ApiKeyModel.getRateLimitStatus(
+                currentKey.id,
+                currentKey.rate_limit,
+                currentKey.burst_limit
+            );
+        }
+
         res.json({
             success: true,
             data: {
@@ -90,7 +102,8 @@ router.get('/user', apiKeyAuth, async (req, res) => {
                 api_usage: {
                     active_keys: activeKeys.length,
                     total_keys: apiKeys.length
-                }
+                },
+                rate_limit: rateLimitStatus
             }
         });
     } catch (error) {

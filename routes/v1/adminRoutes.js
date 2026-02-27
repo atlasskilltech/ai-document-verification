@@ -6,6 +6,7 @@ const V1VerificationRequestModel = require('../../models/v1/V1VerificationReques
 const V1UserModel = require('../../models/v1/V1UserModel');
 const V1AuditModel = require('../../models/v1/V1AuditModel');
 const QueueService = require('../../services/v1/QueueService');
+const { generalLimiter } = require('../../middleware/v1/rateLimiter');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'v1-jwt-secret';
 
@@ -29,7 +30,8 @@ const adminAuth = (req, res, next) => {
     }
 };
 
-// Apply admin auth to all routes
+// Apply rate limiting and admin auth to all routes
+router.use(generalLimiter);
 router.use(adminAuth);
 
 // ==========================================
