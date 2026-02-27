@@ -7,6 +7,10 @@ require('dotenv').config();
 
 const app = express();
 
+// Trust first proxy (nginx, Cloudflare, etc.) so req.ip returns the real client IP
+// Without this, all users behind a reverse proxy share the same rate limit bucket
+app.set('trust proxy', 1);
+
 // ===================== MIDDLEWARE =====================
 app.use(cors());
 app.use(express.json());
