@@ -425,6 +425,21 @@ class VerificationScheduler {
                     || [student.first_name, student.last_name].filter(Boolean).join(' ')
                     || student.name || applnID;
 
+                // Skip students already fully verified in DB
+                if (this.config.skipAlreadyVerified) {
+                    try {
+                        const existing = await AtlasVerificationModel.getStudentResult(String(applnID));
+                        if (existing && existing.status === 'completed') {
+                            this.log('info', `Skipping student ${applnID} (${studentName}): already verified`);
+                            this.currentRun.processed++;
+                            this.currentRun.skipped++;
+                            continue;
+                        }
+                    } catch (e) {
+                        this.log('warn', `Could not check existing status for ${applnID}: ${e.message}`);
+                    }
+                }
+
                 this.log('info', `Processing student ${this.currentRun.processed + 1}/${students.length}: ${applnID} (${studentName})`);
 
                 const result = await this.processStudent(applnID, studentName);
