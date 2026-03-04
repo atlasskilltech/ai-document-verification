@@ -18,39 +18,70 @@ router.get('/stats', async (req, res) => {
 
 /**
  * GET /api/student-dashboard/students
- * Get student list from Atlas API + merge with verification results from DB
+ * Get student list from Atlas API + merge with verification results from DB.
+ * Falls back to DB-only results if Atlas API is unreachable.
  */
 router.get('/students', async (req, res) => {
     try {
-        // Fetch live student list from Atlas API
-        const atlasRes = await scheduler.atlasClient.getStudentList();
-        let students = [];
-        if (atlasRes && atlasRes.data) {
-            students = Array.isArray(atlasRes.data)
-                ? atlasRes.data
-                : (atlasRes.data.data ? (Array.isArray(atlasRes.data.data) ? atlasRes.data.data : [atlasRes.data.data]) : [atlasRes.data]);
-        }
-
-        // Get all verification results from DB
+        // Get all verification results from DB (always available)
         const results = await AtlasVerificationModel.getAllResults();
         const resultsMap = {};
-        results.forEach(r => { resultsMap[r.applnID] = r; });
+        results.forEach(r => { resultsMap[String(r.applnID)] = r; });
 
-        // Merge
-        const merged = students.map(s => {
-            const id = s.applnID || s.id || s.application_id;
-            const name = [s.first_name, s.last_name].filter(Boolean).join(' ') || s.name || s.studentName || '-';
-            const result = resultsMap[id] || null;
+        // Try fetching live student list from Atlas API
+        let atlasStudents = [];
+        try {
+            const atlasRes = await scheduler.atlasClient.getStudentList();
+            if (atlasRes && atlasRes.data) {
+                const raw = atlasRes.data;
+                if (Array.isArray(raw)) {
+                    atlasStudents = raw;
+                } else if (raw.data && Array.isArray(raw.data)) {
+                    atlasStudents = raw.data;
+                } else if (raw.data) {
+                    atlasStudents = [raw.data];
+                } else {
+                    atlasStudents = [raw];
+                }
+            }
+        } catch (atlasErr) {
+            console.error('[StudentDashboard] Atlas API failed, using DB-only:', atlasErr.message);
+        }
 
-            return {
-                applnID: id,
-                studentName: name,
-                email: s.email || null,
-                phone: s.phone || null,
-                program: s.program_name || s.program || null,
-                // Verification data from DB
-                verification: result
-            };
+        let merged = [];
+        const seenIds = new Set();
+
+        if (atlasStudents.length > 0) {
+            // Merge Atlas students with DB verification results
+            merged = atlasStudents.map(s => {
+                const id = String(s.applnID || s.id || s.application_id || '');
+                seenIds.add(id);
+                const name = [s.first_name, s.last_name].filter(Boolean).join(' ') || s.name || s.studentName || '-';
+                const result = resultsMap[id] || null;
+
+                return {
+                    applnID: id,
+                    studentName: name,
+                    email: s.email || null,
+                    phone: s.phone || null,
+                    program: s.program_name || s.program || null,
+                    verification: result
+                };
+            });
+        }
+
+        // Add any DB-only results that weren't in the Atlas student list
+        results.forEach(r => {
+            if (!seenIds.has(String(r.applnID))) {
+                merged.push({
+                    applnID: r.applnID,
+                    studentName: r.studentName || r.applnID,
+                    email: null,
+                    phone: null,
+                    program: null,
+                    verification: r
+                });
+            }
         });
 
         res.json({ success: true, data: { students: merged, totalResults: results.length } });

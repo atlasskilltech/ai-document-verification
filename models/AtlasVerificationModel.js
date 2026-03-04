@@ -90,7 +90,7 @@ class AtlasVerificationModel {
                 result.applnID,
                 result.studentName || null,
                 result.status,
-                result.allDocuments ? result.allDocuments.length : 0,
+                result.totalDocs || (result.allDocuments ? result.allDocuments.length : 0),
                 result.uploaded || 0,
                 result.approved || 0,
                 result.rejected || 0,
@@ -116,15 +116,15 @@ class AtlasVerificationModel {
             ORDER BY updated_at DESC
         `);
         return rows.map(r => ({
-            applnID: r.appln_id,
+            applnID: String(r.appln_id),
             studentName: r.student_name,
             status: r.status,
-            totalDocs: r.total_docs,
-            uploaded: r.uploaded,
-            approved: r.approved,
-            rejected: r.rejected,
-            errors: r.errors,
-            skipped: r.skipped,
+            totalDocs: r.total_docs || 0,
+            uploaded: r.uploaded || 0,
+            approved: r.approved || 0,
+            rejected: r.rejected || 0,
+            errors: r.errors || 0,
+            skipped: r.skipped || 0,
             verifiedAt: r.verified_at
         }));
     }

@@ -442,7 +442,7 @@ async function loadAllData() {
     icon.classList.add('fa-spin');
 
     try {
-        // Fetch merged students + results from new API
+        // Fetch merged students + results from API (with Atlas API fallback to DB-only)
         const res = await apiFetch('/students');
 
         if (res.success && res.data) {
@@ -451,9 +451,25 @@ async function loadAllData() {
             resultsMap = {};
             studentsCache.forEach(s => {
                 if (s.verification) {
-                    resultsMap[s.applnID] = s.verification;
+                    resultsMap[String(s.applnID)] = s.verification;
                 }
             });
+        } else {
+            // If /students failed, try loading from DB results directly
+            console.warn('Students endpoint failed, loading from DB results');
+            const resultsRes = await apiFetch('/results');
+            if (resultsRes.success && resultsRes.data) {
+                studentsCache = resultsRes.data.map(r => ({
+                    applnID: r.applnID,
+                    studentName: r.studentName || r.applnID,
+                    email: null,
+                    phone: null,
+                    program: null,
+                    verification: r
+                }));
+                resultsMap = {};
+                resultsRes.data.forEach(r => { resultsMap[String(r.applnID)] = r; });
+            }
         }
 
         // Update all views
@@ -464,6 +480,28 @@ async function loadAllData() {
 
     } catch (err) {
         console.error('Failed to load data:', err);
+        // Last-resort: try DB results only
+        try {
+            const resultsRes = await apiFetch('/results');
+            if (resultsRes.success && resultsRes.data && resultsRes.data.length > 0) {
+                studentsCache = resultsRes.data.map(r => ({
+                    applnID: r.applnID,
+                    studentName: r.studentName || r.applnID,
+                    email: null,
+                    phone: null,
+                    program: null,
+                    verification: r
+                }));
+                resultsMap = {};
+                resultsRes.data.forEach(r => { resultsMap[String(r.applnID)] = r; });
+                updateOverviewStats();
+                renderRecentStudents();
+                renderAllStudents();
+                updateVerificationBars();
+            }
+        } catch (e) {
+            console.error('DB fallback also failed:', e);
+        }
     }
 
     icon.classList.remove('fa-spin');
@@ -478,7 +516,6 @@ function updateOverviewStats() {
     const total = studentsCache.length;
     let verified = 0, pending = 0, issues = 0;
     let totalDocs = 0, uploadedDocs = 0, verifiedDocs = 0, rejectedDocs = 0, missingDocs = 0;
-    let confidenceSum = 0, confidenceCount = 0;
 
     studentsCache.forEach(s => {
         const r = s.verification;
@@ -488,11 +525,12 @@ function updateOverviewStats() {
             uploadedDocs += r.uploaded || 0;
             verifiedDocs += r.approved || 0;
             rejectedDocs += r.rejected || 0;
-            missingDocs += (r.totalDocs || 0) - (r.uploaded || 0);
+            const missing = Math.max(0, (r.totalDocs || 0) - (r.uploaded || 0));
+            missingDocs += missing;
 
-            if (r.status === 'completed' && r.rejected === 0) {
+            if (r.status === 'completed' && (r.rejected || 0) === 0) {
                 verified++;
-            } else if (r.status === 'completed' && r.rejected > 0) {
+            } else if (r.status === 'completed' && (r.rejected || 0) > 0) {
                 issues++;
             } else if (r.status === 'error' || r.status === 'partial') {
                 issues++;
@@ -517,10 +555,35 @@ function updateOverviewStats() {
     document.getElementById('statUploadedDocs').textContent = uploadedDocs || '-';
     document.getElementById('statVerifiedDocs').textContent = verifiedDocs || '-';
     document.getElementById('statRejectedDocs').textContent = rejectedDocs || '-';
-    document.getElementById('statMissingDocs').textContent = missingDocs || '-';
+    document.getElementById('statMissingDocs').textContent = missingDocs >= 0 ? missingDocs : '-';
     // Show approval rate as a proxy for confidence when per-doc confidence is not available
     const approvalRate = uploadedDocs > 0 ? Math.round((verifiedDocs / uploadedDocs) * 100) : 0;
     document.getElementById('statAvgConfidence').textContent = uploadedDocs > 0 ? approvalRate + '%' : '-';
+
+    // Also try to load DB stats for more reliable numbers if local cache is empty
+    if (total === 0) {
+        loadDbStats();
+    }
+}
+
+async function loadDbStats() {
+    try {
+        const statsRes = await apiFetch('/stats');
+        if (statsRes.success && statsRes.data) {
+            const s = statsRes.data;
+            if (s.total_students > 0) {
+                document.getElementById('statTotalStudents').textContent = s.total_students || 0;
+                document.getElementById('statVerifiedStudents').textContent = s.fully_verified || 0;
+                document.getElementById('statIssueStudents').textContent = (s.has_issues || 0) + (s.has_errors || 0);
+                document.getElementById('statTotalDocs').textContent = s.total_docs || '-';
+                document.getElementById('statUploadedDocs').textContent = s.total_uploaded || '-';
+                document.getElementById('statVerifiedDocs').textContent = s.total_approved || '-';
+                document.getElementById('statRejectedDocs').textContent = s.total_rejected || '-';
+            }
+        }
+    } catch (e) {
+        console.error('Failed to load DB stats:', e);
+    }
 }
 
 function updateVerificationBars() {
@@ -966,7 +1029,7 @@ async function loadVerificationStatus() {
 
             // Scheduler info
             document.getElementById('schedulerInfo').textContent = data.scheduler.active ? 'Active' : 'Inactive';
-            document.getElementById('schedulerNext').textContent = data.scheduler.active ? `Schedule: ${data.scheduler.schedule}` : 'Scheduler is not running';
+            document.getElementById('schedulerNext').textContent = data.scheduler.active ? `Schedule: ${data.scheduler.cronSchedule}` : 'Scheduler is not running';
 
             // Last run info
             if (data.recentRuns && data.recentRuns.length > 0) {
