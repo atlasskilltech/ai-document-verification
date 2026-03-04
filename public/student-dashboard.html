@@ -518,7 +518,7 @@ async function refreshAllData() {
 }
 
 // ==================== OVERVIEW STATS ====================
-function updateOverviewStats() {
+async function updateOverviewStats() {
     const total = studentsCache.length;
     let verified = 0, pending = 0, issues = 0;
     let totalDocs = 0, uploadedDocs = 0, verifiedDocs = 0, rejectedDocs = 0, missingDocs = 0;
@@ -539,6 +539,8 @@ function updateOverviewStats() {
             } else if (r.status === 'completed' && (r.rejected || 0) > 0) {
                 issues++;
             } else if (r.status === 'error' || r.status === 'partial') {
+                issues++;
+            } else if (r.status === 'skipped') {
                 issues++;
             } else {
                 pending++;
@@ -562,14 +564,11 @@ function updateOverviewStats() {
     document.getElementById('statVerifiedDocs').textContent = verifiedDocs || '-';
     document.getElementById('statRejectedDocs').textContent = rejectedDocs || '-';
     document.getElementById('statMissingDocs').textContent = missingDocs >= 0 ? missingDocs : '-';
-    // Show approval rate as a proxy for confidence when per-doc confidence is not available
     const approvalRate = uploadedDocs > 0 ? Math.round((verifiedDocs / uploadedDocs) * 100) : 0;
     document.getElementById('statAvgConfidence').textContent = uploadedDocs > 0 ? approvalRate + '%' : '-';
 
-    // Also try to load DB stats for more reliable numbers if local cache is empty
-    if (total === 0) {
-        loadDbStats();
-    }
+    // Also load DB stats for more reliable numbers (always, to overlay DB-backed data)
+    await loadDbStats();
 }
 
 async function loadDbStats() {
@@ -578,13 +577,28 @@ async function loadDbStats() {
         if (statsRes.success && statsRes.data) {
             const s = statsRes.data;
             if (s.total_students > 0) {
-                document.getElementById('statTotalStudents').textContent = s.total_students || 0;
-                document.getElementById('statVerifiedStudents').textContent = s.fully_verified || 0;
-                document.getElementById('statIssueStudents').textContent = (s.has_issues || 0) + (s.has_errors || 0);
+                const dbTotal = parseInt(s.total_students) || 0;
+                const dbVerified = parseInt(s.fully_verified) || 0;
+                const dbIssues = (parseInt(s.has_issues) || 0) + (parseInt(s.has_errors) || 0) + (parseInt(s.skipped) || 0);
+                const dbPending = dbTotal - dbVerified - dbIssues;
+
+                document.getElementById('statTotalStudents').textContent = dbTotal;
+                document.getElementById('statVerifiedStudents').textContent = dbVerified;
+                document.getElementById('statIssueStudents').textContent = dbIssues;
+                document.getElementById('statPendingStudents').textContent = dbPending > 0 ? dbPending : 0;
+
+                document.getElementById('statVerifiedPct').textContent = dbTotal > 0 ? pct(dbVerified, dbTotal) + '%' : '-';
+                document.getElementById('statPendingPct').textContent = dbTotal > 0 ? pct(Math.max(0, dbPending), dbTotal) + '%' : '-';
+                document.getElementById('statIssuesPct').textContent = dbTotal > 0 ? pct(dbIssues, dbTotal) + '%' : '-';
+
                 document.getElementById('statTotalDocs').textContent = s.total_docs || '-';
                 document.getElementById('statUploadedDocs').textContent = s.total_uploaded || '-';
                 document.getElementById('statVerifiedDocs').textContent = s.total_approved || '-';
                 document.getElementById('statRejectedDocs').textContent = s.total_rejected || '-';
+                const dbMissing = (parseInt(s.total_docs) || 0) - (parseInt(s.total_uploaded) || 0);
+                document.getElementById('statMissingDocs').textContent = dbMissing >= 0 ? dbMissing : '-';
+                const dbApprovalRate = (parseInt(s.total_uploaded) || 0) > 0 ? Math.round(((parseInt(s.total_approved) || 0) / (parseInt(s.total_uploaded) || 1)) * 100) : 0;
+                document.getElementById('statAvgConfidence').textContent = (parseInt(s.total_uploaded) || 0) > 0 ? dbApprovalRate + '%' : '-';
             }
         }
     } catch (e) {
@@ -671,7 +685,7 @@ function renderAllStudents() {
             category = 'pending'; pendingCount++;
         } else if (r.status === 'completed' && (r.rejected || 0) === 0) {
             category = 'verified'; verifiedCount++;
-        } else if (r.status === 'completed' || r.status === 'error' || r.status === 'partial') {
+        } else if (r.status === 'completed' || r.status === 'error' || r.status === 'partial' || r.status === 'skipped') {
             category = 'issues'; issuesCount++;
         } else {
             category = 'pending'; pendingCount++;

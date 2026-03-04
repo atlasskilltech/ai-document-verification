@@ -188,6 +188,7 @@ class AtlasVerificationModel {
                 SUM(CASE WHEN status = 'completed' AND rejected = 0 THEN 1 ELSE 0 END) as fully_verified,
                 SUM(CASE WHEN status IN ('completed') AND rejected > 0 THEN 1 ELSE 0 END) as has_issues,
                 SUM(CASE WHEN status IN ('error','partial') THEN 1 ELSE 0 END) as has_errors,
+                SUM(CASE WHEN status = 'skipped' THEN 1 ELSE 0 END) as skipped,
                 SUM(total_docs) as total_docs,
                 SUM(uploaded) as total_uploaded,
                 SUM(approved) as total_approved,
