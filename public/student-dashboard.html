@@ -33,6 +33,12 @@
         .status-timeline { position: relative; }
         .status-timeline::before { content: ''; position: absolute; left: 15px; top: 0; bottom: 0; width: 2px; background: #374151; }
         .timeline-dot { width: 12px; height: 12px; border-radius: 50%; position: relative; z-index: 1; }
+        .bulk-bar { transition: all 0.3s ease; }
+        .bulk-bar.hidden { opacity: 0; transform: translateY(10px); pointer-events: none; }
+        .bulk-bar:not(.hidden) { opacity: 1; transform: translateY(0); }
+        .doc-check-overlay { position: absolute; top: 8px; left: 8px; z-index: 5; }
+        .doc-card-selectable { position: relative; }
+        .doc-card-selectable.selected { border-color: rgba(22,160,133,0.6) !important; background: rgba(22,160,133,0.05); }
     </style>
 </head>
 <body class="bg-gray-950 text-gray-200 min-h-screen flex">
@@ -277,12 +283,27 @@
                 <span class="text-xs text-gray-500 ml-auto" id="studentCountLabel"></span>
             </div>
 
+            <!-- Bulk Action Bar (hidden until students selected) -->
+            <div id="bulkStudentBar" class="bulk-bar hidden mb-4 bg-[#16A085]/10 border border-[#16A085]/30 rounded-xl px-5 py-3 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-check-square text-[#16A085]"></i>
+                    <span class="text-sm text-white"><strong id="bulkStudentCount">0</strong> students selected</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="clearStudentSelection()" class="text-gray-400 hover:text-white text-xs transition"><i class="fas fa-times mr-1"></i>Clear</button>
+                    <button onclick="recheckSelectedStudents()" id="bulkRecheckStudentsBtn" class="bg-yellow-600 hover:bg-yellow-500 text-white px-4 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-2">
+                        <i class="fas fa-redo"></i> Recheck Selected in Parallel
+                    </button>
+                </div>
+            </div>
+
             <!-- Students Table -->
             <div class="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
                         <thead class="bg-gray-800/50 text-xs text-gray-400">
                             <tr>
+                                <th class="px-3 py-3 text-center w-10"><input type="checkbox" id="selectAllStudents" onchange="toggleAllStudents(this.checked)" class="accent-[#16A085] cursor-pointer"></th>
                                 <th class="px-3 py-3 text-left">#</th>
                                 <th class="px-3 py-3 text-left">Application ID</th>
                                 <th class="px-3 py-3 text-left">Student Name</th>
@@ -299,7 +320,7 @@
                             </tr>
                         </thead>
                         <tbody id="allStudentsBody">
-                            <tr><td colspan="13" class="text-center py-8 text-gray-600">Loading students...</td></tr>
+                            <tr><td colspan="14" class="text-center py-8 text-gray-600">Loading students...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -316,6 +337,20 @@
                 </button>
                 <div id="studentProfileCard" class="bg-gray-900 rounded-xl border border-gray-800 p-5">
                     <p class="text-gray-500 text-center py-4">Select a student to view documents</p>
+                </div>
+            </div>
+
+            <!-- Bulk Doc Action Bar (hidden until docs selected) -->
+            <div id="bulkDocBar" class="bulk-bar hidden mb-4 bg-[#16A085]/10 border border-[#16A085]/30 rounded-xl px-5 py-3 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-check-square text-[#16A085]"></i>
+                    <span class="text-sm text-white"><strong id="bulkDocCount">0</strong> documents selected</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="clearDocSelection()" class="text-gray-400 hover:text-white text-xs transition"><i class="fas fa-times mr-1"></i>Clear</button>
+                    <button onclick="recheckSelectedDocs()" id="bulkRecheckDocsBtn" class="bg-yellow-600 hover:bg-yellow-500 text-white px-4 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-2">
+                        <i class="fas fa-redo"></i> Recheck Selected in Parallel
+                    </button>
                 </div>
             </div>
 
@@ -416,6 +451,8 @@ let resultsMap = {};
 let currentStudentFilter = 'all';
 let selectedStudentId = null;
 let searchQuery = '';
+let selectedStudents = new Set();  // applnIDs selected for bulk recheck
+let selectedDocs = new Set();      // documentTypeIds selected for bulk doc recheck
 
 // ==================== API ====================
 async function apiFetch(url, opts = {}) {
@@ -720,7 +757,7 @@ function renderAllStudents() {
     document.getElementById('studentCountLabel').textContent = `${filtered.length} of ${studentsCache.length} students`;
 
     if (filtered.length === 0) {
-        document.getElementById('allStudentsBody').innerHTML = `<tr><td colspan="13" class="text-center py-8 text-gray-500">${searchQuery ? 'No students match your search' : 'No students found in this category'}</td></tr>`;
+        document.getElementById('allStudentsBody').innerHTML = `<tr><td colspan="14" class="text-center py-8 text-gray-500">${searchQuery ? 'No students match your search' : 'No students found in this category'}</td></tr>`;
         return;
     }
 
@@ -739,8 +776,12 @@ function renderAllStudents() {
 
         const statusBadge = r ? getStudentStatusBadge(r) : '<span class="px-2 py-0.5 rounded text-xs badge-pending"><i class="fas fa-clock mr-1"></i>Not Verified</span>';
         const rowBg = !r ? '' : s.category === 'verified' ? 'bg-green-900/5' : s.category === 'issues' ? 'bg-red-900/5' : '';
+        const isChecked = selectedStudents.has(s.applnID) ? 'checked' : '';
 
         return `<tr class="border-b border-gray-800/50 hover:bg-gray-800/30 transition cursor-pointer ${rowBg}" onclick="openStudentDocuments('${s.applnID}')">
+            <td class="px-3 py-2.5 text-center" onclick="event.stopPropagation()">
+                <input type="checkbox" class="student-checkbox accent-[#16A085] cursor-pointer" data-appln-id="${s.applnID}" ${isChecked} onchange="toggleStudentSelect('${s.applnID}', this.checked)">
+            </td>
             <td class="px-3 py-2.5 text-gray-500 text-xs">${fi + 1}</td>
             <td class="px-3 py-2.5 font-mono text-[#16A085] text-xs">${s.applnID}</td>
             <td class="px-3 py-2.5">
@@ -766,6 +807,9 @@ function renderAllStudents() {
     });
 
     document.getElementById('allStudentsBody').innerHTML = rows.join('');
+    // Sync select-all checkbox state
+    const allCb = document.getElementById('selectAllStudents');
+    if (allCb) allCb.checked = filtered.length > 0 && filtered.every(s => selectedStudents.has(s.applnID));
 }
 
 function getStudentStatusBadge(r) {
@@ -808,6 +852,8 @@ function setStudentFilter(filter) {
 // ==================== STUDENT DOCUMENTS VIEW ====================
 async function openStudentDocuments(applnID) {
     selectedStudentId = applnID;
+    selectedDocs.clear();
+    updateBulkDocBar();
     switchSection('documents');
     document.getElementById('pageTitle').textContent = 'Student Documents - ' + applnID;
 
@@ -896,7 +942,11 @@ function renderDocumentCards(docs) {
     const verified = docs.filter(d => d.ai_status === 'Verified').length;
     const rejected = docs.filter(d => d.ai_status === 'reject').length;
 
-    html += `<div class="flex flex-wrap gap-4 mb-5 text-xs bg-gray-900 rounded-lg p-3 border border-gray-800">
+    html += `<div class="flex flex-wrap gap-4 mb-5 text-xs bg-gray-900 rounded-lg p-3 border border-gray-800 items-center">
+        <label class="flex items-center gap-1.5 cursor-pointer text-gray-400 hover:text-white transition">
+            <input type="checkbox" id="selectAllDocs" onchange="toggleAllDocs(this.checked)" class="accent-[#16A085] cursor-pointer"> Select All
+        </label>
+        <span class="text-gray-700">|</span>
         <span class="text-gray-400">Total: <strong class="text-white">${docs.length}</strong></span>
         <span class="text-gray-400">Required: <strong class="text-white">${required.length}</strong></span>
         <span class="text-gray-400">Uploaded: <strong class="text-blue-400">${uploaded}</strong></span>
@@ -947,9 +997,14 @@ function buildDocCard(doc) {
 
     const hasData = doc.extracted_data && Object.keys(doc.extracted_data).length > 0;
 
-    let card = `<div class="doc-card bg-gray-900 rounded-xl p-4 border ${borderColor}">
+    const docTypeId = doc.document_type_id;
+    const isDocChecked = selectedDocs.has(String(docTypeId)) ? 'checked' : '';
+    const selectedClass = selectedDocs.has(String(docTypeId)) ? 'selected' : '';
+
+    let card = `<div class="doc-card doc-card-selectable bg-gray-900 rounded-xl p-4 border ${borderColor} ${selectedClass}" id="doc-card-${docTypeId}">
+        ${doc.is_uploaded ? `<div class="doc-check-overlay"><input type="checkbox" class="doc-checkbox accent-[#16A085] cursor-pointer" data-doc-type-id="${docTypeId}" ${isDocChecked} onchange="toggleDocSelect('${docTypeId}', this.checked)"></div>` : ''}
         <div class="flex justify-between items-start mb-3">
-            <div class="flex-1">
+            <div class="flex-1 ${doc.is_uploaded ? 'ml-6' : ''}">
                 <h5 class="font-medium text-white text-sm">${esc(doc.document_label)}</h5>
                 <p class="text-xs text-gray-500 mt-0.5">${esc(doc.document_type_name || '')}</p>
             </div>
@@ -1226,6 +1281,165 @@ async function recheckDoc(applnID, documentTypeId, docLabel, btnEl) {
         btnEl.disabled = false;
         btnEl.innerHTML = '<i class="fas fa-redo mr-1"></i>Recheck';
     }
+}
+
+// ==================== MULTI-SELECT & PARALLEL RECHECK ====================
+
+function toggleStudentSelect(applnID, checked) {
+    if (checked) {
+        selectedStudents.add(applnID);
+    } else {
+        selectedStudents.delete(applnID);
+    }
+    updateBulkStudentBar();
+}
+
+function toggleAllStudents(checked) {
+    const checkboxes = document.querySelectorAll('.student-checkbox');
+    checkboxes.forEach(cb => {
+        const id = cb.dataset.applnId;
+        cb.checked = checked;
+        if (checked) selectedStudents.add(id);
+        else selectedStudents.delete(id);
+    });
+    updateBulkStudentBar();
+}
+
+function clearStudentSelection() {
+    selectedStudents.clear();
+    document.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = false);
+    const allCb = document.getElementById('selectAllStudents');
+    if (allCb) allCb.checked = false;
+    updateBulkStudentBar();
+}
+
+function updateBulkStudentBar() {
+    const bar = document.getElementById('bulkStudentBar');
+    const count = selectedStudents.size;
+    document.getElementById('bulkStudentCount').textContent = count;
+    if (count > 0) {
+        bar.classList.remove('hidden');
+    } else {
+        bar.classList.add('hidden');
+    }
+}
+
+async function recheckSelectedStudents() {
+    const ids = Array.from(selectedStudents);
+    if (ids.length === 0) return;
+
+    if (!confirm(`Recheck ${ids.length} students in parallel?\nThis will run AI verification on all uploaded docs for each selected student.`)) return;
+
+    const btn = document.getElementById('bulkRecheckStudentsBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Rechecking...';
+
+    try {
+        const res = await apiFetch('/recheck-multiple', {
+            method: 'POST',
+            body: JSON.stringify({ applnIDs: ids })
+        });
+
+        if (res.success) {
+            const d = res.data;
+            alert(`Parallel recheck complete!\n\nTotal: ${d.total}\nSucceeded: ${d.succeeded}\nFailed: ${d.failed}`);
+            clearStudentSelection();
+            await loadAllData();
+        } else {
+            alert('Parallel recheck failed: ' + (res.message || 'Unknown error'));
+        }
+    } catch (err) {
+        alert('Parallel recheck error: ' + err.message);
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-redo"></i> Recheck Selected in Parallel';
+}
+
+function toggleDocSelect(docTypeId, checked) {
+    docTypeId = String(docTypeId);
+    if (checked) {
+        selectedDocs.add(docTypeId);
+    } else {
+        selectedDocs.delete(docTypeId);
+    }
+    // Update card visual
+    const card = document.getElementById(`doc-card-${docTypeId}`);
+    if (card) {
+        if (checked) card.classList.add('selected');
+        else card.classList.remove('selected');
+    }
+    updateBulkDocBar();
+}
+
+function toggleAllDocs(checked) {
+    const checkboxes = document.querySelectorAll('.doc-checkbox');
+    checkboxes.forEach(cb => {
+        const id = cb.dataset.docTypeId;
+        cb.checked = checked;
+        if (checked) selectedDocs.add(id);
+        else selectedDocs.delete(id);
+        const card = document.getElementById(`doc-card-${id}`);
+        if (card) {
+            if (checked) card.classList.add('selected');
+            else card.classList.remove('selected');
+        }
+    });
+    updateBulkDocBar();
+}
+
+function clearDocSelection() {
+    selectedDocs.clear();
+    document.querySelectorAll('.doc-checkbox').forEach(cb => cb.checked = false);
+    document.querySelectorAll('.doc-card-selectable').forEach(c => c.classList.remove('selected'));
+    const allCb = document.getElementById('selectAllDocs');
+    if (allCb) allCb.checked = false;
+    updateBulkDocBar();
+}
+
+function updateBulkDocBar() {
+    const bar = document.getElementById('bulkDocBar');
+    const count = selectedDocs.size;
+    document.getElementById('bulkDocCount').textContent = count;
+    if (count > 0) {
+        bar.classList.remove('hidden');
+    } else {
+        bar.classList.add('hidden');
+    }
+}
+
+async function recheckSelectedDocs() {
+    const docIds = Array.from(selectedDocs);
+    if (docIds.length === 0 || !selectedStudentId) return;
+
+    if (!confirm(`Recheck ${docIds.length} documents in parallel for student ${selectedStudentId}?`)) return;
+
+    const btn = document.getElementById('bulkRecheckDocsBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Rechecking...';
+
+    try {
+        const items = docIds.map(docTypeId => ({ applnID: selectedStudentId, documentTypeId: docTypeId }));
+        const res = await apiFetch('/recheck-docs-multiple', {
+            method: 'POST',
+            body: JSON.stringify({ items })
+        });
+
+        if (res.success) {
+            const d = res.data;
+            alert(`Parallel doc recheck complete!\n\nTotal: ${d.total}\nSucceeded: ${d.succeeded}\nFailed: ${d.failed}`);
+            clearDocSelection();
+            await loadAllData();
+            await openStudentDocuments(selectedStudentId);
+        } else {
+            alert('Parallel doc recheck failed: ' + (res.message || 'Unknown error'));
+        }
+    } catch (err) {
+        alert('Parallel doc recheck error: ' + err.message);
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-redo"></i> Recheck Selected in Parallel';
 }
 
 // ==================== SEARCH ====================
