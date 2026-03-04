@@ -177,7 +177,7 @@ class VerificationScheduler {
                 uploadedDocs = uploadedDocs.filter(doc => doc.verify_status !== '2');
             }
 
-            studentResult.totalDocs = uploadedDocs.length;
+            studentResult.totalDocs = allDocs.length;
 
             if (uploadedDocs.length === 0) {
                 studentResult.status = 'skipped';
