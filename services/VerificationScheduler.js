@@ -22,7 +22,7 @@ class VerificationScheduler {
             delayBetweenDocsMs: parseInt(process.env.VERIFICATION_DOC_DELAY_MS) || 500,
             skipAlreadyVerified: process.env.VERIFICATION_SKIP_VERIFIED !== 'false',
             autoStart: process.env.VERIFICATION_AUTO_START !== 'false', // auto-start by default
-            autoWatchIntervalMs: parseInt(process.env.VERIFICATION_AUTO_WATCH_INTERVAL_MS) || 5 * 60 * 1000 // poll every 5 minutes
+            autoWatchIntervalMs: parseInt(process.env.VERIFICATION_AUTO_WATCH_INTERVAL_MS) || 10 * 60 * 1000 // poll every 10 minutes
         };
 
         // Auto-watch state
