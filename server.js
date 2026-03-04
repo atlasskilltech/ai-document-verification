@@ -140,11 +140,11 @@ app.get('/v1/result/:system_reference_id', apiKeyAuth, async (req, res) => {
 
 // ===================== WEB VIEWS =====================
 app.get('/', (req, res) => {
-    res.redirect('/dashboard');
+    res.redirect('/student-dashboard');
 });
 
 app.get('/dashboard', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+    res.redirect('/student-dashboard');
 });
 
 app.get('/verification', (req, res) => {
