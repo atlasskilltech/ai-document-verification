@@ -167,7 +167,7 @@
                     <p class="text-xl font-bold text-gray-400" id="statMissingDocs">-</p>
                 </div>
                 <div class="bg-gray-900 rounded-lg p-3 border border-gray-800 text-center">
-                    <p class="text-xs text-gray-500">Avg Confidence</p>
+                    <p class="text-xs text-gray-500">Approval Rate</p>
                     <p class="text-xl font-bold text-[#16A085]" id="statAvgConfidence">-</p>
                 </div>
             </div>
@@ -404,9 +404,9 @@
 
 <script>
 // ==================== STATE ====================
-const API = '/api/verification';
+const API = '/api/student-dashboard';
 let studentsCache = [];
-let resultsCache = {};
+let resultsMap = {};
 let currentStudentFilter = 'all';
 let selectedStudentId = null;
 let searchQuery = '';
@@ -442,22 +442,18 @@ async function loadAllData() {
     icon.classList.add('fa-spin');
 
     try {
-        // Fetch students and results in parallel
-        const [studentsRes, resultsRes] = await Promise.all([
-            apiFetch('/students'),
-            apiFetch('/results')
-        ]);
+        // Fetch merged students + results from new API
+        const res = await apiFetch('/students');
 
-        // Process students
-        if (studentsRes.success && studentsRes.data) {
-            const apiData = studentsRes.data;
-            studentsCache = Array.isArray(apiData.data) ? apiData.data : (apiData.data ? [apiData.data] : (Array.isArray(apiData) ? apiData : []));
-        }
-
-        // Process results
-        resultsCache = {};
-        if (resultsRes.success && resultsRes.data) {
-            resultsRes.data.forEach(r => { resultsCache[r.applnID] = r; });
+        if (res.success && res.data) {
+            studentsCache = res.data.students || [];
+            // Build resultsMap from verification data
+            resultsMap = {};
+            studentsCache.forEach(s => {
+                if (s.verification) {
+                    resultsMap[s.applnID] = s.verification;
+                }
+            });
         }
 
         // Update all views
@@ -485,8 +481,7 @@ function updateOverviewStats() {
     let confidenceSum = 0, confidenceCount = 0;
 
     studentsCache.forEach(s => {
-        const id = s.applnID || s.id || s.application_id;
-        const r = resultsCache[id];
+        const r = s.verification;
 
         if (r) {
             totalDocs += r.totalDocs || 0;
@@ -503,16 +498,6 @@ function updateOverviewStats() {
                 issues++;
             } else {
                 pending++;
-            }
-
-            // Calculate avg confidence from documents
-            if (r.documents) {
-                r.documents.forEach(d => {
-                    if (d.confidence) {
-                        confidenceSum += d.confidence;
-                        confidenceCount++;
-                    }
-                });
             }
         } else {
             pending++;
@@ -533,15 +518,16 @@ function updateOverviewStats() {
     document.getElementById('statVerifiedDocs').textContent = verifiedDocs || '-';
     document.getElementById('statRejectedDocs').textContent = rejectedDocs || '-';
     document.getElementById('statMissingDocs').textContent = missingDocs || '-';
-    document.getElementById('statAvgConfidence').textContent = confidenceCount > 0 ? Math.round((confidenceSum / confidenceCount) * 100) + '%' : '-';
+    // Show approval rate as a proxy for confidence when per-doc confidence is not available
+    const approvalRate = uploadedDocs > 0 ? Math.round((verifiedDocs / uploadedDocs) * 100) : 0;
+    document.getElementById('statAvgConfidence').textContent = uploadedDocs > 0 ? approvalRate + '%' : '-';
 }
 
 function updateVerificationBars() {
     let totalDocs = 0, verifiedDocs = 0, rejectedDocs = 0, pendingDocs = 0, missingDocs = 0;
 
     studentsCache.forEach(s => {
-        const id = s.applnID || s.id || s.application_id;
-        const r = resultsCache[id];
+        const r = s.verification;
         if (r) {
             totalDocs += r.totalDocs || 0;
             verifiedDocs += r.approved || 0;
@@ -570,14 +556,9 @@ function updateVerificationBars() {
 
 // ==================== RECENT STUDENTS ====================
 function renderRecentStudents() {
-    const resultsArr = Object.values(resultsCache);
-    // Sort by most recently processed (those with results first)
+    // Show students that have verification results, sorted by most recent
     const recent = studentsCache
-        .map(s => {
-            const id = s.applnID || s.id || s.application_id;
-            return { ...s, id, result: resultsCache[id] };
-        })
-        .filter(s => s.result)
+        .filter(s => s.verification)
         .slice(0, 8);
 
     if (recent.length === 0) {
@@ -586,23 +567,22 @@ function renderRecentStudents() {
     }
 
     const rows = recent.map(s => {
-        const name = [s.first_name, s.last_name].filter(Boolean).join(' ') || s.name || s.studentName || '-';
-        const r = s.result;
+        const r = s.verification;
         const docsInfo = `${r.approved || 0}/${r.totalDocs || 0}`;
         const statusBadge = getStudentStatusBadge(r);
 
-        return `<tr class="border-b border-gray-800/50 hover:bg-gray-800/30 transition cursor-pointer" onclick="openStudentDocuments('${s.id}')">
+        return `<tr class="border-b border-gray-800/50 hover:bg-gray-800/30 transition cursor-pointer" onclick="openStudentDocuments('${s.applnID}')">
             <td class="px-4 py-2.5">
                 <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-full bg-[#16A085]/20 flex items-center justify-center text-[#16A085] text-xs font-bold">${esc(name.charAt(0).toUpperCase())}</div>
-                    <span class="font-medium text-white text-sm">${esc(name)}</span>
+                    <div class="w-8 h-8 rounded-full bg-[#16A085]/20 flex items-center justify-center text-[#16A085] text-xs font-bold">${esc((s.studentName || '-').charAt(0).toUpperCase())}</div>
+                    <span class="font-medium text-white text-sm">${esc(s.studentName)}</span>
                 </div>
             </td>
-            <td class="px-4 py-2.5 font-mono text-[#16A085] text-xs">${s.id}</td>
+            <td class="px-4 py-2.5 font-mono text-[#16A085] text-xs">${s.applnID}</td>
             <td class="px-4 py-2.5 text-center text-sm">${docsInfo}</td>
             <td class="px-4 py-2.5 text-center">${statusBadge}</td>
             <td class="px-4 py-2.5 text-center" onclick="event.stopPropagation()">
-                <button onclick="openStudentDocuments('${s.id}')" class="text-[#16A085] hover:text-[#76D7C4] text-xs" title="View Documents"><i class="fas fa-eye mr-1"></i>View</button>
+                <button onclick="openStudentDocuments('${s.applnID}')" class="text-[#16A085] hover:text-[#76D7C4] text-xs" title="View Documents"><i class="fas fa-eye mr-1"></i>View</button>
             </td>
         </tr>`;
     });
@@ -615,9 +595,7 @@ function renderAllStudents() {
     let verifiedCount = 0, pendingCount = 0, issuesCount = 0;
 
     const enriched = studentsCache.map((s, idx) => {
-        const id = s.applnID || s.id || s.application_id;
-        const name = [s.first_name, s.last_name].filter(Boolean).join(' ') || s.name || s.studentName || '-';
-        const r = resultsCache[id];
+        const r = s.verification;
 
         let category;
         if (!r) {
@@ -630,7 +608,7 @@ function renderAllStudents() {
             category = 'pending'; pendingCount++;
         }
 
-        return { id, name, r, idx, category };
+        return { ...s, r, idx, category };
     });
 
     // Update filter counts
@@ -643,7 +621,7 @@ function renderAllStudents() {
     let filtered = currentStudentFilter === 'all' ? enriched : enriched.filter(s => s.category === currentStudentFilter);
     if (searchQuery) {
         const q = searchQuery.toLowerCase();
-        filtered = filtered.filter(s => s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q));
+        filtered = filtered.filter(s => (s.studentName || '').toLowerCase().includes(q) || (s.applnID || '').toLowerCase().includes(q));
     }
 
     document.getElementById('studentCountLabel').textContent = `${filtered.length} of ${studentsCache.length} students`;
@@ -654,25 +632,20 @@ function renderAllStudents() {
     }
 
     const rows = filtered.map((s, fi) => {
-        const { id, name, r } = s;
+        const r = s.r;
+        const name = s.studentName || '-';
         const totalDocs = r ? (r.totalDocs || 0) : '-';
         const uploaded = r ? (r.uploaded || 0) : '-';
         const approved = r ? (r.approved || 0) : '-';
         const rejected = r ? (r.rejected || 0) : '-';
-
-        // Calculate avg confidence for student
-        let avgConf = '-';
-        if (r && r.documents) {
-            const confs = r.documents.filter(d => d.confidence).map(d => d.confidence);
-            if (confs.length > 0) avgConf = Math.round((confs.reduce((a, b) => a + b, 0) / confs.length) * 100) + '%';
-        }
+        const avgConf = '-';
 
         const statusBadge = r ? getStudentStatusBadge(r) : '<span class="px-2 py-0.5 rounded text-xs badge-pending"><i class="fas fa-clock mr-1"></i>Not Verified</span>';
         const rowBg = !r ? '' : s.category === 'verified' ? 'bg-green-900/5' : s.category === 'issues' ? 'bg-red-900/5' : '';
 
-        return `<tr class="border-b border-gray-800/50 hover:bg-gray-800/30 transition cursor-pointer ${rowBg}" onclick="openStudentDocuments('${id}')">
+        return `<tr class="border-b border-gray-800/50 hover:bg-gray-800/30 transition cursor-pointer ${rowBg}" onclick="openStudentDocuments('${s.applnID}')">
             <td class="px-4 py-2.5 text-gray-500 text-xs">${fi + 1}</td>
-            <td class="px-4 py-2.5 font-mono text-[#16A085] text-xs">${id}</td>
+            <td class="px-4 py-2.5 font-mono text-[#16A085] text-xs">${s.applnID}</td>
             <td class="px-4 py-2.5">
                 <div class="flex items-center gap-2">
                     <div class="w-7 h-7 rounded-full bg-[#16A085]/20 flex items-center justify-center text-[#16A085] text-xs font-bold">${esc(name.charAt(0).toUpperCase())}</div>
@@ -686,7 +659,7 @@ function renderAllStudents() {
             <td class="px-4 py-2.5 text-center text-sm">${avgConf}</td>
             <td class="px-4 py-2.5 text-center">${statusBadge}</td>
             <td class="px-4 py-2.5 text-center" onclick="event.stopPropagation()">
-                <button onclick="openStudentDocuments('${id}')" class="text-[#16A085] hover:text-[#76D7C4] text-xs mr-2" title="View Documents"><i class="fas fa-folder-open"></i></button>
+                <button onclick="openStudentDocuments('${s.applnID}')" class="text-[#16A085] hover:text-[#76D7C4] text-xs mr-2" title="View Documents"><i class="fas fa-folder-open"></i></button>
             </td>
         </tr>`;
     });
@@ -743,16 +716,16 @@ async function openStudentDocuments(applnID) {
 
     try {
         // Find student info from cache
-        const student = studentsCache.find(s => (s.applnID || s.id || s.application_id) === applnID);
-        const name = student ? [student.first_name, student.last_name].filter(Boolean).join(' ') || student.name || student.studentName : 'Unknown';
+        const student = studentsCache.find(s => s.applnID === applnID);
+        const name = student ? student.studentName : 'Unknown';
 
-        // Try fetching verification results first, then fallback to Atlas docs
+        // Try fetching verification results from DB first, then fallback to Atlas docs
         let docsData = null;
         const resultRes = await apiFetch(`/results/${applnID}`);
         if (resultRes.success && resultRes.data && resultRes.data.allDocuments) {
             docsData = resultRes.data.allDocuments;
         } else {
-            const fetchRes = await apiFetch('/fetch-student-docs', {
+            const fetchRes = await apiFetch('/fetch-docs', {
                 method: 'POST',
                 body: JSON.stringify({ applnID })
             });
@@ -760,7 +733,7 @@ async function openStudentDocuments(applnID) {
         }
 
         // Build profile card
-        const r = resultsCache[applnID];
+        const r = resultsMap[applnID] || null;
         const statusBadge = getStudentStatusBadge(r);
         const totalDocs = docsData ? docsData.length : 0;
         const uploaded = docsData ? docsData.filter(d => d.is_uploaded).length : 0;
@@ -928,7 +901,7 @@ async function lookupStudent() {
     resultDiv.innerHTML = '<div class="text-center py-3"><i class="fas fa-spinner fa-spin text-[#16A085]"></i></div>';
 
     try {
-        const fetchRes = await apiFetch('/fetch-student-docs', {
+        const fetchRes = await apiFetch('/fetch-docs', {
             method: 'POST',
             body: JSON.stringify({ applnID })
         });
@@ -965,7 +938,7 @@ async function lookupStudent() {
 async function loadVerificationStatus() {
     try {
         const [statusRes, resultsRes] = await Promise.all([
-            apiFetch('/status'),
+            apiFetch('/engine-status'),
             apiFetch('/results')
         ]);
 
@@ -1015,17 +988,11 @@ async function loadVerificationStatus() {
             }
 
             const rows = results.map((r, idx) => {
-                const student = studentsCache.find(s => (s.applnID || s.id || s.application_id) === r.applnID);
-                const name = student ? [student.first_name, student.last_name].filter(Boolean).join(' ') || student.name || student.studentName : '-';
+                const student = studentsCache.find(s => s.applnID === r.applnID);
+                const name = student ? student.studentName : (r.studentName || '-');
                 const statusBadge = getStudentStatusBadge(r);
-
-                let avgConf = '-';
-                if (r.documents) {
-                    const confs = r.documents.filter(d => d.confidence).map(d => d.confidence);
-                    if (confs.length > 0) avgConf = Math.round((confs.reduce((a, b) => a + b, 0) / confs.length) * 100) + '%';
-                }
-
-                const errors = (r.totalDocs || 0) - (r.approved || 0) - (r.rejected || 0) - ((r.totalDocs || 0) - (r.uploaded || 0));
+                const avgConf = '-';
+                const errors = r.errors || 0;
 
                 return `<tr class="border-b border-gray-800/50 hover:bg-gray-800/30 transition cursor-pointer" onclick="openStudentDocuments('${r.applnID}')">
                     <td class="px-4 py-2.5 text-gray-500 text-xs">${idx + 1}</td>

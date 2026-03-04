@@ -1,6 +1,7 @@
 const cron = require('node-cron');
 const AtlasApiClient = require('./AtlasApiClient');
 const DocumentVerificationService = require('./DocumentVerificationService');
+const AtlasVerificationModel = require('../models/AtlasVerificationModel');
 
 class VerificationScheduler {
 
@@ -143,6 +144,7 @@ class VerificationScheduler {
                 studentResult.endTime = new Date().toISOString();
                 this.log('warn', `Student ${applnID}: No document list returned`);
                 this.studentResults.set(String(applnID), studentResult);
+                try { await AtlasVerificationModel.upsertStudentResult(studentResult); } catch (e) {}
                 return studentResult;
             }
 
@@ -182,6 +184,7 @@ class VerificationScheduler {
                 studentResult.endTime = new Date().toISOString();
                 this.log('info', `Student ${applnID}: No documents to verify`);
                 this.studentResults.set(String(applnID), studentResult);
+                try { await AtlasVerificationModel.upsertStudentResult(studentResult); } catch (e) {}
                 return studentResult;
             }
 
@@ -343,8 +346,15 @@ class VerificationScheduler {
 
         studentResult.endTime = new Date().toISOString();
 
-        // Persist to student results store
+        // Persist to student results store (in-memory)
         this.studentResults.set(String(applnID), studentResult);
+
+        // Persist to database
+        try {
+            await AtlasVerificationModel.upsertStudentResult(studentResult);
+        } catch (dbErr) {
+            this.log('error', `Failed to persist result for ${applnID} to DB: ${dbErr.message}`);
+        }
 
         return studentResult;
     }
@@ -461,10 +471,15 @@ class VerificationScheduler {
     finishRun() {
         this.isRunning = false;
         if (this.currentRun) {
-            this.runs.push({ ...this.currentRun, students: undefined }); // store summary only
+            const runSummary = { ...this.currentRun, students: undefined };
+            this.runs.push(runSummary);
             if (this.runs.length > this.maxRuns) {
                 this.runs = this.runs.slice(-this.maxRuns);
             }
+            // Persist run to DB
+            AtlasVerificationModel.saveRun(this.currentRun).catch(err => {
+                this.log('error', `Failed to persist run to DB: ${err.message}`);
+            });
         }
     }
 
@@ -658,12 +673,23 @@ class VerificationScheduler {
 
     // ===================== INIT (called from server.js) =====================
 
-    init() {
+    async init() {
         this.log('info', 'Verification Scheduler initialized', {
             provider: this.verificationService.provider,
             cron: this.config.cronSchedule,
             autoStart: this.config.autoStart
         });
+
+        // Initialize DB tables and load cached results
+        try {
+            await AtlasVerificationModel.initTables();
+            this.studentResults = await AtlasVerificationModel.loadAllIntoMap();
+            const runs = await AtlasVerificationModel.getRecentRuns(this.maxRuns);
+            this.runs = runs;
+            this.log('info', `Loaded ${this.studentResults.size} student results and ${runs.length} runs from database`);
+        } catch (err) {
+            this.log('error', `Failed to load from DB: ${err.message}`);
+        }
 
         if (this.config.autoStart) {
             this.startScheduler();
