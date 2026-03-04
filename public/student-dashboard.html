@@ -559,13 +559,13 @@ async function updateOverviewStats() {
     document.getElementById('statPendingPct').textContent = total > 0 ? pct(pending, total) + '%' : '-';
     document.getElementById('statIssuesPct').textContent = total > 0 ? pct(issues, total) + '%' : '-';
 
-    document.getElementById('statTotalDocs').textContent = totalDocs || '-';
-    document.getElementById('statUploadedDocs').textContent = uploadedDocs || '-';
-    document.getElementById('statVerifiedDocs').textContent = verifiedDocs || '-';
-    document.getElementById('statRejectedDocs').textContent = rejectedDocs || '-';
-    document.getElementById('statMissingDocs').textContent = missingDocs >= 0 ? missingDocs : '-';
+    document.getElementById('statTotalDocs').textContent = total > 0 ? totalDocs : '-';
+    document.getElementById('statUploadedDocs').textContent = total > 0 ? uploadedDocs : '-';
+    document.getElementById('statVerifiedDocs').textContent = total > 0 ? verifiedDocs : '-';
+    document.getElementById('statRejectedDocs').textContent = total > 0 ? rejectedDocs : '-';
+    document.getElementById('statMissingDocs').textContent = total > 0 ? missingDocs : '-';
     const approvalRate = uploadedDocs > 0 ? Math.round((verifiedDocs / uploadedDocs) * 100) : 0;
-    document.getElementById('statAvgConfidence').textContent = uploadedDocs > 0 ? approvalRate + '%' : '-';
+    document.getElementById('statAvgConfidence').textContent = total > 0 ? approvalRate + '%' : '-';
 
     // Also load DB stats for more reliable numbers (always, to overlay DB-backed data)
     await loadDbStats();
@@ -577,9 +577,13 @@ async function loadDbStats() {
         if (statsRes.success && statsRes.data) {
             const s = statsRes.data;
             if (s.total_students > 0) {
-                const dbTotal = parseInt(s.total_students) || 0;
+                const dbResultsCount = parseInt(s.total_students) || 0;
                 const dbVerified = parseInt(s.fully_verified) || 0;
                 const dbIssues = (parseInt(s.has_issues) || 0) + (parseInt(s.has_errors) || 0) + (parseInt(s.skipped) || 0);
+                // Total = max of Atlas cache or DB count (Atlas may have students not yet in DB)
+                const cacheTotal = studentsCache.length;
+                const dbTotal = Math.max(dbResultsCount, cacheTotal);
+                // Pending = students with no DB result or non-terminal status
                 const dbPending = dbTotal - dbVerified - dbIssues;
 
                 document.getElementById('statTotalStudents').textContent = dbTotal;
@@ -587,18 +591,23 @@ async function loadDbStats() {
                 document.getElementById('statIssueStudents').textContent = dbIssues;
                 document.getElementById('statPendingStudents').textContent = dbPending > 0 ? dbPending : 0;
 
-                document.getElementById('statVerifiedPct').textContent = dbTotal > 0 ? pct(dbVerified, dbTotal) + '%' : '-';
-                document.getElementById('statPendingPct').textContent = dbTotal > 0 ? pct(Math.max(0, dbPending), dbTotal) + '%' : '-';
-                document.getElementById('statIssuesPct').textContent = dbTotal > 0 ? pct(dbIssues, dbTotal) + '%' : '-';
+                document.getElementById('statVerifiedPct').textContent = dbTotal > 0 ? pct(dbVerified, dbTotal) + '%' : '0%';
+                document.getElementById('statPendingPct').textContent = dbTotal > 0 ? pct(Math.max(0, dbPending), dbTotal) + '%' : '0%';
+                document.getElementById('statIssuesPct').textContent = dbTotal > 0 ? pct(dbIssues, dbTotal) + '%' : '0%';
 
-                document.getElementById('statTotalDocs').textContent = s.total_docs || '-';
-                document.getElementById('statUploadedDocs').textContent = s.total_uploaded || '-';
-                document.getElementById('statVerifiedDocs').textContent = s.total_approved || '-';
-                document.getElementById('statRejectedDocs').textContent = s.total_rejected || '-';
-                const dbMissing = (parseInt(s.total_docs) || 0) - (parseInt(s.total_uploaded) || 0);
-                document.getElementById('statMissingDocs').textContent = dbMissing >= 0 ? dbMissing : '-';
-                const dbApprovalRate = (parseInt(s.total_uploaded) || 0) > 0 ? Math.round(((parseInt(s.total_approved) || 0) / (parseInt(s.total_uploaded) || 1)) * 100) : 0;
-                document.getElementById('statAvgConfidence').textContent = (parseInt(s.total_uploaded) || 0) > 0 ? dbApprovalRate + '%' : '-';
+                const dbTotalDocs = parseInt(s.total_docs) || 0;
+                const dbUploaded = parseInt(s.total_uploaded) || 0;
+                const dbApproved = parseInt(s.total_approved) || 0;
+                const dbRejected = parseInt(s.total_rejected) || 0;
+                const dbMissing = dbTotalDocs - dbUploaded;
+
+                document.getElementById('statTotalDocs').textContent = dbTotalDocs;
+                document.getElementById('statUploadedDocs').textContent = dbUploaded;
+                document.getElementById('statVerifiedDocs').textContent = dbApproved;
+                document.getElementById('statRejectedDocs').textContent = dbRejected;
+                document.getElementById('statMissingDocs').textContent = dbMissing >= 0 ? dbMissing : 0;
+                const dbApprovalRate = dbUploaded > 0 ? Math.round((dbApproved / dbUploaded) * 100) : 0;
+                document.getElementById('statAvgConfidence').textContent = dbUploaded > 0 ? dbApprovalRate + '%' : '0%';
             }
         }
     } catch (e) {
