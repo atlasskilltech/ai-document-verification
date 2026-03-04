@@ -33,6 +33,12 @@ class VerificationScheduler {
 
         // Persistent student results store: { applnID -> { student data + documents + verification } }
         this.studentResults = new Map();
+
+        // Parallel recheck tracking
+        // activeRechecks tracks individual recheck operations that can run in parallel
+        // Only batch jobs use the isRunning flag to block everything
+        this.activeRechecks = new Map(); // recheckId -> { type, applnID, documentTypeId?, startTime }
+        this.maxParallelRechecks = parseInt(process.env.RECHECK_MAX_PARALLEL) || 5;
     }
 
     // ===================== LOGGING =====================
@@ -413,6 +419,11 @@ class VerificationScheduler {
             return null;
         }
 
+        if (this.activeRechecks.size > 0) {
+            this.log('warn', `Cannot start batch: ${this.activeRechecks.size} parallel recheck(s) still active`);
+            return null;
+        }
+
         this.isRunning = true;
         this.shouldStop = false;
 
@@ -548,9 +559,16 @@ class VerificationScheduler {
     // ===================== VERIFY SINGLE DOCUMENT (on-demand) =====================
 
     async verifySingleDoc(applnID, documentTypeId) {
+        // Only block if a full batch job is running; allow parallel single rechecks
         if (this.isRunning) {
             throw new Error('A batch job is currently running. Wait for it to finish or stop it first.');
         }
+
+        if (this.activeRechecks.size >= this.maxParallelRechecks) {
+            throw new Error(`Maximum parallel rechecks (${this.maxParallelRechecks}) reached. Wait for some to finish.`);
+        }
+
+        const recheckId = `doc_${applnID}_${documentTypeId}_${Date.now()}`;
 
         this.log('info', `========== SINGLE DOCUMENT RECHECK: ${applnID} / doc ${documentTypeId} ==========`);
 
@@ -570,13 +588,19 @@ class VerificationScheduler {
             throw new Error(`Document "${docEntry.document_label}" has no uploaded file`);
         }
 
-        // Run AI verification on this single document
-        this.isRunning = true;
+        // Track this recheck operation
+        this.activeRechecks.set(recheckId, {
+            type: 'document',
+            applnID,
+            documentTypeId,
+            startTime: new Date().toISOString()
+        });
+
         try {
             const verification = await this.verifyDocument(docEntry);
 
             if (verification.status === 'skip') {
-                this.isRunning = false;
+                this.activeRechecks.delete(recheckId);
                 return { status: 'skipped', document: docEntry.document_label, message: 'Document not uploaded' };
             }
 
@@ -642,7 +666,7 @@ class VerificationScheduler {
             }
 
             this.log('info', `${applnID} - ${docEntry.document_label}: ${aiStatus} (${(verification.confidence * 100).toFixed(0)}%)`);
-            this.isRunning = false;
+            this.activeRechecks.delete(recheckId);
 
             return {
                 status: aiStatus,
@@ -655,7 +679,7 @@ class VerificationScheduler {
                 errors
             };
         } catch (err) {
-            this.isRunning = false;
+            this.activeRechecks.delete(recheckId);
             throw err;
         }
     }
@@ -663,14 +687,26 @@ class VerificationScheduler {
     // ===================== VERIFY SINGLE STUDENT (on-demand) =====================
 
     async verifySingleStudent(applnID, { forceRecheck = false } = {}) {
+        // Only block if a full batch job is running; allow parallel single rechecks
         if (this.isRunning) {
             throw new Error('A batch job is currently running. Wait for it to finish or stop it first.');
         }
 
-        this.isRunning = true;
-        this.shouldStop = false;
+        if (this.activeRechecks.size >= this.maxParallelRechecks) {
+            throw new Error(`Maximum parallel rechecks (${this.maxParallelRechecks}) reached. Wait for some to finish.`);
+        }
 
-        this.currentRun = {
+        const recheckId = `student_${applnID}_${Date.now()}`;
+
+        // Track this recheck operation
+        this.activeRechecks.set(recheckId, {
+            type: 'student',
+            applnID,
+            forceRecheck,
+            startTime: new Date().toISOString()
+        });
+
+        const runRecord = {
             id: Date.now().toString(36),
             startTime: new Date().toISOString(),
             endTime: null,
@@ -688,26 +724,161 @@ class VerificationScheduler {
 
         this.log('info', `========== SINGLE STUDENT VERIFICATION${forceRecheck ? ' (RECHECK)' : ''}: ${applnID} ==========`);
 
-        const result = await this.processStudent(applnID, applnID, { forceRecheck });
-        this.currentRun.students.push(result);
-        this.currentRun.processed = 1;
+        try {
+            const result = await this.processStudent(applnID, applnID, { forceRecheck });
+            runRecord.students.push(result);
+            runRecord.processed = 1;
 
-        if (result.status === 'completed' || result.status === 'partial') {
-            this.currentRun.completed = 1;
-            this.currentRun.totalDocsVerified = result.totalDocs;
-            this.currentRun.totalApproved = result.approved;
-            this.currentRun.totalRejected = result.rejected;
-        } else if (result.status === 'skipped') {
-            this.currentRun.skipped = 1;
-        } else {
-            this.currentRun.errors = 1;
+            if (result.status === 'completed' || result.status === 'partial') {
+                runRecord.completed = 1;
+                runRecord.totalDocsVerified = result.totalDocs;
+                runRecord.totalApproved = result.approved;
+                runRecord.totalRejected = result.rejected;
+            } else if (result.status === 'skipped') {
+                runRecord.skipped = 1;
+            } else {
+                runRecord.errors = 1;
+            }
+
+            runRecord.status = 'completed';
+            runRecord.endTime = new Date().toISOString();
+
+            // Save run to history
+            this.runs.push({ ...runRecord, students: undefined });
+            if (this.runs.length > this.maxRuns) {
+                this.runs = this.runs.slice(-this.maxRuns);
+            }
+            AtlasVerificationModel.saveRun(runRecord).catch(err => {
+                this.log('error', `Failed to persist run to DB: ${err.message}`);
+            });
+
+            this.activeRechecks.delete(recheckId);
+            return runRecord;
+        } catch (err) {
+            this.activeRechecks.delete(recheckId);
+            runRecord.status = 'error';
+            runRecord.endTime = new Date().toISOString();
+            throw err;
+        }
+    }
+
+    // ===================== PARALLEL RECHECK (multiple docs at once) =====================
+
+    /**
+     * Recheck multiple documents in parallel.
+     * @param {Array} items - Array of { applnID, documentTypeId }
+     * @returns {Object} Summary with per-item results
+     */
+    async parallelRecheckDocs(items) {
+        if (this.isRunning) {
+            throw new Error('A batch job is currently running. Wait for it to finish or stop it first.');
         }
 
-        this.currentRun.status = 'completed';
-        this.currentRun.endTime = new Date().toISOString();
-        this.finishRun();
+        if (!Array.isArray(items) || items.length === 0) {
+            throw new Error('items must be a non-empty array of { applnID, documentTypeId }');
+        }
 
-        return this.currentRun;
+        const availableSlots = this.maxParallelRechecks - this.activeRechecks.size;
+        if (items.length > availableSlots) {
+            throw new Error(`Cannot run ${items.length} rechecks. Only ${availableSlots} parallel slots available (max: ${this.maxParallelRechecks}, active: ${this.activeRechecks.size}).`);
+        }
+
+        this.log('info', `========== PARALLEL DOCUMENT RECHECK: ${items.length} documents ==========`);
+
+        const results = await Promise.allSettled(
+            items.map(item => this.verifySingleDoc(item.applnID, item.documentTypeId))
+        );
+
+        const summary = {
+            total: items.length,
+            succeeded: 0,
+            failed: 0,
+            results: []
+        };
+
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            const result = results[i];
+
+            if (result.status === 'fulfilled') {
+                summary.succeeded++;
+                summary.results.push({
+                    applnID: item.applnID,
+                    documentTypeId: item.documentTypeId,
+                    status: 'success',
+                    data: result.value
+                });
+            } else {
+                summary.failed++;
+                summary.results.push({
+                    applnID: item.applnID,
+                    documentTypeId: item.documentTypeId,
+                    status: 'error',
+                    error: result.reason?.message || 'Unknown error'
+                });
+            }
+        }
+
+        this.log('info', `Parallel doc recheck done: ${summary.succeeded} succeeded, ${summary.failed} failed`);
+        return summary;
+    }
+
+    /**
+     * Recheck multiple students in parallel.
+     * @param {Array} applnIDs - Array of application IDs
+     * @param {Object} options - { forceRecheck: true }
+     * @returns {Object} Summary with per-student results
+     */
+    async parallelRecheckStudents(applnIDs, { forceRecheck = true } = {}) {
+        if (this.isRunning) {
+            throw new Error('A batch job is currently running. Wait for it to finish or stop it first.');
+        }
+
+        if (!Array.isArray(applnIDs) || applnIDs.length === 0) {
+            throw new Error('applnIDs must be a non-empty array');
+        }
+
+        const availableSlots = this.maxParallelRechecks - this.activeRechecks.size;
+        if (applnIDs.length > availableSlots) {
+            throw new Error(`Cannot run ${applnIDs.length} rechecks. Only ${availableSlots} parallel slots available (max: ${this.maxParallelRechecks}, active: ${this.activeRechecks.size}).`);
+        }
+
+        this.log('info', `========== PARALLEL STUDENT RECHECK: ${applnIDs.length} students ==========`);
+
+        const results = await Promise.allSettled(
+            applnIDs.map(applnID => this.verifySingleStudent(applnID, { forceRecheck }))
+        );
+
+        const summary = {
+            total: applnIDs.length,
+            succeeded: 0,
+            failed: 0,
+            results: []
+        };
+
+        for (let i = 0; i < applnIDs.length; i++) {
+            const applnID = applnIDs[i];
+            const result = results[i];
+
+            if (result.status === 'fulfilled') {
+                summary.succeeded++;
+                summary.results.push({
+                    applnID,
+                    status: 'success',
+                    data: result.value
+                });
+            } else {
+                summary.failed++;
+                summary.results.push({
+                    applnID,
+                    status: 'error',
+                    error: result.reason?.message || 'Unknown error'
+                });
+            }
+        }
+
+        this.log('info', `Parallel student recheck done: ${summary.succeeded} succeeded, ${summary.failed} failed`);
+        return summary;
     }
 
     // ===================== CRON SCHEDULER =====================
@@ -762,6 +933,12 @@ class VerificationScheduler {
                 retryAttempts: this.config.retryAttempts,
                 skipAlreadyVerified: this.config.skipAlreadyVerified
             },
+            parallelRechecks: {
+                active: this.activeRechecks.size,
+                maxParallel: this.maxParallelRechecks,
+                availableSlots: this.maxParallelRechecks - this.activeRechecks.size,
+                operations: Array.from(this.activeRechecks.values())
+            },
             currentRun: this.currentRun ? {
                 id: this.currentRun.id,
                 status: this.currentRun.status,
@@ -796,6 +973,9 @@ class VerificationScheduler {
     }
 
     updateConfig(updates) {
+        if (updates.maxParallelRechecks !== undefined) {
+            this.maxParallelRechecks = parseInt(updates.maxParallelRechecks) || 5;
+        }
         const allowed = [
             'cronSchedule', 'concurrency', 'retryAttempts', 'retryDelayMs',
             'delayBetweenStudentsMs', 'delayBetweenDocsMs', 'skipAlreadyVerified'
