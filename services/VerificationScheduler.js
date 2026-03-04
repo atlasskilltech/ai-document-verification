@@ -143,6 +143,24 @@ class VerificationScheduler {
                 studentResult.status = 'skipped';
                 studentResult.endTime = new Date().toISOString();
                 this.log('warn', `Student ${applnID}: No document list returned`);
+
+                // Preserve existing AI results from DB
+                try {
+                    const existing = await AtlasVerificationModel.getStudentResult(String(applnID));
+                    if (existing && existing.documents && existing.documents.length > 0) {
+                        studentResult.allDocuments = existing.allDocuments || [];
+                        studentResult.documents = existing.documents;
+                        studentResult.approved = existing.approved || 0;
+                        studentResult.rejected = existing.rejected || 0;
+                        studentResult.totalDocs = existing.totalDocs || 0;
+                        studentResult.uploaded = existing.uploaded || 0;
+                        studentResult.status = existing.status;
+                        this.log('info', `Student ${applnID}: Preserved existing AI results`);
+                    }
+                } catch (e) {
+                    this.log('warn', `Student ${applnID}: Could not load existing results: ${e.message}`);
+                }
+
                 this.studentResults.set(String(applnID), studentResult);
                 try { await AtlasVerificationModel.upsertStudentResult(studentResult); } catch (e) {}
                 return studentResult;
@@ -181,6 +199,31 @@ class VerificationScheduler {
                 studentResult.status = 'skipped';
                 studentResult.endTime = new Date().toISOString();
                 this.log('info', `Student ${applnID}: No documents to verify`);
+
+                // Preserve existing AI results from DB instead of overwriting with empty data
+                try {
+                    const existing = await AtlasVerificationModel.getStudentResult(String(applnID));
+                    if (existing && existing.documents && existing.documents.length > 0) {
+                        // Merge previous AI results into allDocuments
+                        const prevDocsMap = {};
+                        existing.documents.forEach(d => { prevDocsMap[d.document_type_id] = d; });
+                        studentResult.allDocuments = studentResult.allDocuments.map(d => {
+                            const prev = prevDocsMap[d.document_type_id];
+                            if (prev && prev.ai_status) {
+                                return { ...d, ai_status: prev.ai_status, confidence: prev.confidence, remark: prev.remark, issues: prev.issues, extracted_data: prev.extracted_data };
+                            }
+                            return d;
+                        });
+                        studentResult.documents = existing.documents;
+                        studentResult.approved = existing.approved || 0;
+                        studentResult.rejected = existing.rejected || 0;
+                        studentResult.status = existing.status;
+                        this.log('info', `Student ${applnID}: Preserved existing AI results`);
+                    }
+                } catch (e) {
+                    this.log('warn', `Student ${applnID}: Could not load existing results: ${e.message}`);
+                }
+
                 this.studentResults.set(String(applnID), studentResult);
                 try { await AtlasVerificationModel.upsertStudentResult(studentResult); } catch (e) {}
                 return studentResult;
