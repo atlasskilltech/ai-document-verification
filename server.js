@@ -151,6 +151,10 @@ app.get('/verification', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'verification.html'));
 });
 
+app.get('/student-dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'student-dashboard.html'));
+});
+
 // V1 Platform Web Views
 app.get('/v1/login', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'v1-login.html'));
