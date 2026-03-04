@@ -227,4 +227,30 @@ router.post('/recheck', async (req, res) => {
     }
 });
 
+/**
+ * POST /api/student-dashboard/recheck-doc
+ * Force re-verify a single document for a student
+ * Body: { applnID: "2500623", documentTypeId: "5" }
+ */
+router.post('/recheck-doc', async (req, res) => {
+    const { applnID, documentTypeId } = req.body;
+    if (!applnID || !documentTypeId) {
+        return res.status(400).json({ success: false, message: 'applnID and documentTypeId are required' });
+    }
+
+    if (scheduler.isRunning) {
+        return res.status(409).json({
+            success: false,
+            message: 'A verification job is already running. Please wait for it to finish.'
+        });
+    }
+
+    try {
+        const result = await scheduler.verifySingleDoc(applnID, documentTypeId);
+        res.json({ success: true, data: result });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
 module.exports = router;
