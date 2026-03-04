@@ -130,11 +130,33 @@ router.post('/stop', (req, res) => {
 /**
  * GET /api/verification/students
  * Fetch student list from Atlas API
+ * Query: ?filter=unverified (default) | all
+ *   - unverified: exclude students already verified (completed/skipped)
+ *   - all: return every student
  */
 router.get('/students', async (req, res) => {
     try {
         const result = await scheduler.atlasClient.getStudentList();
-        res.json({ success: true, data: result });
+        const filter = req.query.filter || 'unverified';
+
+        if (filter === 'unverified' && result && result.data) {
+            const dataArr = Array.isArray(result.data) ? result.data : [result.data];
+            const allResults = scheduler.getAllStudentResults();
+            const verifiedIDs = new Set(
+                allResults
+                    .filter(r => r.status === 'completed' || r.status === 'skipped')
+                    .map(r => String(r.applnID))
+            );
+
+            const filtered = dataArr.filter(s => {
+                const id = String(s.applnID || s.id || s.application_id);
+                return !verifiedIDs.has(id);
+            });
+
+            res.json({ success: true, data: { ...result, data: filtered } });
+        } else {
+            res.json({ success: true, data: result });
+        }
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
