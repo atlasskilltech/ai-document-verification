@@ -35,6 +35,7 @@ app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/applicants', require('./routes/applicantRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 app.use('/api/verification', require('./routes/verificationRoutes'));
+app.use('/api/student-dashboard', require('./routes/studentDashboardRoutes'));
 
 // ===================== V1 API ROUTES (Document Verification Platform) =====================
 app.use('/v1/auth', require('./routes/v1/authRoutes'));
