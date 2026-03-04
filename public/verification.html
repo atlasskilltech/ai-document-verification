@@ -918,12 +918,19 @@ function updateStatusUI(data) {
     const text = document.getElementById('statusText');
     const isRunning = engine.isRunning;
 
+    const autoWatch = data.autoWatch;
     if (isRunning) {
         dot.className = 'status-dot running';
         text.textContent = 'Running';
         text.className = 'text-yellow-400 font-medium';
         document.getElementById('btnRunAll').classList.add('hidden');
         document.getElementById('btnStop').classList.remove('hidden');
+    } else if (autoWatch && autoWatch.active) {
+        dot.className = 'status-dot active';
+        text.textContent = autoWatch.isPolling ? 'Auto-verifying...' : 'Auto-watch active';
+        text.className = 'text-green-400 font-medium';
+        document.getElementById('btnRunAll').classList.remove('hidden');
+        document.getElementById('btnStop').classList.add('hidden');
     } else {
         dot.className = sched.active ? 'status-dot active' : 'status-dot inactive';
         text.textContent = sched.active ? 'Scheduled' : 'Idle';
