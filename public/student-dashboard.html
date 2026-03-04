@@ -432,6 +432,22 @@
     </div>
 </div>
 
+<!-- Document Preview Modal -->
+<div id="docPreviewModal" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center">
+    <div class="bg-gray-900 rounded-2xl border border-gray-700 w-full max-w-4xl slide-in max-h-[90vh] flex flex-col">
+        <div class="flex justify-between items-center px-6 py-4 border-b border-gray-800">
+            <h3 class="font-bold text-white text-sm truncate" id="docPreviewTitle"><i class="fas fa-file-alt mr-2 text-[#16A085]"></i>Document Preview</h3>
+            <div class="flex items-center gap-3">
+                <a id="docPreviewDownload" href="#" target="_blank" class="text-[#16A085] hover:text-[#76D7C4] text-xs font-medium transition"><i class="fas fa-external-link-alt mr-1"></i>Open in New Tab</a>
+                <button onclick="closeDocPreview()" class="text-gray-400 hover:text-white text-lg"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+        <div id="docPreviewContent" class="flex-1 overflow-auto p-4 flex items-center justify-center min-h-[400px]">
+            <p class="text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Loading document...</p>
+        </div>
+    </div>
+</div>
+
 <!-- Student Detail Modal (for quick lookup) -->
 <div id="studentDetailModal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center">
     <div class="bg-gray-900 rounded-2xl border border-gray-700 p-6 w-full max-w-2xl slide-in max-h-[85vh] overflow-auto">
@@ -1044,11 +1060,11 @@ function buildDocCard(doc) {
         </div>`;
     }
 
-    // Recheck button for uploaded documents
+    // Action buttons for uploaded documents
     if (doc.is_uploaded && selectedStudentId) {
-        const docTypeId = doc.document_type_id;
         const safeLabel = esc(doc.document_label).replace(/'/g, "\\'");
-        card += `<div class="mt-2 pt-2 border-t border-gray-700/30 flex justify-end">
+        card += `<div class="mt-2 pt-2 border-t border-gray-700/30 flex justify-between items-center">
+            <button onclick="viewDocument('${selectedStudentId}', '${docTypeId}', '${safeLabel}')" class="text-[#16A085] hover:text-[#76D7C4] text-xs font-medium transition"><i class="fas fa-eye mr-1"></i>View Document</button>
             <button onclick="recheckDoc('${selectedStudentId}', '${docTypeId}', '${safeLabel}', this)" class="text-yellow-400 hover:text-yellow-300 text-xs font-medium transition"><i class="fas fa-redo mr-1"></i>Recheck</button>
         </div>`;
     }
@@ -1215,6 +1231,49 @@ function closeExtractedData() {
 
 function closeStudentDetail() {
     document.getElementById('studentDetailModal').classList.add('hidden');
+}
+
+function viewDocument(applnID, documentTypeId, docLabel) {
+    const modal = document.getElementById('docPreviewModal');
+    const content = document.getElementById('docPreviewContent');
+    const title = document.getElementById('docPreviewTitle');
+    const downloadLink = document.getElementById('docPreviewDownload');
+
+    const url = `${API}/view-doc/${encodeURIComponent(applnID)}/${encodeURIComponent(documentTypeId)}`;
+
+    title.innerHTML = `<i class="fas fa-file-alt mr-2 text-[#16A085]"></i>${esc(docLabel)}`;
+    downloadLink.href = url;
+    content.innerHTML = '<p class="text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Loading document...</p>';
+    modal.classList.remove('hidden');
+
+    // Fetch to check content type, then render appropriately
+    fetch(url).then(res => {
+        if (!res.ok) throw new Error('Failed to load document');
+        const ct = res.headers.get('content-type') || '';
+
+        if (ct.startsWith('image/')) {
+            content.innerHTML = `<img src="${url}" alt="${esc(docLabel)}" class="max-w-full max-h-[70vh] rounded-lg shadow-lg object-contain">`;
+        } else if (ct === 'application/pdf') {
+            content.innerHTML = `<iframe src="${url}" class="w-full h-[70vh] rounded-lg border border-gray-700" frameborder="0"></iframe>`;
+        } else {
+            // For other types, show download prompt
+            content.innerHTML = `
+                <div class="text-center py-8">
+                    <i class="fas fa-file-download text-4xl text-gray-500 mb-4"></i>
+                    <p class="text-gray-400 mb-3">This file type (${esc(ct)}) cannot be previewed.</p>
+                    <a href="${url}" target="_blank" class="bg-[#138D75] hover:bg-[#117A65] text-white px-5 py-2 rounded-lg text-sm font-medium transition inline-block">
+                        <i class="fas fa-download mr-2"></i>Download File
+                    </a>
+                </div>`;
+        }
+    }).catch(err => {
+        content.innerHTML = `<p class="text-red-400 text-center py-8"><i class="fas fa-exclamation-triangle mr-2"></i>${esc(err.message)}</p>`;
+    });
+}
+
+function closeDocPreview() {
+    document.getElementById('docPreviewModal').classList.add('hidden');
+    document.getElementById('docPreviewContent').innerHTML = '';
 }
 
 // ==================== RECHECK ====================
