@@ -80,7 +80,10 @@ router.get('/students', async (req, res) => {
             }
         });
 
-        res.json({ success: true, data: { students: merged, totalResults: results.length } });
+        // Only return students that are not yet verified (filter out completed)
+        const notVerified = merged.filter(s => !s.verification || s.verification.status !== 'completed');
+
+        res.json({ success: true, data: { students: notVerified, totalResults: results.length } });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
