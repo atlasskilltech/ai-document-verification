@@ -172,10 +172,8 @@ class VerificationScheduler {
             let uploadedDocs = allDocs.filter(doc => doc.file_url && doc.file_url.trim() !== '');
             studentResult.uploaded = uploadedDocs.length;
 
-            // Skip already verified if configured
-            if (this.config.skipAlreadyVerified) {
-                uploadedDocs = uploadedDocs.filter(doc => doc.verify_status !== '2');
-            }
+            // Only verify documents with pending status (verify_status 0 or null/empty)
+            uploadedDocs = uploadedDocs.filter(doc => !doc.verify_status || doc.verify_status === '0');
 
             studentResult.totalDocs = allDocs.length;
 
