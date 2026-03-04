@@ -40,6 +40,10 @@
         </span>
     </div>
     <div class="flex items-center gap-4">
+        <span id="atlasHealthBadge" class="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-gray-800 border border-gray-700 cursor-pointer" onclick="switchTab('atlas')" title="Atlas API Status">
+            <span class="status-dot inactive" id="atlasStatusDot"></span>
+            <span id="atlasStatusText" class="text-gray-400">Atlas: Checking...</span>
+        </span>
         <span class="text-xs text-gray-500" id="providerBadge"></span>
         <a href="/dashboard" class="text-sm text-gray-400 hover:text-white transition"><i class="fas fa-arrow-left mr-1"></i> Main Dashboard</a>
     </div>
@@ -55,6 +59,9 @@
     </button>
     <button onclick="switchTab('automation')" id="tab-automation" class="py-3 text-sm font-medium text-gray-400 hover:text-white transition">
         <i class="fas fa-cog mr-1"></i> Automation & Logs
+    </button>
+    <button onclick="switchTab('atlas')" id="tab-atlas" class="py-3 text-sm font-medium text-gray-400 hover:text-white transition">
+        <i class="fas fa-cloud-upload-alt mr-1"></i> Atlas & Push
     </button>
 </div>
 
@@ -82,6 +89,14 @@
                 <button onclick="fetchSingleStudentDocs()" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition">
                     <i class="fas fa-eye mr-1"></i> View Docs
                 </button>
+            </div>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="mb-4">
+            <div class="relative">
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm"></i>
+                <input type="text" id="studentSearch" oninput="filterStudentsBySearch()" placeholder="Search by Application ID or Student Name..." class="w-full bg-gray-900 border border-gray-800 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#16A085] transition">
             </div>
         </div>
 
@@ -315,6 +330,90 @@
             </div>
         </div>
     </div>
+
+    <!-- ==================== TAB: ATLAS & PUSH ==================== -->
+    <div id="panel-atlas" class="hidden">
+
+        <!-- Atlas Connection Status -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-gray-900 rounded-xl border border-gray-800 p-4">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center">
+                        <i class="fas fa-plug text-[#16A085]"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500">Connection Status</p>
+                        <p class="font-bold text-white" id="atlasConnStatus">Checking...</p>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-500" id="atlasBaseUrl">-</p>
+            </div>
+            <div class="bg-gray-900 rounded-xl border border-gray-800 p-4">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center">
+                        <i class="fas fa-key text-yellow-400"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500">Token Status</p>
+                        <p class="font-bold text-white" id="atlasTokenStatus">-</p>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-500" id="atlasStudentAccess">-</p>
+            </div>
+            <div class="bg-gray-900 rounded-xl border border-gray-800 p-4">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center">
+                        <i class="fas fa-users text-purple-400"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500">Students Available</p>
+                        <p class="font-bold text-white" id="atlasStudentCount">-</p>
+                    </div>
+                </div>
+                <button onclick="checkAtlasHealth()" class="text-xs text-[#16A085] hover:text-[#76D7C4] transition"><i class="fas fa-sync-alt mr-1"></i>Refresh Status</button>
+            </div>
+        </div>
+
+        <!-- Data Push Summary -->
+        <div class="bg-gray-900 rounded-xl border border-gray-800 mb-6">
+            <div class="px-4 py-3 border-b border-gray-800 flex justify-between items-center">
+                <h3 class="font-semibold text-sm"><i class="fas fa-chart-bar text-[#16A085] mr-2"></i>Data Push Summary</h3>
+                <button onclick="refreshAtlasPushLog()" class="text-xs text-gray-400 hover:text-white transition"><i class="fas fa-sync-alt mr-1"></i>Refresh</button>
+            </div>
+            <div class="p-4">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                    <div class="bg-gray-800/50 rounded-lg p-3 text-center">
+                        <p class="text-xs text-gray-500">Total Push Events</p>
+                        <p class="text-xl font-bold text-white" id="pushTotalEvents">-</p>
+                    </div>
+                    <div class="bg-gray-800/50 rounded-lg p-3 text-center">
+                        <p class="text-xs text-gray-500">Successful</p>
+                        <p class="text-xl font-bold text-green-400" id="pushSuccessCount">-</p>
+                    </div>
+                    <div class="bg-gray-800/50 rounded-lg p-3 text-center">
+                        <p class="text-xs text-gray-500">Failed</p>
+                        <p class="text-xl font-bold text-red-400" id="pushFailCount">-</p>
+                    </div>
+                    <div class="bg-gray-800/50 rounded-lg p-3 text-center">
+                        <p class="text-xs text-gray-500">Last Push</p>
+                        <p class="text-sm font-bold text-gray-300" id="pushLastTime">-</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Push Log Timeline -->
+        <div class="bg-gray-900 rounded-xl border border-gray-800">
+            <div class="px-4 py-3 border-b border-gray-800 flex justify-between items-center">
+                <h3 class="font-semibold text-sm"><i class="fas fa-stream text-green-400 mr-2"></i>Atlas Push Log</h3>
+                <span class="text-xs text-gray-500" id="pushLogCount">0 entries</span>
+            </div>
+            <div id="pushLogContainer" class="overflow-y-auto p-4 space-y-2" style="max-height: 400px;">
+                <p class="text-gray-600 text-xs text-center py-8">Click "Refresh" to load push logs</p>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <!-- Config Modal -->
@@ -451,7 +550,7 @@ async function apiFetch(url, opts = {}) {
 
 // ==================== TABS ====================
 function switchTab(tab) {
-    const tabs = ['students', 'docSettings', 'automation'];
+    const tabs = ['students', 'docSettings', 'automation', 'atlas'];
     tabs.forEach(t => {
         document.getElementById(`panel-${t}`).classList.toggle('hidden', tab !== t);
         document.getElementById(`tab-${t}`).classList.toggle('tab-active', tab === t);
@@ -459,6 +558,10 @@ function switchTab(tab) {
     if (tab === 'docSettings') {
         loadDocumentTypes();
         loadPrograms();
+    }
+    if (tab === 'atlas') {
+        checkAtlasHealth();
+        refreshAtlasPushLog();
     }
 }
 
@@ -1217,10 +1320,143 @@ async function removeFromChecklist(programId, docTypeId, name) {
     } catch (err) { alert('Error: ' + err.message); }
 }
 
+// ==================== STUDENT SEARCH ====================
+function filterStudentsBySearch() {
+    const query = (document.getElementById('studentSearch').value || '').toLowerCase().trim();
+    if (!studentListLoaded || studentsCache.length === 0) return;
+
+    if (!query) {
+        renderStudentTable(studentsCache, resultsMapCache);
+        return;
+    }
+
+    const filtered = studentsCache.filter(s => {
+        const id = String(s.applnID || s.id || s.application_id || '').toLowerCase();
+        const name = [s.first_name, s.last_name].filter(Boolean).join(' ').toLowerCase() || (s.name || '').toLowerCase();
+        return id.includes(query) || name.includes(query);
+    });
+
+    renderStudentTable(filtered, resultsMapCache);
+}
+
+// ==================== ATLAS HEALTH ====================
+async function checkAtlasHealth() {
+    const dot = document.getElementById('atlasStatusDot');
+    const text = document.getElementById('atlasStatusText');
+    dot.className = 'status-dot running';
+    text.textContent = 'Atlas: Checking...';
+
+    try {
+        const res = await apiFetch('/atlas-health');
+        if (res.success && res.data) {
+            const h = res.data;
+            if (h.connected) {
+                dot.className = 'status-dot active';
+                text.textContent = `Atlas: Connected (${h.studentCount || 0} students)`;
+                text.className = 'text-green-400';
+            } else {
+                dot.className = 'status-dot inactive';
+                text.textContent = 'Atlas: Disconnected';
+                text.className = 'text-red-400';
+            }
+
+            // Update Atlas tab details
+            document.getElementById('atlasConnStatus').textContent = h.connected ? 'Connected' : 'Disconnected';
+            document.getElementById('atlasConnStatus').className = `font-bold ${h.connected ? 'text-green-400' : 'text-red-400'}`;
+            document.getElementById('atlasBaseUrl').textContent = h.baseURL || '-';
+            document.getElementById('atlasTokenStatus').textContent = h.tokenConfigured ? 'Configured' : 'Not Configured';
+            document.getElementById('atlasTokenStatus').className = `font-bold ${h.tokenConfigured ? 'text-green-400' : 'text-red-400'}`;
+            document.getElementById('atlasStudentAccess').textContent = h.studentListAccessible ? 'Student list accessible' : (h.error || 'Student list not accessible');
+            document.getElementById('atlasStudentCount').textContent = h.studentCount || '0';
+        }
+    } catch (err) {
+        dot.className = 'status-dot inactive';
+        text.textContent = 'Atlas: Error';
+        text.className = 'text-red-400';
+    }
+}
+
+// ==================== ATLAS PUSH LOG ====================
+async function refreshAtlasPushLog() {
+    try {
+        const res = await apiFetch('/atlas-push-log');
+        if (!res.success) return;
+
+        const logs = res.data || [];
+        document.getElementById('pushLogCount').textContent = `${logs.length} entries`;
+
+        // Calculate summary stats
+        let successCount = 0;
+        let failCount = 0;
+        let lastTime = null;
+
+        logs.forEach(log => {
+            if (log.message.includes('confirmed') || log.message.includes('Status updated')) successCount++;
+            if (log.message.includes('Failed') || log.level === 'error') failCount++;
+            if (!lastTime || new Date(log.timestamp) > new Date(lastTime)) lastTime = log.timestamp;
+        });
+
+        document.getElementById('pushTotalEvents').textContent = logs.length;
+        document.getElementById('pushSuccessCount').textContent = successCount;
+        document.getElementById('pushFailCount').textContent = failCount;
+        document.getElementById('pushLastTime').textContent = lastTime ? new Date(lastTime).toLocaleString() : 'Never';
+
+        // Render log entries
+        if (logs.length === 0) {
+            document.getElementById('pushLogContainer').innerHTML = '<p class="text-gray-600 text-xs text-center py-8">No push logs yet. Run verification to generate push data.</p>';
+            return;
+        }
+
+        const html = logs.reverse().map(log => {
+            const time = new Date(log.timestamp).toLocaleString();
+            const icon = log.level === 'error' ? 'fa-times-circle text-red-400' :
+                         log.level === 'warn' ? 'fa-exclamation-triangle text-yellow-400' :
+                         log.message.includes('confirmed') ? 'fa-check-circle text-green-400' :
+                         log.message.includes('Pushing') ? 'fa-cloud-upload-alt text-blue-400' :
+                         'fa-info-circle text-gray-400';
+            const bgClass = log.level === 'error' ? 'border-red-900/30 bg-red-900/10' :
+                            log.message.includes('confirmed') ? 'border-green-900/30 bg-green-900/10' :
+                            'border-gray-800 bg-gray-800/30';
+
+            let details = '';
+            if (log.data) {
+                if (log.data.documents) {
+                    details = `<div class="mt-1 flex flex-wrap gap-1">${log.data.documents.map(d =>
+                        `<span class="text-xs px-1.5 py-0.5 rounded ${d.status === 'Verified' ? 'badge-verified' : d.status === 'reject' ? 'badge-reject' : 'badge-error'}">${d.document_type_id}: ${d.status}${d.confidence ? ` (${(d.confidence*100).toFixed(0)}%)` : ''}</span>`
+                    ).join('')}</div>`;
+                }
+                if (log.data.response_status !== undefined) {
+                    details += `<span class="text-xs text-gray-500 ml-2">Response: ${log.data.response_status}${log.data.response_message ? ' - ' + log.data.response_message : ''}</span>`;
+                }
+                if (log.data.error) {
+                    details += `<span class="text-xs text-red-400 ml-2">${log.data.error}</span>`;
+                }
+            }
+
+            return `<div class="rounded-lg p-3 border ${bgClass}">
+                <div class="flex items-start gap-2">
+                    <i class="fas ${icon} mt-0.5"></i>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-xs text-white">${esc(log.message)}</p>
+                        ${details}
+                        <p class="text-xs text-gray-600 mt-1">${time}</p>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+
+        document.getElementById('pushLogContainer').innerHTML = html;
+    } catch (err) {
+        document.getElementById('pushLogContainer').innerHTML = `<p class="text-red-400 text-xs text-center py-8">Error loading push logs: ${esc(err.message)}</p>`;
+    }
+}
+
 // ==================== INIT ====================
 async function init() {
     await refreshStatus();
     await refreshLogs();
+    // Check Atlas health on load
+    checkAtlasHealth();
     // Auto-load student list on page load
     await loadStudentList();
     startPolling();
