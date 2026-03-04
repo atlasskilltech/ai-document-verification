@@ -54,9 +54,9 @@ router.get('/students', async (req, res) => {
         if (atlasStudents.length > 0) {
             // Merge Atlas students with DB verification results
             merged = atlasStudents.map(s => {
-                const id = String(s.applnID || s.id || s.application_id || '');
+                const id = String(s.applnID || s.student_app_id || s.id || s.application_id || '');
                 seenIds.add(id);
-                const name = [s.first_name, s.last_name].filter(Boolean).join(' ') || s.name || s.studentName || '-';
+                const name = [s.student_first_name, s.student_last_name].filter(Boolean).join(' ') || [s.first_name, s.last_name].filter(Boolean).join(' ') || s.name || s.studentName || '-';
                 const result = resultsMap[id] || null;
 
                 return {

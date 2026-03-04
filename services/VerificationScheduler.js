@@ -418,10 +418,11 @@ class VerificationScheduler {
                     break;
                 }
 
-                const applnID = student.applnID || student.id || student.application_id;
+                const applnID = student.applnID || student.student_app_id || student.id || student.application_id;
                 if (!applnID) continue;
 
-                const studentName = [student.first_name, student.last_name].filter(Boolean).join(' ')
+                const studentName = [student.student_first_name, student.student_last_name].filter(Boolean).join(' ')
+                    || [student.first_name, student.last_name].filter(Boolean).join(' ')
                     || student.name || applnID;
 
                 this.log('info', `Processing student ${this.currentRun.processed + 1}/${students.length}: ${applnID} (${studentName})`);
