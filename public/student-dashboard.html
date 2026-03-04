@@ -673,8 +673,9 @@ function renderRecentStudents() {
             <td class="px-4 py-2.5 font-mono text-[#16A085] text-xs">${s.applnID}</td>
             <td class="px-4 py-2.5 text-center text-sm">${docsInfo}</td>
             <td class="px-4 py-2.5 text-center">${statusBadge}</td>
-            <td class="px-4 py-2.5 text-center" onclick="event.stopPropagation()">
-                <button onclick="openStudentDocuments('${s.applnID}')" class="text-[#16A085] hover:text-[#76D7C4] text-xs" title="View Documents"><i class="fas fa-eye mr-1"></i>View</button>
+            <td class="px-4 py-2.5 text-center whitespace-nowrap" onclick="event.stopPropagation()">
+                <button onclick="openStudentDocuments('${s.applnID}')" class="text-[#16A085] hover:text-[#76D7C4] text-xs mr-1" title="View Documents"><i class="fas fa-eye mr-1"></i>View</button>
+                ${r.status === 'skipped' || r.status === 'error' || r.status === 'partial' ? `<button onclick="recheckStudent('${s.applnID}', this)" class="text-yellow-400 hover:text-yellow-300 text-xs" title="Recheck with AI"><i class="fas fa-redo"></i></button>` : ''}
             </td>
         </tr>`;
     });
@@ -757,8 +758,9 @@ function renderAllStudents() {
             <td class="px-3 py-2.5 text-center text-green-400 text-xs">${reqVerified}</td>
             <td class="px-3 py-2.5 text-center text-red-400 text-xs">${reqRejected}</td>
             <td class="px-3 py-2.5 text-center">${statusBadge}</td>
-            <td class="px-3 py-2.5 text-center" onclick="event.stopPropagation()">
+            <td class="px-3 py-2.5 text-center whitespace-nowrap" onclick="event.stopPropagation()">
                 <button onclick="openStudentDocuments('${s.applnID}')" class="text-[#16A085] hover:text-[#76D7C4] text-xs mr-2" title="View Documents"><i class="fas fa-folder-open"></i></button>
+                ${r && (r.status === 'skipped' || r.status === 'error' || r.status === 'partial') ? `<button onclick="recheckStudent('${s.applnID}', this)" class="text-yellow-400 hover:text-yellow-300 text-xs" title="Recheck with AI"><i class="fas fa-redo"></i></button>` : ''}
             </td>
         </tr>`;
     });
@@ -866,6 +868,7 @@ async function openStudentDocuments(applnID) {
                         <p class="text-xs text-gray-500">Rejected</p>
                     </div>
                     <div>${statusBadge}</div>
+                    ${r && (r.status === 'skipped' || r.status === 'error' || r.status === 'partial') ? `<button onclick="recheckStudent('${esc(applnID)}', this)" class="bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition"><i class="fas fa-redo mr-1"></i>Recheck AI</button>` : ''}
                 </div>
             </div>`;
 
@@ -1110,8 +1113,9 @@ async function loadVerificationStatus() {
                     <td class="px-3 py-2.5 text-center text-green-400 text-xs">${reqVerified}</td>
                     <td class="px-3 py-2.5 text-center text-red-400 text-xs">${reqRejected}</td>
                     <td class="px-3 py-2.5 text-center">${statusBadge}</td>
-                    <td class="px-3 py-2.5 text-center" onclick="event.stopPropagation()">
-                        <button onclick="openStudentDocuments('${r.applnID}')" class="text-[#16A085] hover:text-[#76D7C4] text-xs"><i class="fas fa-folder-open mr-1"></i>View</button>
+                    <td class="px-3 py-2.5 text-center whitespace-nowrap" onclick="event.stopPropagation()">
+                        <button onclick="openStudentDocuments('${r.applnID}')" class="text-[#16A085] hover:text-[#76D7C4] text-xs mr-2"><i class="fas fa-folder-open mr-1"></i>View</button>
+                        ${(r.status === 'skipped' || r.status === 'error' || r.status === 'partial') ? `<button onclick="recheckStudent('${r.applnID}', this)" class="text-yellow-400 hover:text-yellow-300 text-xs" title="Recheck with AI"><i class="fas fa-redo mr-1"></i>Recheck</button>` : ''}
                     </td>
                 </tr>`;
             });
@@ -1147,6 +1151,39 @@ function closeExtractedData() {
 
 function closeStudentDetail() {
     document.getElementById('studentDetailModal').classList.add('hidden');
+}
+
+// ==================== RECHECK ====================
+async function recheckStudent(applnID, btnEl) {
+    if (!confirm(`Re-verify all documents for student ${applnID}? This will run AI verification on all uploaded docs.`)) return;
+
+    // Disable button and show spinner
+    if (btnEl) {
+        btnEl.disabled = true;
+        btnEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    }
+
+    try {
+        const res = await apiFetch('/recheck', {
+            method: 'POST',
+            body: JSON.stringify({ applnID })
+        });
+
+        if (res.success) {
+            // Refresh data to show updated results
+            await loadAllData();
+            alert(`Recheck complete for ${applnID}!\nStatus: ${res.data.status}\nDocs verified: ${res.data.totalDocsVerified || 0}\nApproved: ${res.data.totalApproved || 0}\nRejected: ${res.data.totalRejected || 0}`);
+        } else {
+            alert('Recheck failed: ' + (res.message || 'Unknown error'));
+        }
+    } catch (err) {
+        alert('Recheck error: ' + err.message);
+    }
+
+    if (btnEl) {
+        btnEl.disabled = false;
+        btnEl.innerHTML = '<i class="fas fa-redo"></i>';
+    }
 }
 
 // ==================== SEARCH ====================

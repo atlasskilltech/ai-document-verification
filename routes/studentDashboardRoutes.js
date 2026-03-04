@@ -199,4 +199,32 @@ router.get('/engine-status', (req, res) => {
     res.json({ success: true, data: scheduler.getStatus() });
 });
 
+/**
+ * POST /api/student-dashboard/recheck
+ * Force re-verify all documents for a student (bypasses verify_status filter)
+ * Used for skipped students that need rechecking
+ * Body: { applnID: "2500623" }
+ */
+router.post('/recheck', async (req, res) => {
+    const { applnID } = req.body;
+    if (!applnID) {
+        return res.status(400).json({ success: false, message: 'applnID is required' });
+    }
+
+    if (scheduler.isRunning) {
+        return res.status(409).json({
+            success: false,
+            message: 'A verification job is already running. Please wait for it to finish.',
+            data: scheduler.getStatus()
+        });
+    }
+
+    try {
+        const result = await scheduler.verifySingleStudent(applnID, { forceRecheck: true });
+        res.json({ success: true, data: result });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
 module.exports = router;

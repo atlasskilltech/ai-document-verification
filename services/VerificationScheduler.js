@@ -115,7 +115,7 @@ class VerificationScheduler {
 
     // ===================== SINGLE STUDENT PROCESSING =====================
 
-    async processStudent(applnID, studentName) {
+    async processStudent(applnID, studentName, { forceRecheck = false } = {}) {
         const studentResult = {
             applnID,
             studentName: studentName || applnID,
@@ -191,7 +191,12 @@ class VerificationScheduler {
             studentResult.uploaded = uploadedDocs.length;
 
             // Only verify documents with pending status (verify_status 0 or null/empty)
-            uploadedDocs = uploadedDocs.filter(doc => !doc.verify_status || doc.verify_status === '0');
+            // When forceRecheck is true, re-verify ALL uploaded docs regardless of verify_status
+            if (!forceRecheck) {
+                uploadedDocs = uploadedDocs.filter(doc => !doc.verify_status || doc.verify_status === '0');
+            } else {
+                this.log('info', `Student ${applnID}: Force recheck - verifying all ${uploadedDocs.length} uploaded docs`);
+            }
 
             studentResult.totalDocs = allDocs.length;
 
@@ -542,7 +547,7 @@ class VerificationScheduler {
 
     // ===================== VERIFY SINGLE STUDENT (on-demand) =====================
 
-    async verifySingleStudent(applnID) {
+    async verifySingleStudent(applnID, { forceRecheck = false } = {}) {
         if (this.isRunning) {
             throw new Error('A batch job is currently running. Wait for it to finish or stop it first.');
         }
@@ -566,9 +571,9 @@ class VerificationScheduler {
             students: []
         };
 
-        this.log('info', `========== SINGLE STUDENT VERIFICATION: ${applnID} ==========`);
+        this.log('info', `========== SINGLE STUDENT VERIFICATION${forceRecheck ? ' (RECHECK)' : ''}: ${applnID} ==========`);
 
-        const result = await this.processStudent(applnID, applnID);
+        const result = await this.processStudent(applnID, applnID, { forceRecheck });
         this.currentRun.students.push(result);
         this.currentRun.processed = 1;
 
