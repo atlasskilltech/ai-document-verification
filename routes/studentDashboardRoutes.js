@@ -202,7 +202,7 @@ router.get('/engine-status', (req, res) => {
 /**
  * POST /api/student-dashboard/recheck
  * Force re-verify all documents for a student (bypasses verify_status filter)
- * Used for skipped students that need rechecking
+ * Runs in parallel - does not block other rechecks (only blocked by batch jobs)
  * Body: { applnID: "2500623" }
  */
 router.post('/recheck', async (req, res) => {
@@ -214,7 +214,7 @@ router.post('/recheck', async (req, res) => {
     if (scheduler.isRunning) {
         return res.status(409).json({
             success: false,
-            message: 'A verification job is already running. Please wait for it to finish.',
+            message: 'A batch verification job is running. Please wait for it to finish.',
             data: scheduler.getStatus()
         });
     }
@@ -223,13 +223,15 @@ router.post('/recheck', async (req, res) => {
         const result = await scheduler.verifySingleStudent(applnID, { forceRecheck: true });
         res.json({ success: true, data: result });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        const statusCode = err.message.includes('Maximum parallel') ? 409 : 500;
+        res.status(statusCode).json({ success: false, message: err.message });
     }
 });
 
 /**
  * POST /api/student-dashboard/recheck-doc
  * Force re-verify a single document for a student
+ * Runs in parallel - does not block other rechecks (only blocked by batch jobs)
  * Body: { applnID: "2500623", documentTypeId: "5" }
  */
 router.post('/recheck-doc', async (req, res) => {
@@ -241,7 +243,7 @@ router.post('/recheck-doc', async (req, res) => {
     if (scheduler.isRunning) {
         return res.status(409).json({
             success: false,
-            message: 'A verification job is already running. Please wait for it to finish.'
+            message: 'A batch verification job is running. Please wait for it to finish.'
         });
     }
 
@@ -249,7 +251,69 @@ router.post('/recheck-doc', async (req, res) => {
         const result = await scheduler.verifySingleDoc(applnID, documentTypeId);
         res.json({ success: true, data: result });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        const statusCode = err.message.includes('Maximum parallel') ? 409 : 500;
+        res.status(statusCode).json({ success: false, message: err.message });
+    }
+});
+
+/**
+ * POST /api/student-dashboard/recheck-multiple
+ * Recheck multiple students in parallel at once
+ * Body: { applnIDs: ["2500623", "2500624", "2500625"] }
+ */
+router.post('/recheck-multiple', async (req, res) => {
+    const { applnIDs } = req.body;
+    if (!applnIDs || !Array.isArray(applnIDs) || applnIDs.length === 0) {
+        return res.status(400).json({ success: false, message: 'applnIDs must be a non-empty array' });
+    }
+
+    if (scheduler.isRunning) {
+        return res.status(409).json({
+            success: false,
+            message: 'A batch verification job is running. Please wait for it to finish.',
+            data: scheduler.getStatus()
+        });
+    }
+
+    try {
+        const result = await scheduler.parallelRecheckStudents(applnIDs, { forceRecheck: true });
+        res.json({ success: true, data: result });
+    } catch (err) {
+        const statusCode = err.message.includes('parallel') ? 409 : 500;
+        res.status(statusCode).json({ success: false, message: err.message });
+    }
+});
+
+/**
+ * POST /api/student-dashboard/recheck-docs-multiple
+ * Recheck multiple documents in parallel at once
+ * Body: { items: [{ applnID: "2500623", documentTypeId: "5" }, { applnID: "2500624", documentTypeId: "3" }] }
+ */
+router.post('/recheck-docs-multiple', async (req, res) => {
+    const { items } = req.body;
+    if (!items || !Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ success: false, message: 'items must be a non-empty array of { applnID, documentTypeId }' });
+    }
+
+    for (const item of items) {
+        if (!item.applnID || !item.documentTypeId) {
+            return res.status(400).json({ success: false, message: 'Each item must have applnID and documentTypeId' });
+        }
+    }
+
+    if (scheduler.isRunning) {
+        return res.status(409).json({
+            success: false,
+            message: 'A batch verification job is running. Please wait for it to finish.'
+        });
+    }
+
+    try {
+        const result = await scheduler.parallelRecheckDocs(items);
+        res.json({ success: true, data: result });
+    } catch (err) {
+        const statusCode = err.message.includes('parallel') ? 409 : 500;
+        res.status(statusCode).json({ success: false, message: err.message });
     }
 });
 
