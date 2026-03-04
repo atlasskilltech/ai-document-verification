@@ -317,4 +317,41 @@ router.post('/recheck-docs-multiple', async (req, res) => {
     }
 });
 
+/**
+ * GET /api/student-dashboard/view-doc/:applnID/:documentTypeId
+ * Proxy the document file from its external URL for preview in the browser.
+ * Streams the file with proper content-type headers.
+ */
+router.get('/view-doc/:applnID/:documentTypeId', async (req, res) => {
+    const { applnID, documentTypeId } = req.params;
+
+    try {
+        // Load student result to get file_url
+        const existing = await AtlasVerificationModel.getStudentResult(String(applnID));
+        if (!existing || !existing.allDocuments) {
+            return res.status(404).json({ success: false, message: 'Student not found' });
+        }
+
+        const docEntry = existing.allDocuments.find(d => String(d.document_type_id) === String(documentTypeId));
+        if (!docEntry) {
+            return res.status(404).json({ success: false, message: 'Document not found' });
+        }
+
+        if (!docEntry.file_url || !docEntry.file_url.trim()) {
+            return res.status(404).json({ success: false, message: 'No file uploaded for this document' });
+        }
+
+        // Download from external URL and stream to client
+        const { buffer, contentType } = await scheduler.atlasClient.downloadDocument(docEntry.file_url);
+
+        res.set('Content-Type', contentType);
+        res.set('Content-Disposition', `inline; filename="${docEntry.filename || 'document'}"`);
+        res.set('Cache-Control', 'private, max-age=300');
+        res.send(buffer);
+    } catch (err) {
+        console.error(`Failed to proxy document ${applnID}/${documentTypeId}:`, err.message);
+        res.status(500).json({ success: false, message: 'Failed to load document file' });
+    }
+});
+
 module.exports = router;
