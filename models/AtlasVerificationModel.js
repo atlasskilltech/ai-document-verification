@@ -111,22 +111,37 @@ class AtlasVerificationModel {
      */
     static async getAllResults() {
         const [rows] = await pool.query(`
-            SELECT appln_id, student_name, status, total_docs, uploaded, approved, rejected, errors, skipped, end_time as verified_at, updated_at
+            SELECT appln_id, student_name, status, total_docs, uploaded, approved, rejected, errors, skipped, end_time as verified_at, updated_at, all_documents
             FROM atlas_verification_results
             ORDER BY updated_at DESC
         `);
-        return rows.map(r => ({
-            applnID: String(r.appln_id),
-            studentName: r.student_name,
-            status: r.status,
-            totalDocs: r.total_docs || 0,
-            uploaded: r.uploaded || 0,
-            approved: r.approved || 0,
-            rejected: r.rejected || 0,
-            errors: r.errors || 0,
-            skipped: r.skipped || 0,
-            verifiedAt: r.verified_at
-        }));
+        return rows.map(r => {
+            let allDocs = [];
+            try { allDocs = JSON.parse(r.all_documents) || []; } catch (e) {}
+            const requiredDocs = allDocs.filter(d => d.is_required);
+            const docsWithConf = allDocs.filter(d => d.confidence && d.confidence > 0);
+            const avgConfidence = docsWithConf.length > 0
+                ? Math.round((docsWithConf.reduce((sum, d) => sum + d.confidence, 0) / docsWithConf.length) * 100)
+                : 0;
+
+            return {
+                applnID: String(r.appln_id),
+                studentName: r.student_name,
+                status: r.status,
+                totalDocs: r.total_docs || 0,
+                uploaded: r.uploaded || 0,
+                approved: r.approved || 0,
+                rejected: r.rejected || 0,
+                errors: r.errors || 0,
+                skipped: r.skipped || 0,
+                avgConfidence,
+                requiredTotal: requiredDocs.length,
+                requiredUploaded: requiredDocs.filter(d => d.is_uploaded).length,
+                requiredVerified: requiredDocs.filter(d => d.ai_status === 'Verified').length,
+                requiredRejected: requiredDocs.filter(d => d.ai_status === 'reject').length,
+                verifiedAt: r.verified_at
+            };
+        });
     }
 
     /**
