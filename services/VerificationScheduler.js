@@ -238,7 +238,10 @@ class VerificationScheduler {
                         statusUpdates.push({
                             document_type_id: doc.document_type_id,
                             doc_ai_status: aiStatus,
-                            doc_ai_remark: verification.remark
+                            doc_ai_remark: verification.remark,
+                            doc_ai_confidence: verification.confidence,
+                            doc_ai_extracted_data: verification.extracted_data || {},
+                            doc_ai_issues: verification.issues || []
                         });
 
                         const docResult = {
@@ -284,7 +287,10 @@ class VerificationScheduler {
                         statusUpdates.push({
                             document_type_id: doc.document_type_id,
                             doc_ai_status: 'error',
-                            doc_ai_remark: `Verification failed: ${errMsg}`
+                            doc_ai_remark: `Verification failed: ${errMsg}`,
+                            doc_ai_confidence: 0,
+                            doc_ai_extracted_data: {},
+                            doc_ai_issues: ['Verification process error']
                         });
 
                         const docResult = {
@@ -324,13 +330,30 @@ class VerificationScheduler {
             // Post status update back to Atlas API
             if (statusUpdates.length > 0 && !this.shouldStop) {
                 try {
-                    await this.withRetry(
+                    this.log('info', `${applnID}: Pushing ${statusUpdates.length} document statuses to Atlas...`, {
+                        documents: statusUpdates.map(s => ({
+                            document_type_id: s.document_type_id,
+                            status: s.doc_ai_status,
+                            confidence: s.doc_ai_confidence,
+                            has_extracted_data: Object.keys(s.doc_ai_extracted_data || {}).length > 0,
+                            issues_count: (s.doc_ai_issues || []).length
+                        }))
+                    });
+                    const pushResponse = await this.withRetry(
                         () => this.atlasClient.updateDocumentStatus(applnID, statusUpdates),
                         `Update status for ${applnID}`
                     );
-                    this.log('info', `${applnID}: Status updated (${statusUpdates.length} documents)`);
+                    const pushSuccess = pushResponse && (pushResponse.status === 1 || pushResponse.success);
+                    this.log(pushSuccess ? 'info' : 'warn', `${applnID}: Atlas push ${pushSuccess ? 'confirmed' : 'response received'} (${statusUpdates.length} documents)`, {
+                        response_status: pushResponse?.status,
+                        response_message: pushResponse?.message || pushResponse?.msg
+                    });
                 } catch (updateErr) {
-                    this.log('error', `${applnID}: Failed to update status`, { error: updateErr.message });
+                    this.log('error', `${applnID}: Failed to push data to Atlas`, {
+                        error: updateErr.message,
+                        documents_affected: statusUpdates.length,
+                        statuses: statusUpdates.map(s => `${s.document_type_id}:${s.doc_ai_status}`)
+                    });
                 }
             }
 

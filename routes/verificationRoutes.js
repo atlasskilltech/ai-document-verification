@@ -263,4 +263,33 @@ router.post('/fetch-student-docs', async (req, res) => {
     }
 });
 
+/**
+ * GET /api/verification/atlas-health
+ * Check Atlas API connectivity and data push readiness
+ */
+router.get('/atlas-health', async (req, res) => {
+    try {
+        const health = await scheduler.atlasClient.healthCheck();
+        res.json({ success: true, data: health });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+/**
+ * GET /api/verification/atlas-push-log
+ * Get recent Atlas push logs (filtered from verification logs)
+ */
+router.get('/atlas-push-log', (req, res) => {
+    const allLogs = scheduler.getLogs(500);
+    const pushLogs = allLogs.filter(log =>
+        log.message.includes('Atlas') ||
+        log.message.includes('Push') ||
+        log.message.includes('push') ||
+        log.message.includes('Status updated') ||
+        log.message.includes('Pushing')
+    );
+    res.json({ success: true, data: pushLogs });
+});
+
 module.exports = router;
