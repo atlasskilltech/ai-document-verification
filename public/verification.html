@@ -147,20 +147,20 @@
         <div id="studentListSection" class="mb-6">
             <div class="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
                 <div class="px-4 py-3 border-b border-gray-800 flex justify-between items-center flex-wrap gap-2">
-                    <h3 class="font-semibold text-sm"><i class="fas fa-users text-[#16A085] mr-2"></i>Student List</h3>
+                    <h3 class="font-semibold text-sm"><i class="fas fa-users text-[#16A085] mr-2"></i>Student List <span class="text-xs text-gray-500 font-normal ml-1">(Not Verified Only)</span></h3>
                     <!-- Filter Tabs -->
                     <div class="flex items-center gap-1" id="filterTabs">
                         <button onclick="setFilter('all')" id="filter-all" class="px-3 py-1 rounded-full text-xs font-medium transition bg-[#138D75] text-white">
                             All <span id="filterCountAll" class="ml-1 opacity-75"></span>
                         </button>
-                        <button onclick="setFilter('completed')" id="filter-completed" class="px-3 py-1 rounded-full text-xs font-medium transition bg-gray-800 text-gray-400 hover:bg-gray-700">
-                            <i class="fas fa-check-circle mr-1 text-green-400"></i>Completed <span id="filterCountCompleted" class="ml-1 opacity-75"></span>
-                        </button>
                         <button onclick="setFilter('pending')" id="filter-pending" class="px-3 py-1 rounded-full text-xs font-medium transition bg-gray-800 text-gray-400 hover:bg-gray-700">
-                            <i class="fas fa-clock mr-1 text-gray-400"></i>Not Completed <span id="filterCountPending" class="ml-1 opacity-75"></span>
+                            <i class="fas fa-clock mr-1 text-gray-400"></i>Not Verified <span id="filterCountPending" class="ml-1 opacity-75"></span>
                         </button>
                         <button onclick="setFilter('error')" id="filter-error" class="px-3 py-1 rounded-full text-xs font-medium transition bg-gray-800 text-gray-400 hover:bg-gray-700">
                             <i class="fas fa-exclamation-triangle mr-1 text-red-400"></i>Errors <span id="filterCountError" class="ml-1 opacity-75"></span>
+                        </button>
+                        <button onclick="toggleShowAll()" id="btn-show-all" class="px-3 py-1 rounded-full text-xs font-medium transition bg-gray-800 text-gray-400 hover:bg-gray-700">
+                            <i class="fas fa-eye mr-1"></i>Show All Students
                         </button>
                     </div>
                     <span class="text-xs text-gray-500" id="studentCount"></span>
@@ -438,10 +438,11 @@ let pollInterval = null;
 let lastLogCount = 0;
 let studentsCache = [];
 let resultsMapCache = {};         // cached verification results
-let currentFilter = 'all';       // 'all', 'completed', 'pending', 'error'
+let currentFilter = 'all';       // 'all', 'pending', 'error'
 let wasRunning = false;           // track if batch was running on last poll
 let lastProcessedCount = -1;      // track processed count for live table refresh
 let studentListLoaded = false;    // whether we have fetched from Atlas at least once
+let showAllStudents = false;      // false = only unverified, true = all students
 
 // ==================== API ====================
 async function apiFetch(url, opts = {}) {
@@ -469,7 +470,8 @@ async function loadStudentList(silent) {
     }
 
     try {
-        const res = await apiFetch('/students');
+        const filterParam = showAllStudents ? 'all' : 'unverified';
+        const res = await apiFetch(`/students?filter=${filterParam}`);
         if (!res.success || !res.data) {
             if (!silent) document.getElementById('studentListBody').innerHTML = '<tr><td colspan="8" class="text-center py-8 text-red-400">Failed to load students</td></tr>';
             return;
@@ -487,7 +489,8 @@ async function loadStudentList(silent) {
 
         studentsCache = studentArr;
         studentListLoaded = true;
-        document.getElementById('studentCount').textContent = `${studentArr.length} students`;
+        const viewLabel = showAllStudents ? 'all' : 'unverified';
+        document.getElementById('studentCount').textContent = `${studentArr.length} ${viewLabel} students`;
 
         if (studentArr.length === 0) {
             document.getElementById('studentListBody').innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-600">No students found</td></tr>';
@@ -551,7 +554,6 @@ function renderStudentTable(studentArr, resultsMap) {
 
     // Update filter counts
     document.getElementById('filterCountAll').textContent = `(${studentArr.length})`;
-    document.getElementById('filterCountCompleted').textContent = `(${completedCount})`;
     document.getElementById('filterCountPending').textContent = `(${pendingCount})`;
     document.getElementById('filterCountError').textContent = `(${errorCount})`;
 
@@ -615,15 +617,29 @@ function renderStudentTable(studentArr, resultsMap) {
     }
 
     // Update header count
-    const verifiedCount = completedCount;
-    document.getElementById('studentCount').textContent = `${filtered.length} of ${studentArr.length} shown | ${verifiedCount} completed`;
+    const viewLabel = showAllStudents ? 'all students' : 'unverified only';
+    document.getElementById('studentCount').textContent = `${filtered.length} of ${studentArr.length} shown (${viewLabel})`;
 }
 
 // ==================== FILTER ====================
+function toggleShowAll() {
+    showAllStudents = !showAllStudents;
+    const btn = document.getElementById('btn-show-all');
+    if (showAllStudents) {
+        btn.innerHTML = '<i class="fas fa-filter mr-1"></i>Show Unverified Only';
+        btn.className = 'px-3 py-1 rounded-full text-xs font-medium transition bg-blue-600 text-white';
+    } else {
+        btn.innerHTML = '<i class="fas fa-eye mr-1"></i>Show All Students';
+        btn.className = 'px-3 py-1 rounded-full text-xs font-medium transition bg-gray-800 text-gray-400 hover:bg-gray-700';
+    }
+    // Reload student list with new filter
+    loadStudentList();
+}
+
 function setFilter(filter) {
     currentFilter = filter;
     // Update active tab style
-    ['all', 'completed', 'pending', 'error'].forEach(f => {
+    ['all', 'pending', 'error'].forEach(f => {
         const btn = document.getElementById(`filter-${f}`);
         if (f === filter) {
             btn.className = 'px-3 py-1 rounded-full text-xs font-medium transition bg-[#138D75] text-white';
