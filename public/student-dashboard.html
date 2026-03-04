@@ -283,20 +283,23 @@
                     <table class="w-full text-sm">
                         <thead class="bg-gray-800/50 text-xs text-gray-400">
                             <tr>
-                                <th class="px-4 py-3 text-left">#</th>
-                                <th class="px-4 py-3 text-left">Application ID</th>
-                                <th class="px-4 py-3 text-left">Student Name</th>
-                                <th class="px-4 py-3 text-center">Total Docs</th>
-                                <th class="px-4 py-3 text-center">Uploaded</th>
-                                <th class="px-4 py-3 text-center">Verified</th>
-                                <th class="px-4 py-3 text-center">Rejected</th>
-                                <th class="px-4 py-3 text-center">Confidence</th>
-                                <th class="px-4 py-3 text-center">Status</th>
-                                <th class="px-4 py-3 text-center">Actions</th>
+                                <th class="px-3 py-3 text-left">#</th>
+                                <th class="px-3 py-3 text-left">Application ID</th>
+                                <th class="px-3 py-3 text-left">Student Name</th>
+                                <th class="px-3 py-3 text-center">Total</th>
+                                <th class="px-3 py-3 text-center">Verified</th>
+                                <th class="px-3 py-3 text-center">Rejected</th>
+                                <th class="px-3 py-3 text-center">Errors</th>
+                                <th class="px-3 py-3 text-center">Avg Conf.</th>
+                                <th class="px-3 py-3 text-center">Req. Uploaded</th>
+                                <th class="px-3 py-3 text-center">Req. Verified</th>
+                                <th class="px-3 py-3 text-center">Req. Rejected</th>
+                                <th class="px-3 py-3 text-center">Status</th>
+                                <th class="px-3 py-3 text-center">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="allStudentsBody">
-                            <tr><td colspan="10" class="text-center py-8 text-gray-600">Loading students...</td></tr>
+                            <tr><td colspan="13" class="text-center py-8 text-gray-600">Loading students...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -357,20 +360,23 @@
                     <table class="w-full text-sm">
                         <thead class="bg-gray-800/50 text-xs text-gray-400">
                             <tr>
-                                <th class="px-4 py-2.5 text-left">#</th>
-                                <th class="px-4 py-2.5 text-left">Application ID</th>
-                                <th class="px-4 py-2.5 text-left">Student Name</th>
-                                <th class="px-4 py-2.5 text-center">Total</th>
-                                <th class="px-4 py-2.5 text-center">Verified</th>
-                                <th class="px-4 py-2.5 text-center">Rejected</th>
-                                <th class="px-4 py-2.5 text-center">Errors</th>
-                                <th class="px-4 py-2.5 text-center">Avg Confidence</th>
-                                <th class="px-4 py-2.5 text-center">Status</th>
-                                <th class="px-4 py-2.5 text-center">Actions</th>
+                                <th class="px-3 py-2.5 text-left">#</th>
+                                <th class="px-3 py-2.5 text-left">Application ID</th>
+                                <th class="px-3 py-2.5 text-left">Student Name</th>
+                                <th class="px-3 py-2.5 text-center">Total</th>
+                                <th class="px-3 py-2.5 text-center">Verified</th>
+                                <th class="px-3 py-2.5 text-center">Rejected</th>
+                                <th class="px-3 py-2.5 text-center">Errors</th>
+                                <th class="px-3 py-2.5 text-center">Avg Conf.</th>
+                                <th class="px-3 py-2.5 text-center">Req. Uploaded</th>
+                                <th class="px-3 py-2.5 text-center">Req. Verified</th>
+                                <th class="px-3 py-2.5 text-center">Req. Rejected</th>
+                                <th class="px-3 py-2.5 text-center">Status</th>
+                                <th class="px-3 py-2.5 text-center">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="verResultsBody">
-                            <tr><td colspan="10" class="text-center py-8 text-gray-600">Loading results...</td></tr>
+                            <tr><td colspan="13" class="text-center py-8 text-gray-600">Loading results...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -690,7 +696,7 @@ function renderAllStudents() {
     document.getElementById('studentCountLabel').textContent = `${filtered.length} of ${studentsCache.length} students`;
 
     if (filtered.length === 0) {
-        document.getElementById('allStudentsBody').innerHTML = `<tr><td colspan="10" class="text-center py-8 text-gray-500">${searchQuery ? 'No students match your search' : 'No students found in this category'}</td></tr>`;
+        document.getElementById('allStudentsBody').innerHTML = `<tr><td colspan="13" class="text-center py-8 text-gray-500">${searchQuery ? 'No students match your search' : 'No students found in this category'}</td></tr>`;
         return;
     }
 
@@ -698,30 +704,37 @@ function renderAllStudents() {
         const r = s.r;
         const name = s.studentName || '-';
         const totalDocs = r ? (r.totalDocs || 0) : '-';
-        const uploaded = r ? (r.uploaded || 0) : '-';
         const approved = r ? (r.approved || 0) : '-';
         const rejected = r ? (r.rejected || 0) : '-';
-        const avgConf = '-';
+        const errors = r ? (r.errors || 0) : '-';
+        const avgConf = r && r.avgConfidence ? `${r.avgConfidence}%` : '-';
+        const reqUploaded = r ? `${r.requiredUploaded || 0}/${r.requiredTotal || 0}` : '-';
+        const reqVerified = r ? `${r.requiredVerified || 0}/${r.requiredTotal || 0}` : '-';
+        const reqRejected = r ? (r.requiredRejected || 0) : '-';
+        const confColor = !r || !r.avgConfidence ? 'text-gray-500' : r.avgConfidence >= 80 ? 'text-green-400' : r.avgConfidence >= 50 ? 'text-yellow-400' : 'text-red-400';
 
         const statusBadge = r ? getStudentStatusBadge(r) : '<span class="px-2 py-0.5 rounded text-xs badge-pending"><i class="fas fa-clock mr-1"></i>Not Verified</span>';
         const rowBg = !r ? '' : s.category === 'verified' ? 'bg-green-900/5' : s.category === 'issues' ? 'bg-red-900/5' : '';
 
         return `<tr class="border-b border-gray-800/50 hover:bg-gray-800/30 transition cursor-pointer ${rowBg}" onclick="openStudentDocuments('${s.applnID}')">
-            <td class="px-4 py-2.5 text-gray-500 text-xs">${fi + 1}</td>
-            <td class="px-4 py-2.5 font-mono text-[#16A085] text-xs">${s.applnID}</td>
-            <td class="px-4 py-2.5">
+            <td class="px-3 py-2.5 text-gray-500 text-xs">${fi + 1}</td>
+            <td class="px-3 py-2.5 font-mono text-[#16A085] text-xs">${s.applnID}</td>
+            <td class="px-3 py-2.5">
                 <div class="flex items-center gap-2">
                     <div class="w-7 h-7 rounded-full bg-[#16A085]/20 flex items-center justify-center text-[#16A085] text-xs font-bold">${esc(name.charAt(0).toUpperCase())}</div>
-                    <span class="font-medium text-white text-sm">${esc(name)}</span>
+                    <span class="font-medium text-white text-xs">${esc(name)}</span>
                 </div>
             </td>
-            <td class="px-4 py-2.5 text-center">${totalDocs}</td>
-            <td class="px-4 py-2.5 text-center text-blue-400">${uploaded}</td>
-            <td class="px-4 py-2.5 text-center text-green-400 font-medium">${approved}</td>
-            <td class="px-4 py-2.5 text-center text-red-400 font-medium">${rejected}</td>
-            <td class="px-4 py-2.5 text-center text-sm">${avgConf}</td>
-            <td class="px-4 py-2.5 text-center">${statusBadge}</td>
-            <td class="px-4 py-2.5 text-center" onclick="event.stopPropagation()">
+            <td class="px-3 py-2.5 text-center text-xs">${totalDocs}</td>
+            <td class="px-3 py-2.5 text-center text-green-400 font-medium text-xs">${approved}</td>
+            <td class="px-3 py-2.5 text-center text-red-400 font-medium text-xs">${rejected}</td>
+            <td class="px-3 py-2.5 text-center text-yellow-400 text-xs">${errors}</td>
+            <td class="px-3 py-2.5 text-center ${confColor} font-medium text-xs">${avgConf}</td>
+            <td class="px-3 py-2.5 text-center text-[#16A085] text-xs">${reqUploaded}</td>
+            <td class="px-3 py-2.5 text-center text-green-400 text-xs">${reqVerified}</td>
+            <td class="px-3 py-2.5 text-center text-red-400 text-xs">${reqRejected}</td>
+            <td class="px-3 py-2.5 text-center">${statusBadge}</td>
+            <td class="px-3 py-2.5 text-center" onclick="event.stopPropagation()">
                 <button onclick="openStudentDocuments('${s.applnID}')" class="text-[#16A085] hover:text-[#76D7C4] text-xs mr-2" title="View Documents"><i class="fas fa-folder-open"></i></button>
             </td>
         </tr>`;
@@ -1046,7 +1059,7 @@ async function loadVerificationStatus() {
             document.getElementById('verResultsCount').textContent = `${results.length} results`;
 
             if (results.length === 0) {
-                document.getElementById('verResultsBody').innerHTML = '<tr><td colspan="10" class="text-center py-8 text-gray-600">No verification results yet</td></tr>';
+                document.getElementById('verResultsBody').innerHTML = '<tr><td colspan="13" class="text-center py-8 text-gray-600">No verification results yet</td></tr>';
                 return;
             }
 
@@ -1054,20 +1067,27 @@ async function loadVerificationStatus() {
                 const student = studentsCache.find(s => s.applnID === r.applnID);
                 const name = student ? student.studentName : (r.studentName || '-');
                 const statusBadge = getStudentStatusBadge(r);
-                const avgConf = '-';
                 const errors = r.errors || 0;
+                const avgConf = r.avgConfidence ? `${r.avgConfidence}%` : '-';
+                const reqUploaded = `${r.requiredUploaded || 0}/${r.requiredTotal || 0}`;
+                const reqVerified = `${r.requiredVerified || 0}/${r.requiredTotal || 0}`;
+                const reqRejected = r.requiredRejected || 0;
+                const confColor = !r.avgConfidence ? 'text-gray-500' : r.avgConfidence >= 80 ? 'text-green-400' : r.avgConfidence >= 50 ? 'text-yellow-400' : 'text-red-400';
 
                 return `<tr class="border-b border-gray-800/50 hover:bg-gray-800/30 transition cursor-pointer" onclick="openStudentDocuments('${r.applnID}')">
-                    <td class="px-4 py-2.5 text-gray-500 text-xs">${idx + 1}</td>
-                    <td class="px-4 py-2.5 font-mono text-[#16A085] text-xs">${r.applnID}</td>
-                    <td class="px-4 py-2.5 font-medium text-white text-sm">${esc(name)}</td>
-                    <td class="px-4 py-2.5 text-center">${r.totalDocs || 0}</td>
-                    <td class="px-4 py-2.5 text-center text-green-400 font-medium">${r.approved || 0}</td>
-                    <td class="px-4 py-2.5 text-center text-red-400 font-medium">${r.rejected || 0}</td>
-                    <td class="px-4 py-2.5 text-center text-yellow-400">${errors > 0 ? errors : '-'}</td>
-                    <td class="px-4 py-2.5 text-center text-sm">${avgConf}</td>
-                    <td class="px-4 py-2.5 text-center">${statusBadge}</td>
-                    <td class="px-4 py-2.5 text-center" onclick="event.stopPropagation()">
+                    <td class="px-3 py-2.5 text-gray-500 text-xs">${idx + 1}</td>
+                    <td class="px-3 py-2.5 font-mono text-[#16A085] text-xs">${r.applnID}</td>
+                    <td class="px-3 py-2.5 font-medium text-white text-xs">${esc(name)}</td>
+                    <td class="px-3 py-2.5 text-center text-xs">${r.totalDocs || 0}</td>
+                    <td class="px-3 py-2.5 text-center text-green-400 font-medium text-xs">${r.approved || 0}</td>
+                    <td class="px-3 py-2.5 text-center text-red-400 font-medium text-xs">${r.rejected || 0}</td>
+                    <td class="px-3 py-2.5 text-center text-yellow-400 text-xs">${errors > 0 ? errors : '-'}</td>
+                    <td class="px-3 py-2.5 text-center ${confColor} font-medium text-xs">${avgConf}</td>
+                    <td class="px-3 py-2.5 text-center text-[#16A085] text-xs">${reqUploaded}</td>
+                    <td class="px-3 py-2.5 text-center text-green-400 text-xs">${reqVerified}</td>
+                    <td class="px-3 py-2.5 text-center text-red-400 text-xs">${reqRejected}</td>
+                    <td class="px-3 py-2.5 text-center">${statusBadge}</td>
+                    <td class="px-3 py-2.5 text-center" onclick="event.stopPropagation()">
                         <button onclick="openStudentDocuments('${r.applnID}')" class="text-[#16A085] hover:text-[#76D7C4] text-xs"><i class="fas fa-folder-open mr-1"></i>View</button>
                     </td>
                 </tr>`;
