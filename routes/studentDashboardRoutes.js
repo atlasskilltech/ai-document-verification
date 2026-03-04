@@ -61,10 +61,8 @@ router.get('/students', async (req, res) => {
 
                 return {
                     applnID: id,
+                    studentId: s.student_id || null,
                     studentName: name,
-                    email: s.email || null,
-                    phone: s.phone || null,
-                    program: s.program_name || s.program || null,
                     verification: result
                 };
             });
@@ -75,10 +73,8 @@ router.get('/students', async (req, res) => {
             if (!seenIds.has(String(r.applnID))) {
                 merged.push({
                     applnID: r.applnID,
+                    studentId: null,
                     studentName: r.studentName || r.applnID,
-                    email: null,
-                    phone: null,
-                    program: null,
                     verification: r
                 });
             }
