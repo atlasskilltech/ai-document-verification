@@ -703,15 +703,29 @@ class VerificationScheduler {
     getAllStudentResults() {
         const results = [];
         for (const [applnID, result] of this.studentResults) {
+            const allDocs = result.allDocuments || [];
+            const requiredDocs = allDocs.filter(d => d.is_required);
+
+            // Confidence: average of docs that have a confidence value > 0
+            const docsWithConfidence = allDocs.filter(d => d.confidence && d.confidence > 0);
+            const avgConfidence = docsWithConfidence.length > 0
+                ? docsWithConfidence.reduce((sum, d) => sum + d.confidence, 0) / docsWithConfidence.length
+                : 0;
+
             results.push({
                 applnID: result.applnID,
                 studentName: result.studentName,
                 status: result.status,
-                totalDocs: result.allDocuments ? result.allDocuments.length : 0,
+                totalDocs: allDocs.length,
                 uploaded: result.uploaded || 0,
                 approved: result.approved,
                 rejected: result.rejected,
                 errors: result.errors,
+                avgConfidence: Math.round(avgConfidence * 100),
+                requiredTotal: requiredDocs.length,
+                requiredUploaded: requiredDocs.filter(d => d.is_uploaded).length,
+                requiredVerified: requiredDocs.filter(d => d.ai_status === 'Verified').length,
+                requiredRejected: requiredDocs.filter(d => d.ai_status === 'reject').length,
                 verifiedAt: result.endTime
             });
         }

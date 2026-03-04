@@ -169,19 +169,23 @@
                     <table class="w-full text-sm">
                         <thead class="bg-gray-800/50 text-xs text-gray-400">
                             <tr>
-                                <th class="px-4 py-2.5 text-left">#</th>
-                                <th class="px-4 py-2.5 text-left">Application ID</th>
-                                <th class="px-4 py-2.5 text-left">Student Name</th>
-                                <th class="px-4 py-2.5 text-center">Total Docs</th>
-                                <th class="px-4 py-2.5 text-center">Uploaded</th>
-                                <th class="px-4 py-2.5 text-center">Approved</th>
-                                <th class="px-4 py-2.5 text-center">Rejected</th>
-                                <th class="px-4 py-2.5 text-center">Status</th>
-                                <th class="px-4 py-2.5 text-center">Actions</th>
+                                <th class="px-3 py-2.5 text-left">#</th>
+                                <th class="px-3 py-2.5 text-left">Application ID</th>
+                                <th class="px-3 py-2.5 text-left">Student Name</th>
+                                <th class="px-3 py-2.5 text-center">Total</th>
+                                <th class="px-3 py-2.5 text-center">Verified</th>
+                                <th class="px-3 py-2.5 text-center">Rejected</th>
+                                <th class="px-3 py-2.5 text-center">Errors</th>
+                                <th class="px-3 py-2.5 text-center">Avg Conf.</th>
+                                <th class="px-3 py-2.5 text-center">Req. Uploaded</th>
+                                <th class="px-3 py-2.5 text-center">Req. Verified</th>
+                                <th class="px-3 py-2.5 text-center">Req. Rejected</th>
+                                <th class="px-3 py-2.5 text-center">Status</th>
+                                <th class="px-3 py-2.5 text-center">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="studentListBody">
-                            <tr><td colspan="9" class="text-center py-8 text-gray-600">Loading students...</td></tr>
+                            <tr><td colspan="13" class="text-center py-8 text-gray-600">Loading students...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -466,14 +470,14 @@ function switchTab(tab) {
 // ==================== STUDENT LIST ====================
 async function loadStudentList(silent) {
     if (!silent) {
-        document.getElementById('studentListBody').innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Loading students from Atlas API...</td></tr>';
+        document.getElementById('studentListBody').innerHTML = '<tr><td colspan="13" class="text-center py-8 text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Loading students from Atlas API...</td></tr>';
     }
 
     try {
         const filterParam = showAllStudents ? 'all' : 'unverified';
         const res = await apiFetch(`/students?filter=${filterParam}`);
         if (!res.success || !res.data) {
-            if (!silent) document.getElementById('studentListBody').innerHTML = '<tr><td colspan="8" class="text-center py-8 text-red-400">Failed to load students</td></tr>';
+            if (!silent) document.getElementById('studentListBody').innerHTML = '<tr><td colspan="13" class="text-center py-8 text-red-400">Failed to load students</td></tr>';
             return;
         }
 
@@ -493,14 +497,14 @@ async function loadStudentList(silent) {
         document.getElementById('studentCount').textContent = `${studentArr.length} ${viewLabel} students`;
 
         if (studentArr.length === 0) {
-            document.getElementById('studentListBody').innerHTML = '<tr><td colspan="8" class="text-center py-8 text-gray-600">No students found</td></tr>';
+            document.getElementById('studentListBody').innerHTML = '<tr><td colspan="13" class="text-center py-8 text-gray-600">No students found</td></tr>';
             return;
         }
 
         renderStudentTable(studentArr, resultsMap);
 
     } catch (err) {
-        if (!silent) document.getElementById('studentListBody').innerHTML = `<tr><td colspan="8" class="text-center py-8 text-red-400">Error: ${esc(err.message)}</td></tr>`;
+        if (!silent) document.getElementById('studentListBody').innerHTML = `<tr><td colspan="13" class="text-center py-8 text-red-400">Error: ${esc(err.message)}</td></tr>`;
     }
 }
 
@@ -567,15 +571,19 @@ function renderStudentTable(studentArr, resultsMap) {
             pending: 'All students have been processed!',
             error: 'No errors found'
         };
-        document.getElementById('studentListBody').innerHTML = `<tr><td colspan="9" class="text-center py-8 text-gray-500">${msgs[currentFilter]}</td></tr>`;
+        document.getElementById('studentListBody').innerHTML = `<tr><td colspan="13" class="text-center py-8 text-gray-500">${msgs[currentFilter]}</td></tr>`;
     } else {
         const rows = filtered.map((s, filteredIdx) => {
             const { id, name, r, idx } = s;
 
             const totalDocs = r ? r.totalDocs : '-';
-            const uploaded = r ? r.uploaded : '-';
             const approved = r ? r.approved : '-';
             const rejected = r ? r.rejected : '-';
+            const errors = r ? (r.errors || 0) : '-';
+            const avgConf = r && r.avgConfidence ? `${r.avgConfidence}%` : '-';
+            const reqUploaded = r ? `${r.requiredUploaded || 0}/${r.requiredTotal || 0}` : '-';
+            const reqVerified = r ? `${r.requiredVerified || 0}/${r.requiredTotal || 0}` : '-';
+            const reqRejected = r ? (r.requiredRejected || 0) : '-';
 
             let statusBadge;
             if (!r) {
@@ -594,19 +602,26 @@ function renderStudentTable(studentArr, resultsMap) {
                 statusBadge = `<span class="px-2 py-0.5 rounded text-xs badge-pending">${esc(r.status)}</span>`;
             }
 
+            // Confidence color
+            const confColor = !r || !r.avgConfidence ? 'text-gray-500' : r.avgConfidence >= 80 ? 'text-green-400' : r.avgConfidence >= 50 ? 'text-yellow-400' : 'text-red-400';
+
             // Row highlight based on status
             const rowBg = !r ? '' : r.status === 'completed' ? 'bg-green-900/5' : r.status === 'error' || r.status === 'partial' ? 'bg-red-900/5' : '';
 
             return `<tr class="border-b border-gray-800/50 hover:bg-gray-800/30 transition cursor-pointer ${rowBg}" onclick="viewStudentDocs('${id}')">
-                <td class="px-4 py-2.5 text-gray-500 text-xs">${filteredIdx + 1}</td>
-                <td class="px-4 py-2.5 font-mono text-[#16A085] text-xs">${id}</td>
-                <td class="px-4 py-2.5 font-medium text-white">${esc(name)}</td>
-                <td class="px-4 py-2.5 text-center">${totalDocs}</td>
-                <td class="px-4 py-2.5 text-center">${uploaded}</td>
-                <td class="px-4 py-2.5 text-center text-green-400 font-medium">${approved}</td>
-                <td class="px-4 py-2.5 text-center text-red-400 font-medium">${rejected}</td>
-                <td class="px-4 py-2.5 text-center">${statusBadge}</td>
-                <td class="px-4 py-2.5 text-center" onclick="event.stopPropagation()">
+                <td class="px-3 py-2.5 text-gray-500 text-xs">${filteredIdx + 1}</td>
+                <td class="px-3 py-2.5 font-mono text-[#16A085] text-xs">${id}</td>
+                <td class="px-3 py-2.5 font-medium text-white text-xs">${esc(name)}</td>
+                <td class="px-3 py-2.5 text-center text-xs">${totalDocs}</td>
+                <td class="px-3 py-2.5 text-center text-green-400 font-medium text-xs">${approved}</td>
+                <td class="px-3 py-2.5 text-center text-red-400 font-medium text-xs">${rejected}</td>
+                <td class="px-3 py-2.5 text-center text-yellow-400 text-xs">${errors}</td>
+                <td class="px-3 py-2.5 text-center ${confColor} font-medium text-xs">${avgConf}</td>
+                <td class="px-3 py-2.5 text-center text-[#16A085] text-xs">${reqUploaded}</td>
+                <td class="px-3 py-2.5 text-center text-green-400 text-xs">${reqVerified}</td>
+                <td class="px-3 py-2.5 text-center text-red-400 text-xs">${reqRejected}</td>
+                <td class="px-3 py-2.5 text-center">${statusBadge}</td>
+                <td class="px-3 py-2.5 text-center" onclick="event.stopPropagation()">
                     <button onclick="viewStudentDocs('${id}')" class="text-[#16A085] hover:text-[#76D7C4] text-xs mr-2" title="View Documents"><i class="fas fa-eye"></i></button>
                     <button onclick="verifySingleFromList('${id}')" class="text-green-400 hover:text-green-300 text-xs" title="Verify"><i class="fas fa-check-circle"></i></button>
                 </td>
