@@ -545,6 +545,121 @@ class VerificationScheduler {
         }
     }
 
+    // ===================== VERIFY SINGLE DOCUMENT (on-demand) =====================
+
+    async verifySingleDoc(applnID, documentTypeId) {
+        if (this.isRunning) {
+            throw new Error('A batch job is currently running. Wait for it to finish or stop it first.');
+        }
+
+        this.log('info', `========== SINGLE DOCUMENT RECHECK: ${applnID} / doc ${documentTypeId} ==========`);
+
+        // Load existing student result from DB
+        const existing = await AtlasVerificationModel.getStudentResult(String(applnID));
+        if (!existing) {
+            throw new Error(`No verification result found for student ${applnID}. Run full verification first.`);
+        }
+
+        // Find the document in allDocuments
+        const docEntry = existing.allDocuments.find(d => String(d.document_type_id) === String(documentTypeId));
+        if (!docEntry) {
+            throw new Error(`Document type ${documentTypeId} not found for student ${applnID}`);
+        }
+
+        if (!docEntry.file_url || !docEntry.file_url.trim()) {
+            throw new Error(`Document "${docEntry.document_label}" has no uploaded file`);
+        }
+
+        // Run AI verification on this single document
+        this.isRunning = true;
+        try {
+            const verification = await this.verifyDocument(docEntry);
+
+            if (verification.status === 'skip') {
+                this.isRunning = false;
+                return { status: 'skipped', document: docEntry.document_label, message: 'Document not uploaded' };
+            }
+
+            const aiStatus = verification.status === 'approve' ? 'Verified' : 'reject';
+
+            // Update in allDocuments
+            const allDocIdx = existing.allDocuments.findIndex(d => String(d.document_type_id) === String(documentTypeId));
+            if (allDocIdx >= 0) {
+                existing.allDocuments[allDocIdx].ai_status = aiStatus;
+                existing.allDocuments[allDocIdx].confidence = verification.confidence;
+                existing.allDocuments[allDocIdx].remark = verification.remark;
+                existing.allDocuments[allDocIdx].issues = verification.issues;
+                existing.allDocuments[allDocIdx].extracted_data = verification.extracted_data;
+            }
+
+            // Update or add in documents (verified docs list)
+            const verDocIdx = existing.documents.findIndex(d => String(d.document_type_id) === String(documentTypeId));
+            const docResult = {
+                document_type_id: docEntry.document_type_id,
+                document_label: docEntry.document_label,
+                document_type_name: docEntry.document_type_name,
+                filename: docEntry.filename,
+                file_url: docEntry.file_url,
+                ai_status: aiStatus,
+                confidence: verification.confidence,
+                remark: verification.remark,
+                issues: verification.issues,
+                extracted_data: verification.extracted_data
+            };
+            if (verDocIdx >= 0) {
+                existing.documents[verDocIdx] = docResult;
+            } else {
+                existing.documents.push(docResult);
+            }
+
+            // Recalculate approved/rejected/errors counts from documents
+            let approved = 0, rejected = 0, errors = 0;
+            existing.documents.forEach(d => {
+                if (d.ai_status === 'Verified') approved++;
+                else if (d.ai_status === 'reject') rejected++;
+                else if (d.ai_status === 'error') errors++;
+            });
+            existing.approved = approved;
+            existing.rejected = rejected;
+            existing.errors = errors;
+            existing.status = errors > 0 ? 'partial' : 'completed';
+
+            // Persist updated result to DB
+            await AtlasVerificationModel.upsertStudentResult(existing);
+
+            // Post single doc status update to Atlas API
+            try {
+                await this.withRetry(
+                    () => this.atlasClient.updateDocumentStatus(applnID, [{
+                        document_type_id: docEntry.document_type_id,
+                        doc_ai_status: aiStatus,
+                        doc_ai_remark: verification.remark
+                    }]),
+                    `Update status for ${applnID} doc ${documentTypeId}`
+                );
+            } catch (updateErr) {
+                this.log('warn', `Failed to update Atlas status for doc ${documentTypeId}: ${updateErr.message}`);
+            }
+
+            this.log('info', `${applnID} - ${docEntry.document_label}: ${aiStatus} (${(verification.confidence * 100).toFixed(0)}%)`);
+            this.isRunning = false;
+
+            return {
+                status: aiStatus,
+                document: docEntry.document_label,
+                confidence: verification.confidence,
+                remark: verification.remark,
+                studentStatus: existing.status,
+                approved,
+                rejected,
+                errors
+            };
+        } catch (err) {
+            this.isRunning = false;
+            throw err;
+        }
+    }
+
     // ===================== VERIFY SINGLE STUDENT (on-demand) =====================
 
     async verifySingleStudent(applnID, { forceRecheck = false } = {}) {
