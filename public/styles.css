@@ -1,68 +1,35 @@
-/* ATLAS Design System */
+/* ATLAS Color Scheme Variables */
 :root {
-  --primary: #16A085;
+  /* Primary Colors */
+  --primary-color: #16A085;
   --primary-hover: #138D75;
   --primary-dark: #117A65;
-  --primary-light: #E8F8F5;
-  --primary-50: #F0FDF9;
+  --secondary-color: #48BB78;
+  --danger-color: #F56565;
+  --warning-color: #ED8936;
+  --info-color: #4299E1;
+  --success-color: #38C77D;
+
+  /* Background Colors */
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F8F9FA;
+  --bg-tertiary: #E9ECEF;
+  --sidebar-bg: #2C3E50;
+  --sidebar-active: #16A085;
+
+  /* Text Colors */
+  --text-primary: #2D3748;
+  --text-secondary: #718096;
+  --text-tertiary: #A0AEC0;
+  --text-white: #FFFFFF;
+
+  /* Border Colors */
+  --border-color: #E2E8F0;
+  --border-light: #EDF2F7;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
-
-/* Base scrollbar styling */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #f1f5f9; }
-::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
-/* Animations */
-.pulse { animation: pulse 2s infinite; }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
-.slide-in { animation: slideIn .3s ease-out; }
-@keyframes slideIn { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }
-.fade-in { animation: fadeIn .4s ease-out; }
-@keyframes fadeIn { from{opacity:0} to{opacity:1} }
-
-/* Status dot */
-.status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-.status-dot.active { background: #22c55e; box-shadow: 0 0 6px #22c55e; }
-.status-dot.inactive { background: #9ca3af; }
-.status-dot.running { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; animation: pulse 1s infinite; }
-
-/* Tab active */
-.tab-active { border-bottom: 2px solid #16A085; color: #16A085; font-weight: 600; }
-
-/* Badges - light theme */
-.badge-verified { background: #dcfce7; color: #166534; }
-.badge-reject { background: #fee2e2; color: #991b1b; }
-.badge-error { background: #fef3c7; color: #92400e; }
-.badge-pending { background: #f3f4f6; color: #6b7280; }
-.badge-uploaded { background: #dbeafe; color: #1e40af; }
-.badge-missing { background: #fee2e2; color: #dc2626; }
-.badge-processing { background: #e0f2fe; color: #0369a1; }
-
-/* Log colors */
-.log-info { color: #2563eb; }
-.log-warn { color: #d97706; }
-.log-error { color: #dc2626; }
-#logContainer { font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 12px; line-height: 1.7; }
-
-/* Card hover */
-.card-hover { transition: all 0.2s ease; }
-.card-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.08); }
-
-/* Sidebar */
-.sidebar-link { transition: all 0.2s; border-left: 3px solid transparent; }
-.sidebar-link:hover { background: rgba(22,160,133,0.08); border-left-color: #16A085; }
-.sidebar-link.active { background: rgba(22,160,133,0.1); border-left-color: #16A085; color: #16A085; font-weight: 600; }
-
-/* Search input */
-.search-input:focus { box-shadow: 0 0 0 3px rgba(22,160,133,0.15); }
-
-/* Doc card */
-.doc-card { transition: all 0.2s; }
-.doc-card:hover { border-color: rgba(22,160,133,0.5); box-shadow: 0 4px 12px -2px rgba(0,0,0,0.06); }
-
-/* Progress ring */
-.progress-ring { transition: stroke-dashoffset 0.5s ease; }
-
-/* Table styles */
-table tbody tr { transition: background 0.15s ease; }
