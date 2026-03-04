@@ -46,7 +46,8 @@ router.put('/config', (req, res) => {
  */
 router.post('/scheduler/start', (req, res) => {
     scheduler.startScheduler();
-    res.json({ success: true, message: 'Scheduler started', data: scheduler.getStatus() });
+    scheduler.startAutoWatch();
+    res.json({ success: true, message: 'Scheduler and auto-watch started', data: scheduler.getStatus() });
 });
 
 /**

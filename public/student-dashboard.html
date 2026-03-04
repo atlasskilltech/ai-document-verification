@@ -1130,10 +1130,15 @@ async function loadVerificationStatus() {
             const dot = document.getElementById('aiStatusDot');
             const text = document.getElementById('aiStatusText');
 
+            const autoWatch = data.autoWatch;
             if (data.engine.isRunning) {
                 dot.className = 'w-3 h-3 rounded-full bg-yellow-400 pulse';
                 text.textContent = 'Running';
                 text.className = 'text-sm text-yellow-400 font-medium';
+            } else if (autoWatch && autoWatch.active) {
+                dot.className = 'w-3 h-3 rounded-full bg-green-400 pulse';
+                text.textContent = autoWatch.isPolling ? 'Auto-verifying...' : 'Auto-watch (monitoring new docs)';
+                text.className = 'text-sm text-green-400 font-medium';
             } else if (data.scheduler.active) {
                 dot.className = 'w-3 h-3 rounded-full bg-green-400';
                 text.textContent = 'Active (Scheduled)';
