@@ -22,7 +22,7 @@ class VerificationScheduler {
             delayBetweenDocsMs: parseInt(process.env.VERIFICATION_DOC_DELAY_MS) || 500,
             skipAlreadyVerified: process.env.VERIFICATION_SKIP_VERIFIED !== 'false',
             autoStart: process.env.VERIFICATION_AUTO_START !== 'false', // auto-start by default
-            autoWatchIntervalMs: parseInt(process.env.VERIFICATION_AUTO_WATCH_INTERVAL_MS) || 10 * 60 * 1000 // poll every 10 minutes
+            autoWatchIntervalMs: parseInt(process.env.VERIFICATION_AUTO_WATCH_INTERVAL_MS) || 5 * 60 * 1000 // poll every 5 minutes
         };
 
         // Auto-watch state
@@ -1039,7 +1039,7 @@ class VerificationScheduler {
                 ? studentListResponse.data
                 : [studentListResponse.data];
 
-            // Find students that need verification
+            // Find students that need verification (check ALL conditions)
             const needsVerification = [];
             for (const student of students) {
                 const applnID = student.applnID || student.student_app_id || student.id || student.application_id;
@@ -1047,14 +1047,25 @@ class VerificationScheduler {
 
                 const existing = this.studentResults.get(String(applnID));
 
-                // New student (never verified) with data
+                // New student (never verified)
                 if (!existing) {
                     needsVerification.push(student);
                     continue;
                 }
 
-                // Already completed — check if Atlas has new/updated documents
-                // by fetching doc list and comparing upload status
+                // Students with pending status (had no docs before, may have now)
+                if (existing.status === 'pending') {
+                    needsVerification.push(student);
+                    continue;
+                }
+
+                // Students with error status (should retry)
+                if (existing.status === 'error') {
+                    needsVerification.push(student);
+                    continue;
+                }
+
+                // Completed/partial — check for new/re-uploaded docs or unverified docs
                 if (existing.status === 'completed' || existing.status === 'partial') {
                     try {
                         const docListResponse = await this.atlasClient.getDocumentList(applnID);
@@ -1064,8 +1075,9 @@ class VerificationScheduler {
                         if (!rawDocStatus || !Array.isArray(rawDocStatus)) continue;
 
                         const docStatus = rawDocStatus.map(d => this.normalizeDocFields(d));
-                        const hasNewDocs = docStatus.some(doc => {
+                        const needsWork = docStatus.some(doc => {
                             if (!doc.file_url) return false;
+
                             // Find matching cached doc
                             const cached = (existing.allDocuments || []).find(
                                 d => String(d.document_type_id) === String(doc.document_type_id)
@@ -1076,10 +1088,12 @@ class VerificationScheduler {
                             if (!cached.is_uploaded && doc.file_url) return true;
                             // File URL changed (re-uploaded)
                             if (cached.file_url !== doc.file_url) return true;
+                            // Has file but no AI status yet (unverified)
+                            if (!cached.ai_status) return true;
                             return false;
                         });
 
-                        if (hasNewDocs) {
+                        if (needsWork) {
                             needsVerification.push(student);
                         }
                     } catch (e) {
@@ -1311,11 +1325,9 @@ class VerificationScheduler {
         }
 
         if (this.config.autoStart) {
-            this.startScheduler();
-            // Start auto-watch to continuously poll for new documents
+            // Start auto-watch to continuously poll for new/unverified documents every 5 minutes
             this.startAutoWatch();
-            this.log('info', 'Auto-start enabled - auto-watch polling active, initial batch in 10 seconds');
-            setTimeout(() => this.runBatch(), 10000);
+            this.log('info', 'Auto-start enabled - auto-watch polling active (no cron, no initial batch)');
         }
     }
 }
