@@ -105,7 +105,7 @@ class VerificationScheduler {
             return {
                 status: 'skip',
                 confidence: 0,
-                remark: 'Document not uploaded - skipped',
+                remark: 'Document not uploaded',
                 issues: ['No file uploaded'],
                 extracted_data: {}
             };
@@ -138,7 +138,6 @@ class VerificationScheduler {
             approved: 0,
             rejected: 0,
             errors: 0,
-            skipped: 0,
             allDocuments: [],     // ALL documents (uploaded + not uploaded)
             documents: []         // only verified documents with AI results
         };
@@ -151,7 +150,7 @@ class VerificationScheduler {
             );
 
             if (docListResponse.status !== 1 || !docListResponse.data?.document_status) {
-                studentResult.status = 'skipped';
+                studentResult.status = 'pending';
                 studentResult.endTime = new Date().toISOString();
                 this.log('warn', `Student ${applnID}: No document list returned`);
 
@@ -212,7 +211,7 @@ class VerificationScheduler {
             studentResult.totalDocs = allDocs.length;
 
             if (uploadedDocs.length === 0) {
-                studentResult.status = 'skipped';
+                studentResult.status = 'pending';
                 studentResult.endTime = new Date().toISOString();
                 this.log('info', `Student ${applnID}: No documents to verify`);
 
@@ -267,29 +266,9 @@ class VerificationScheduler {
                     if (result.status === 'fulfilled') {
                         const verification = result.value;
 
-                        // Handle skipped documents (not uploaded)
+                        // Handle documents not uploaded
                         if (verification.status === 'skip') {
-                            studentResult.skipped++;
-                            studentResult.documents.push({
-                                document_type_id: doc.document_type_id,
-                                document_label: doc.document_label,
-                                document_type_name: doc.document_type_name,
-                                filename: doc.filename,
-                                file_url: doc.file_url,
-                                ai_status: 'skipped',
-                                confidence: 0,
-                                remark: verification.remark,
-                                issues: verification.issues,
-                                extracted_data: {}
-                            });
-                            const allDocEntry = studentResult.allDocuments.find(
-                                d => d.document_type_id === doc.document_type_id
-                            );
-                            if (allDocEntry) {
-                                allDocEntry.ai_status = 'skipped';
-                                allDocEntry.remark = verification.remark;
-                            }
-                            this.log('info', `${applnID} - ${doc.document_label}: Skipped (not uploaded)`);
+                            this.log('info', `${applnID} - ${doc.document_label}: Not uploaded`);
                             continue;
                         }
 
@@ -440,7 +419,6 @@ class VerificationScheduler {
             totalStudents: 0,
             processed: 0,
             completed: 0,
-            skipped: 0,
             errors: 0,
             totalDocsVerified: 0,
             totalApproved: 0,
@@ -492,9 +470,9 @@ class VerificationScheduler {
                     try {
                         const existing = await AtlasVerificationModel.getStudentResult(String(applnID));
                         if (existing && existing.status === 'completed') {
-                            this.log('info', `Skipping student ${applnID} (${studentName}): already verified`);
+                            this.log('info', `Student ${applnID} (${studentName}): already verified`);
                             this.currentRun.processed++;
-                            this.currentRun.skipped++;
+                            this.currentRun.completed++;
                             continue;
                         }
                     } catch (e) {
@@ -513,8 +491,8 @@ class VerificationScheduler {
                     this.currentRun.totalDocsVerified += result.totalDocs;
                     this.currentRun.totalApproved += result.approved;
                     this.currentRun.totalRejected += result.rejected;
-                } else if (result.status === 'skipped') {
-                    this.currentRun.skipped++;
+                } else if (result.status === 'pending') {
+                    // Student had no documents to verify
                 } else {
                     this.currentRun.errors++;
                 }
@@ -606,7 +584,7 @@ class VerificationScheduler {
 
             if (verification.status === 'skip') {
                 this.activeRechecks.delete(recheckId);
-                return { status: 'skipped', document: docEntry.document_label, message: 'Document not uploaded' };
+                return { status: 'pending', document: docEntry.document_label, message: 'Document not uploaded' };
             }
 
             const aiStatus = verification.status === 'approve' ? 'Verified' : 'reject';
@@ -719,7 +697,6 @@ class VerificationScheduler {
             totalStudents: 1,
             processed: 0,
             completed: 0,
-            skipped: 0,
             errors: 0,
             totalDocsVerified: 0,
             totalApproved: 0,
@@ -739,8 +716,8 @@ class VerificationScheduler {
                 runRecord.totalDocsVerified = result.totalDocs;
                 runRecord.totalApproved = result.approved;
                 runRecord.totalRejected = result.rejected;
-            } else if (result.status === 'skipped') {
-                runRecord.skipped = 1;
+            } else if (result.status === 'pending') {
+                // Student had no documents to verify
             } else {
                 runRecord.errors = 1;
             }
@@ -1082,7 +1059,6 @@ class VerificationScheduler {
                 totalStudents: this.currentRun.totalStudents,
                 processed: this.currentRun.processed,
                 completed: this.currentRun.completed,
-                skipped: this.currentRun.skipped,
                 errors: this.currentRun.errors,
                 totalDocsVerified: this.currentRun.totalDocsVerified,
                 totalApproved: this.currentRun.totalApproved,

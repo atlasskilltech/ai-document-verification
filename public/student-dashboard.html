@@ -593,8 +593,6 @@ async function updateOverviewStats() {
                 issues++;
             } else if (r.status === 'error' || r.status === 'partial') {
                 issues++;
-            } else if (r.status === 'skipped') {
-                issues++;
             } else {
                 pending++;
             }
@@ -632,7 +630,7 @@ async function loadDbStats() {
             if (s.total_students > 0) {
                 const dbResultsCount = parseInt(s.total_students) || 0;
                 const dbVerified = parseInt(s.fully_verified) || 0;
-                const dbIssues = (parseInt(s.has_issues) || 0) + (parseInt(s.has_errors) || 0) + (parseInt(s.skipped) || 0);
+                const dbIssues = (parseInt(s.has_issues) || 0) + (parseInt(s.has_errors) || 0);
                 // Total = max of Atlas cache or DB count (Atlas may have students not yet in DB)
                 const cacheTotal = studentsCache.length;
                 const dbTotal = Math.max(dbResultsCount, cacheTotal);
@@ -728,7 +726,7 @@ function renderRecentStudents() {
             <td class="px-4 py-2.5 text-center">${statusBadge}</td>
             <td class="px-4 py-2.5 text-center whitespace-nowrap" onclick="event.stopPropagation()">
                 <button onclick="openStudentDocuments('${s.applnID}')" class="text-[#16A085] hover:text-[#76D7C4] text-xs mr-1" title="View Documents"><i class="fas fa-eye mr-1"></i>View</button>
-                ${r.status === 'skipped' || r.status === 'error' || r.status === 'partial' ? `<button onclick="recheckStudent('${s.applnID}', this)" class="text-yellow-400 hover:text-yellow-300 text-xs" title="Recheck with AI"><i class="fas fa-redo"></i></button>` : ''}
+                ${r.status === 'error' || r.status === 'partial' ? `<button onclick="recheckStudent('${s.applnID}', this)" class="text-yellow-400 hover:text-yellow-300 text-xs" title="Recheck with AI"><i class="fas fa-redo"></i></button>` : ''}
             </td>
         </tr>`;
     });
@@ -748,7 +746,7 @@ function renderAllStudents() {
             category = 'pending'; pendingCount++;
         } else if (r.status === 'completed' && (r.rejected || 0) === 0) {
             category = 'verified'; verifiedCount++;
-        } else if (r.status === 'completed' || r.status === 'error' || r.status === 'partial' || r.status === 'skipped') {
+        } else if (r.status === 'completed' || r.status === 'error' || r.status === 'partial') {
             category = 'issues'; issuesCount++;
         } else {
             category = 'pending'; pendingCount++;
@@ -817,7 +815,7 @@ function renderAllStudents() {
             <td class="px-3 py-2.5 text-center">${statusBadge}</td>
             <td class="px-3 py-2.5 text-center whitespace-nowrap" onclick="event.stopPropagation()">
                 <button onclick="openStudentDocuments('${s.applnID}')" class="text-[#16A085] hover:text-[#76D7C4] text-xs mr-2" title="View Documents"><i class="fas fa-folder-open"></i></button>
-                ${r && (r.status === 'skipped' || r.status === 'error' || r.status === 'partial') ? `<button onclick="recheckStudent('${s.applnID}', this)" class="text-yellow-400 hover:text-yellow-300 text-xs" title="Recheck with AI"><i class="fas fa-redo"></i></button>` : ''}
+                ${r && (r.status === 'error' || r.status === 'partial') ? `<button onclick="recheckStudent('${s.applnID}', this)" class="text-yellow-400 hover:text-yellow-300 text-xs" title="Recheck with AI"><i class="fas fa-redo"></i></button>` : ''}
             </td>
         </tr>`;
     });
@@ -844,9 +842,6 @@ function getStudentStatusBadge(r) {
     }
     if (r.status === 'processing') {
         return '<span class="px-2 py-0.5 rounded text-xs badge-processing pulse"><i class="fas fa-spinner fa-spin mr-1"></i>Processing</span>';
-    }
-    if (r.status === 'skipped') {
-        return '<span class="px-2 py-0.5 rounded text-xs badge-pending"><i class="fas fa-forward mr-1"></i>Skipped</span>';
     }
     return `<span class="px-2 py-0.5 rounded text-xs badge-pending">${esc(r.status)}</span>`;
 }
@@ -930,7 +925,7 @@ async function openStudentDocuments(applnID) {
                         <p class="text-xs text-gray-500">Rejected</p>
                     </div>
                     <div>${statusBadge}</div>
-                    ${r && (r.status === 'skipped' || r.status === 'error' || r.status === 'partial') ? `<button onclick="recheckStudent('${esc(applnID)}', this)" class="bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition"><i class="fas fa-redo mr-1"></i>Recheck AI</button>` : ''}
+                    ${r && (r.status === 'error' || r.status === 'partial') ? `<button onclick="recheckStudent('${esc(applnID)}', this)" class="bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition"><i class="fas fa-redo mr-1"></i>Recheck AI</button>` : ''}
                 </div>
             </div>`;
 
@@ -1200,7 +1195,7 @@ async function loadVerificationStatus() {
                     <td class="px-3 py-2.5 text-center">${statusBadge}</td>
                     <td class="px-3 py-2.5 text-center whitespace-nowrap" onclick="event.stopPropagation()">
                         <button onclick="openStudentDocuments('${r.applnID}')" class="text-[#16A085] hover:text-[#76D7C4] text-xs mr-2"><i class="fas fa-folder-open mr-1"></i>View</button>
-                        ${(r.status === 'skipped' || r.status === 'error' || r.status === 'partial') ? `<button onclick="recheckStudent('${r.applnID}', this)" class="text-yellow-400 hover:text-yellow-300 text-xs" title="Recheck with AI"><i class="fas fa-redo mr-1"></i>Recheck</button>` : ''}
+                        ${(r.status === 'error' || r.status === 'partial') ? `<button onclick="recheckStudent('${r.applnID}', this)" class="text-yellow-400 hover:text-yellow-300 text-xs" title="Recheck with AI"><i class="fas fa-redo mr-1"></i>Recheck</button>` : ''}
                     </td>
                 </tr>`;
             });
