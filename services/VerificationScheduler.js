@@ -43,7 +43,7 @@ class VerificationScheduler {
         // activeRechecks tracks individual recheck operations that can run in parallel
         // Only batch jobs use the isRunning flag to block everything
         this.activeRechecks = new Map(); // recheckId -> { type, applnID, documentTypeId?, startTime }
-        this.maxParallelRechecks = parseInt(process.env.RECHECK_MAX_PARALLEL) || 5;
+        this.maxParallelRechecks = parseInt(process.env.RECHECK_MAX_PARALLEL) || 100;
     }
 
     // ===================== LOGGING =====================
@@ -1298,7 +1298,7 @@ class VerificationScheduler {
 
     updateConfig(updates) {
         if (updates.maxParallelRechecks !== undefined) {
-            this.maxParallelRechecks = parseInt(updates.maxParallelRechecks) || 5;
+            this.maxParallelRechecks = parseInt(updates.maxParallelRechecks) || 100;
         }
         const allowed = [
             'cronSchedule', 'concurrency', 'retryAttempts', 'retryDelayMs',
