@@ -240,19 +240,22 @@ router.post('/fetch-student-docs', async (req, res) => {
             return res.status(400).json({ success: false, message: 'Failed to fetch document list' });
         }
 
-        const allDocs = docListResponse.data.document_status;
+        const rawDocs = docListResponse.data.document_status;
+
+        // Normalize doc fields (handles alternative API field names)
+        const allDocs = rawDocs.map(doc => scheduler.normalizeDocFields(doc));
 
         // Check if we already have verification results for this student
         const existing = scheduler.getStudentResult(applnID);
 
         const documents = allDocs.map(doc => {
-            const isUploaded = !!(doc.file_url && doc.file_url.trim());
+            const isUploaded = !!(doc.file_url);
 
             // Merge existing AI results if available
             let aiData = {};
             if (existing) {
                 const verifiedDoc = existing.documents.find(
-                    d => d.document_type_id === doc.document_type_id
+                    d => String(d.document_type_id) === String(doc.document_type_id)
                 );
                 if (verifiedDoc) {
                     aiData = {
@@ -270,7 +273,7 @@ router.post('/fetch-student-docs', async (req, res) => {
                 document_type_name: doc.document_type_name,
                 document_label: doc.document_label,
                 document_description: doc.document_description,
-                is_required: doc.document_is_required === '1',
+                is_required: doc.document_is_required === '1' || doc.document_is_required === 1,
                 is_uploaded: isUploaded,
                 filename: doc.filename || null,
                 file_url: doc.file_url || null,

@@ -132,19 +132,22 @@ router.post('/fetch-docs', async (req, res) => {
             return res.status(400).json({ success: false, message: 'Failed to fetch document list from Atlas' });
         }
 
-        const allDocs = docListResponse.data.document_status;
+        const rawDocs = docListResponse.data.document_status;
+
+        // Normalize doc fields (handles alternative API field names for file_url, filename, etc.)
+        const allDocs = rawDocs.map(doc => scheduler.normalizeDocFields(doc));
 
         // Check for existing verification results in DB
         const existing = await AtlasVerificationModel.getStudentResult(applnID);
 
         const documents = allDocs.map(doc => {
-            const isUploaded = !!(doc.file_url && doc.file_url.trim());
+            const isUploaded = !!(doc.file_url);
 
             // Merge existing AI results from DB
             let aiData = {};
             if (existing && existing.documents) {
                 const verifiedDoc = existing.documents.find(
-                    d => d.document_type_id === doc.document_type_id
+                    d => String(d.document_type_id) === String(doc.document_type_id)
                 );
                 if (verifiedDoc) {
                     aiData = {
@@ -162,7 +165,7 @@ router.post('/fetch-docs', async (req, res) => {
                 document_type_name: doc.document_type_name,
                 document_label: doc.document_label,
                 document_description: doc.document_description,
-                is_required: doc.document_is_required === '1',
+                is_required: doc.document_is_required === '1' || doc.document_is_required === 1,
                 is_uploaded: isUploaded,
                 filename: doc.filename || null,
                 file_url: doc.file_url || null,
@@ -337,7 +340,7 @@ router.get('/view-doc/:applnID/:documentTypeId', async (req, res) => {
             return res.status(404).json({ success: false, message: 'Document not found' });
         }
 
-        if (!docEntry.file_url || !docEntry.file_url.trim()) {
+        if (!docEntry.file_url) {
             return res.status(404).json({ success: false, message: 'No file uploaded for this document' });
         }
 
