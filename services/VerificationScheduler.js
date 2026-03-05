@@ -247,23 +247,25 @@ class VerificationScheduler {
 
             // Load existing AI results to determine which docs need re-verification
             let existingDocsMap = {};
-            if (forceRecheck) {
-                try {
-                    const existing = await AtlasVerificationModel.getStudentResult(String(applnID));
-                    if (existing && existing.documents) {
-                        existing.documents.forEach(d => { existingDocsMap[String(d.document_type_id)] = d; });
-                    }
-                } catch (e) {
-                    this.log('warn', `Student ${applnID}: Could not load existing results for smart recheck: ${e.message}`);
+            try {
+                const existing = await AtlasVerificationModel.getStudentResult(String(applnID));
+                if (existing && existing.documents) {
+                    existing.documents.forEach(d => { existingDocsMap[String(d.document_type_id)] = d; });
                 }
+            } catch (e) {
+                this.log('warn', `Student ${applnID}: Could not load existing results for recheck: ${e.message}`);
             }
 
-            // Only verify documents with pending status (verify_status 0 or null/empty)
+            // Verify documents that are either pending (verify_status 0/null) OR have no ai_status yet
             // When forceRecheck is true, re-verify only rejected/error/empty docs - skip already Verified
             if (!forceRecheck) {
                 uploadedDocs = uploadedDocs.filter(doc => {
                     const vs = doc.verify_status;
-                    return !vs || vs === '0' || vs === 'null' || vs === 'undefined';
+                    const isPending = !vs || vs === '0' || vs === 'null' || vs === 'undefined';
+                    // Also include docs that have no AI verification yet
+                    const prev = existingDocsMap[String(doc.document_type_id)];
+                    const hasNoAiStatus = !prev || !prev.ai_status;
+                    return isPending || hasNoAiStatus;
                 });
             } else {
                 // Only recheck docs with empty/null ai_status - preserve all others (Verified, reject, error)
