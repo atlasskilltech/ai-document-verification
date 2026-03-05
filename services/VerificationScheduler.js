@@ -1011,7 +1011,7 @@ class VerificationScheduler {
 
         this.autoWatchTimer = setInterval(() => this._autoWatchCycle(), intervalMs);
         // Run first cycle after a short delay (let server fully start)
-        setTimeout(() => this._autoWatchCycle(), 15000);
+        setTimeout(() => this._autoWatchCycle(), 5000);
     }
 
     stopAutoWatch() {
@@ -1032,6 +1032,7 @@ class VerificationScheduler {
             const studentListResponse = await this.atlasClient.getStudentList();
             if (!studentListResponse || !studentListResponse.data) {
                 this.log('warn', 'Auto-watch: could not fetch student list');
+                this.autoWatchRunning = false;
                 return;
             }
 
@@ -1102,9 +1103,29 @@ class VerificationScheduler {
                 }
             }
 
-            if (needsVerification.length === 0) return;
+            if (needsVerification.length === 0) {
+                this.log('info', `Auto-watch: all ${students.length} student(s) up to date, nothing to verify`);
+                this.autoWatchRunning = false;
+                return;
+            }
 
             this.log('info', `Auto-watch: found ${needsVerification.length} student(s) needing verification`);
+
+            // Create a currentRun record so dashboard can track progress
+            this.currentRun = {
+                id: Date.now().toString(36),
+                startTime: new Date().toISOString(),
+                endTime: null,
+                status: 'running',
+                totalStudents: needsVerification.length,
+                processed: 0,
+                completed: 0,
+                errors: 0,
+                totalDocsVerified: 0,
+                totalApproved: 0,
+                totalRejected: 0,
+                students: []
+            };
 
             // Process each student that needs verification
             for (const student of needsVerification) {
@@ -1118,16 +1139,43 @@ class VerificationScheduler {
                 this.log('info', `Auto-watch: verifying student ${applnID} (${studentName})`);
 
                 try {
-                    await this.processStudent(applnID, studentName);
+                    const result = await this.processStudent(applnID, studentName);
+                    this.currentRun.students.push(result);
+                    this.currentRun.processed++;
+
+                    if (result.status === 'completed' || result.status === 'partial') {
+                        this.currentRun.completed++;
+                        this.currentRun.totalDocsVerified += (result.documents ? result.documents.length : 0);
+                        this.currentRun.totalApproved += result.approved;
+                        this.currentRun.totalRejected += result.rejected;
+                    } else if (result.status === 'error') {
+                        this.currentRun.errors++;
+                    }
                 } catch (err) {
                     this.log('error', `Auto-watch: failed to verify ${applnID}: ${err.message}`);
+                    this.currentRun.errors++;
+                    this.currentRun.processed++;
                 }
 
                 // Small delay between students
                 await this.sleep(this.config.delayBetweenStudentsMs);
             }
 
-            this.log('info', `Auto-watch: cycle complete, verified ${needsVerification.length} student(s)`);
+            // Finalize run record
+            this.currentRun.status = this.currentRun.errors > 0 ? 'completed_with_errors' : 'completed';
+            this.currentRun.endTime = new Date().toISOString();
+
+            // Save run to history
+            this.runs.push(this.currentRun);
+            if (this.runs.length > 50) this.runs.shift();
+
+            try {
+                await AtlasVerificationModel.saveRun(this.currentRun);
+            } catch (e) {
+                this.log('warn', `Auto-watch: failed to save run record: ${e.message}`);
+            }
+
+            this.log('info', `Auto-watch: cycle complete, verified ${needsVerification.length} student(s) — approved: ${this.currentRun.totalApproved}, rejected: ${this.currentRun.totalRejected}`);
         } catch (err) {
             this.log('error', `Auto-watch cycle error: ${err.message}`);
         } finally {
