@@ -96,11 +96,47 @@ class VerificationScheduler {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
 
+    /**
+     * Normalize document fields from Atlas API response.
+     * The API may return file URL under different field names (file_url, doc_file_url,
+     * doc_upload_file_url, document_url). This ensures consistent field names throughout.
+     * Also normalizes verify_status and document_type_id to consistent types.
+     */
+    normalizeDocFields(doc) {
+        const normalized = { ...doc };
+
+        // Normalize file_url - check multiple possible field names from Atlas API
+        if (!normalized.file_url || !String(normalized.file_url).trim()) {
+            normalized.file_url = doc.doc_file_url || doc.doc_upload_file_url || doc.document_url || doc.upload_url || null;
+        }
+        // Ensure file_url is a trimmed string or null
+        if (normalized.file_url) {
+            normalized.file_url = String(normalized.file_url).trim() || null;
+        }
+
+        // Normalize filename - check alternative field names
+        if (!normalized.filename) {
+            normalized.filename = doc.doc_upload_file_name || doc.file_name || doc.document_filename || null;
+        }
+
+        // Normalize verify_status to string for consistent comparison
+        if (normalized.verify_status !== null && normalized.verify_status !== undefined) {
+            normalized.verify_status = String(normalized.verify_status);
+        }
+
+        // Normalize document_type_id to string for consistent comparison
+        if (normalized.document_type_id !== null && normalized.document_type_id !== undefined) {
+            normalized.document_type_id = String(normalized.document_type_id);
+        }
+
+        return normalized;
+    }
+
     // ===================== SINGLE DOCUMENT VERIFICATION =====================
 
     async verifyDocument(doc) {
-        // Skip documents that have no file uploaded
-        if (!doc.file_url || !doc.file_url.trim()) {
+        // Skip documents that have no file uploaded (file_url already normalized by normalizeDocFields)
+        if (!doc.file_url) {
             this.log('info', `Skipping ${doc.document_label}: No file uploaded`);
             return {
                 status: 'skip',
@@ -176,13 +212,16 @@ class VerificationScheduler {
                 return studentResult;
             }
 
-            const allDocs = docListResponse.data.document_status;
+            const rawDocs = docListResponse.data.document_status;
 
-            // Debug: log document fields for first doc to identify API response structure
-            if (allDocs.length > 0) {
-                this.log('info', `Student ${applnID}: API doc fields: ${Object.keys(allDocs[0]).join(', ')}`);
-                this.log('info', `Student ${applnID}: First doc sample: file_url=${allDocs[0].file_url}, filename=${allDocs[0].filename}, verify_status=${allDocs[0].verify_status}`);
+            // Debug: log raw API fields for first doc to identify response structure
+            if (rawDocs.length > 0) {
+                this.log('info', `Student ${applnID}: API doc fields: ${Object.keys(rawDocs[0]).join(', ')}`);
+                this.log('info', `Student ${applnID}: First doc RAW: ${JSON.stringify(rawDocs[0])}`);
             }
+
+            // Normalize all document fields for consistent access
+            const allDocs = rawDocs.map(doc => this.normalizeDocFields(doc));
 
             // Store ALL documents (uploaded and not uploaded) for display
             studentResult.allDocuments = allDocs.map(doc => ({
@@ -190,8 +229,8 @@ class VerificationScheduler {
                 document_type_name: doc.document_type_name,
                 document_label: doc.document_label,
                 document_description: doc.document_description,
-                is_required: doc.document_is_required === '1',
-                is_uploaded: !!(doc.file_url && doc.file_url.trim()),
+                is_required: doc.document_is_required === '1' || doc.document_is_required === 1,
+                is_uploaded: !!doc.file_url,
                 filename: doc.filename || null,
                 file_url: doc.file_url || null,
                 verify_status: doc.verify_status,
@@ -203,7 +242,7 @@ class VerificationScheduler {
                 extracted_data: null
             }));
 
-            let uploadedDocs = allDocs.filter(doc => doc.file_url && doc.file_url.trim() !== '');
+            let uploadedDocs = allDocs.filter(doc => !!doc.file_url);
             studentResult.uploaded = uploadedDocs.length;
 
             // Load existing AI results to determine which docs need re-verification
@@ -222,7 +261,10 @@ class VerificationScheduler {
             // Only verify documents with pending status (verify_status 0 or null/empty)
             // When forceRecheck is true, re-verify only rejected/error/empty docs - skip already Verified
             if (!forceRecheck) {
-                uploadedDocs = uploadedDocs.filter(doc => !doc.verify_status || doc.verify_status === '0');
+                uploadedDocs = uploadedDocs.filter(doc => {
+                    const vs = doc.verify_status;
+                    return !vs || vs === '0' || vs === 'null' || vs === 'undefined';
+                });
             } else {
                 // Only recheck docs with empty/null ai_status - preserve all others (Verified, reject, error)
                 const beforeCount = uploadedDocs.length;
@@ -637,7 +679,7 @@ class VerificationScheduler {
             throw new Error(`Document type ${documentTypeId} not found for student ${applnID}`);
         }
 
-        if (!docEntry.file_url || !docEntry.file_url.trim()) {
+        if (!docEntry.file_url) {
             throw new Error(`Document "${docEntry.document_label}" has no uploaded file`);
         }
 
@@ -995,11 +1037,12 @@ class VerificationScheduler {
                         const docListResponse = await this.atlasClient.getDocumentList(applnID);
                         if (!docListResponse || !docListResponse.data) continue;
 
-                        const docStatus = docListResponse.data.document_status;
-                        if (!docStatus || !Array.isArray(docStatus)) continue;
+                        const rawDocStatus = docListResponse.data.document_status;
+                        if (!rawDocStatus || !Array.isArray(rawDocStatus)) continue;
 
+                        const docStatus = rawDocStatus.map(d => this.normalizeDocFields(d));
                         const hasNewDocs = docStatus.some(doc => {
-                            if (!doc.file_url || !doc.file_url.trim()) return false;
+                            if (!doc.file_url) return false;
                             // Find matching cached doc
                             const cached = (existing.allDocuments || []).find(
                                 d => String(d.document_type_id) === String(doc.document_type_id)
