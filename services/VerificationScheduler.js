@@ -276,14 +276,17 @@ class VerificationScheduler {
                     return true; // Only recheck docs with empty/null ai_status
                 });
 
-                // Preserve docs that already have ai_status in the student result
+                // Preserve docs that already have ai_status in the student result (with dedup)
                 Object.values(existingDocsMap).forEach(prev => {
                     if (prev.ai_status) {
-                        studentResult.documents.push(prev);
-                        if (prev.ai_status === 'Verified') {
-                            studentResult.approved++;
+                        // Dedup: replace if exists, push if new
+                        const existIdx = studentResult.documents.findIndex(
+                            d => String(d.document_type_id) === String(prev.document_type_id)
+                        );
+                        if (existIdx >= 0) {
+                            studentResult.documents[existIdx] = prev;
                         } else {
-                            studentResult.rejected++;
+                            studentResult.documents.push(prev);
                         }
 
                         // Update allDocuments with preserved data
@@ -398,11 +401,19 @@ class VerificationScheduler {
                             extracted_data: verification.extracted_data
                         };
 
-                        studentResult.documents.push(docResult);
+                        // Dedup: replace if doc already exists, otherwise push
+                        const existIdx = studentResult.documents.findIndex(
+                            d => String(d.document_type_id) === String(doc.document_type_id)
+                        );
+                        if (existIdx >= 0) {
+                            studentResult.documents[existIdx] = docResult;
+                        } else {
+                            studentResult.documents.push(docResult);
+                        }
 
                         // Also update in allDocuments
                         const allDocEntry = studentResult.allDocuments.find(
-                            d => d.document_type_id === doc.document_type_id
+                            d => String(d.document_type_id) === String(doc.document_type_id)
                         );
                         if (allDocEntry) {
                             allDocEntry.ai_status = aiStatus;
@@ -412,17 +423,10 @@ class VerificationScheduler {
                             allDocEntry.extracted_data = verification.extracted_data;
                         }
 
-                        if (aiStatus === 'Verified') {
-                            studentResult.approved++;
-                        } else {
-                            studentResult.rejected++;
-                        }
-
                         this.log('info', `${applnID} - ${doc.document_label}: ${aiStatus} (${(verification.confidence * 100).toFixed(0)}%)`, {
                             remark: verification.remark
                         });
                     } else {
-                        studentResult.errors++;
                         const errMsg = result.reason?.message || 'Unknown error';
 
                         statusUpdates.push({
@@ -444,10 +448,18 @@ class VerificationScheduler {
                             extracted_data: {}
                         };
 
-                        studentResult.documents.push(docResult);
+                        // Dedup: replace if doc already exists, otherwise push
+                        const errExistIdx = studentResult.documents.findIndex(
+                            d => String(d.document_type_id) === String(doc.document_type_id)
+                        );
+                        if (errExistIdx >= 0) {
+                            studentResult.documents[errExistIdx] = docResult;
+                        } else {
+                            studentResult.documents.push(docResult);
+                        }
 
                         const allDocEntry = studentResult.allDocuments.find(
-                            d => d.document_type_id === doc.document_type_id
+                            d => String(d.document_type_id) === String(doc.document_type_id)
                         );
                         if (allDocEntry) {
                             allDocEntry.ai_status = 'error';
@@ -478,7 +490,18 @@ class VerificationScheduler {
                 }
             }
 
-            studentResult.status = studentResult.errors > 0 ? 'partial' : 'completed';
+            // Recalculate counts from the authoritative documents array to prevent duplicates
+            let approved = 0, rejected = 0, errors = 0;
+            studentResult.documents.forEach(d => {
+                if (d.ai_status === 'Verified') approved++;
+                else if (d.ai_status === 'reject') rejected++;
+                else if (d.ai_status === 'error') errors++;
+            });
+            studentResult.approved = approved;
+            studentResult.rejected = rejected;
+            studentResult.errors = errors;
+
+            studentResult.status = errors > 0 ? 'partial' : 'completed';
 
         } catch (err) {
             studentResult.status = 'error';
@@ -600,7 +623,7 @@ class VerificationScheduler {
 
                 if (result.status === 'completed' || result.status === 'partial') {
                     this.currentRun.completed++;
-                    this.currentRun.totalDocsVerified += result.totalDocs;
+                    this.currentRun.totalDocsVerified += (result.documents ? result.documents.length : 0);
                     this.currentRun.totalApproved += result.approved;
                     this.currentRun.totalRejected += result.rejected;
                 } else if (result.status === 'pending') {
@@ -825,7 +848,7 @@ class VerificationScheduler {
 
             if (result.status === 'completed' || result.status === 'partial') {
                 runRecord.completed = 1;
-                runRecord.totalDocsVerified = result.totalDocs;
+                runRecord.totalDocsVerified = result.documents ? result.documents.length : 0;
                 runRecord.totalApproved = result.approved;
                 runRecord.totalRejected = result.rejected;
             } else if (result.status === 'pending') {
