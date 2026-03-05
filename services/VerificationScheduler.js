@@ -1097,8 +1097,10 @@ class VerificationScheduler {
                             if (!cached.is_uploaded && doc.file_url) return true;
                             // File URL changed (re-uploaded)
                             if (cached.file_url !== doc.file_url) return true;
-                            // Has file but no AI status yet (unverified)
+                            // Has file but no AI status yet in local cache (unverified)
                             if (!cached.ai_status) return true;
+                            // Has file but no AI status on API side (needs verification)
+                            if (!doc.doc_ai_status) return true;
                             return false;
                         });
 
