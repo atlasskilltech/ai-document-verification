@@ -132,7 +132,7 @@ router.post('/stop', (req, res) => {
  * GET /api/verification/students
  * Fetch student list from Atlas API
  * Query: ?filter=unverified (default) | all
- *   - unverified: exclude students already verified (completed/skipped)
+ *   - unverified: exclude students already verified (completed)
  *   - all: return every student
  */
 router.get('/students', async (req, res) => {
@@ -145,7 +145,7 @@ router.get('/students', async (req, res) => {
             const allResults = scheduler.getAllStudentResults();
             const verifiedIDs = new Set(
                 allResults
-                    .filter(r => r.status === 'completed' || r.status === 'skipped')
+                    .filter(r => r.status === 'completed')
                     .map(r => String(r.applnID))
             );
 

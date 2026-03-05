@@ -539,7 +539,7 @@ function renderStudentTable(studentArr, resultsMap) {
         if (!r) {
             category = 'pending';
             pendingCount++;
-        } else if (r.status === 'completed' || r.status === 'skipped') {
+        } else if (r.status === 'completed') {
             category = 'completed';
             completedCount++;
         } else if (r.status === 'error' || r.status === 'partial') {
@@ -594,8 +594,6 @@ function renderStudentTable(studentArr, resultsMap) {
                 statusBadge = '<span class="px-2 py-0.5 rounded text-xs badge-error"><i class="fas fa-exclamation-triangle mr-1"></i>Partial</span>';
             } else if (r.status === 'error') {
                 statusBadge = '<span class="px-2 py-0.5 rounded text-xs badge-reject"><i class="fas fa-times mr-1"></i>Error</span>';
-            } else if (r.status === 'skipped') {
-                statusBadge = '<span class="px-2 py-0.5 rounded text-xs badge-pending"><i class="fas fa-forward mr-1"></i>Skipped</span>';
             } else if (r.status === 'processing') {
                 statusBadge = '<span class="px-2 py-0.5 rounded text-xs bg-[#16A085]/20 text-[#76D7C4] pulse"><i class="fas fa-spinner fa-spin mr-1"></i>Processing</span>';
             } else {
