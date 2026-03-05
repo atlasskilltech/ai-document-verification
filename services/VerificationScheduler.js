@@ -1378,11 +1378,9 @@ class VerificationScheduler {
             this.log('error', `Failed to load from DB: ${err.message}`);
         }
 
-        if (this.config.autoStart) {
-            // Start auto-watch to continuously poll for new/unverified documents every 5 minutes
-            this.startAutoWatch();
-            this.log('info', 'Auto-start enabled - auto-watch polling active (no cron, no initial batch)');
-        }
+        // Always start auto-watch to poll for new/unverified documents every 5 minutes
+        this.startAutoWatch();
+        this.log('info', 'Auto-watch polling active — checking every 5 minutes');
     }
 }
 
