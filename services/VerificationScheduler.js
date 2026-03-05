@@ -178,6 +178,12 @@ class VerificationScheduler {
 
             const allDocs = docListResponse.data.document_status;
 
+            // Debug: log document fields for first doc to identify API response structure
+            if (allDocs.length > 0) {
+                this.log('info', `Student ${applnID}: API doc fields: ${Object.keys(allDocs[0]).join(', ')}`);
+                this.log('info', `Student ${applnID}: First doc sample: file_url=${allDocs[0].file_url}, filename=${allDocs[0].filename}, verify_status=${allDocs[0].verify_status}`);
+            }
+
             // Store ALL documents (uploaded and not uploaded) for display
             studentResult.allDocuments = allDocs.map(doc => ({
                 document_type_id: doc.document_type_id,
@@ -540,12 +546,13 @@ class VerificationScheduler {
                     this.log('warn', `Could not check existing status for ${applnID}: ${e.message}`);
                 }
 
-                // For partial/error students, use smart recheck (preserve verified docs, only recheck rejected/error/empty)
-                const useSmartRecheck = existingStatus === 'partial' || existingStatus === 'error';
+                // For partial/error students, use smart recheck (preserve docs that already have ai_status)
+                // For all students in batch, use forceRecheck to bypass verify_status filter and check all uploaded docs
+                const useForceRecheck = true;
 
-                this.log('info', `Processing student ${this.currentRun.processed + 1}/${students.length}: ${applnID} (${studentName})${useSmartRecheck ? ' [smart recheck]' : ''}`);
+                this.log('info', `Processing student ${this.currentRun.processed + 1}/${students.length}: ${applnID} (${studentName})${existingStatus ? ' [existing: ' + existingStatus + ']' : ''}`);
 
-                const result = await this.processStudent(applnID, studentName, { forceRecheck: useSmartRecheck });
+                const result = await this.processStudent(applnID, studentName, { forceRecheck: useForceRecheck });
                 this.currentRun.students.push(result);
                 this.currentRun.processed++;
 
