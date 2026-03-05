@@ -289,4 +289,41 @@ router.post('/fetch-student-docs', async (req, res) => {
     }
 });
 
+// ===================== RESET / CLEAR =====================
+
+/**
+ * POST /api/verification/reset-student
+ * Clear verification data for a single student and force re-verification
+ * Body: { applnID: "2500623" }
+ */
+router.post('/reset-student', async (req, res) => {
+    const { applnID } = req.body;
+    if (!applnID) {
+        return res.status(400).json({ success: false, message: 'applnID is required' });
+    }
+    try {
+        const AtlasVerificationModel = require('../models/AtlasVerificationModel');
+        await AtlasVerificationModel.deleteStudentResult(String(applnID));
+        scheduler.studentResults.delete(String(applnID));
+        res.json({ success: true, message: `Reset student ${applnID}. Will be re-verified in next auto-watch cycle.` });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+/**
+ * POST /api/verification/reset-all
+ * Clear ALL verification data and force re-verification of all students
+ */
+router.post('/reset-all', async (req, res) => {
+    try {
+        const AtlasVerificationModel = require('../models/AtlasVerificationModel');
+        await AtlasVerificationModel.deleteAllResults();
+        scheduler.studentResults.clear();
+        res.json({ success: true, message: 'All student data cleared. Auto-watch will re-verify all students in next cycle.' });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
 module.exports = router;

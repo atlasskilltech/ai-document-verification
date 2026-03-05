@@ -1024,9 +1024,13 @@ class VerificationScheduler {
 
     async _autoWatchCycle() {
         // Skip if a batch or another auto-watch cycle is already running
-        if (this.isRunning || this.autoWatchRunning) return;
+        if (this.isRunning || this.autoWatchRunning) {
+            this.log('info', `Auto-watch: skipping cycle (isRunning=${this.isRunning}, autoWatchRunning=${this.autoWatchRunning})`);
+            return;
+        }
 
         this.autoWatchRunning = true;
+        this.log('info', 'Auto-watch: starting cycle...');
         try {
             // Fetch current student list from Atlas
             const studentListResponse = await this.atlasClient.getStudentList();
@@ -1039,6 +1043,8 @@ class VerificationScheduler {
             const students = Array.isArray(studentListResponse.data)
                 ? studentListResponse.data
                 : [studentListResponse.data];
+
+            this.log('info', `Auto-watch: fetched ${students.length} student(s) from API`);
 
             // Find students that need verification (check ALL conditions)
             const needsVerification = [];
