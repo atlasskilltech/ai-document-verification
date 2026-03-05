@@ -178,6 +178,12 @@ class VerificationScheduler {
 
             const allDocs = docListResponse.data.document_status;
 
+            // Debug: log document fields for first doc to identify API response structure
+            if (allDocs.length > 0) {
+                this.log('info', `Student ${applnID}: API doc fields: ${Object.keys(allDocs[0]).join(', ')}`);
+                this.log('info', `Student ${applnID}: First doc sample: file_url=${allDocs[0].file_url}, filename=${allDocs[0].filename}, verify_status=${allDocs[0].verify_status}`);
+            }
+
             // Store ALL documents (uploaded and not uploaded) for display
             studentResult.allDocuments = allDocs.map(doc => ({
                 document_type_id: doc.document_type_id,
