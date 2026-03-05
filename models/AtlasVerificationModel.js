@@ -107,6 +107,20 @@ class AtlasVerificationModel {
     }
 
     /**
+     * Delete a student's verification result (for reset/re-verification)
+     */
+    static async deleteStudentResult(applnID) {
+        await pool.query('DELETE FROM atlas_verification_results WHERE appln_id = ?', [applnID]);
+    }
+
+    /**
+     * Delete ALL student verification results (full reset)
+     */
+    static async deleteAllResults() {
+        await pool.query('DELETE FROM atlas_verification_results');
+    }
+
+    /**
      * Get all student results (summary for listing)
      */
     static async getAllResults() {
