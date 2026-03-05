@@ -256,16 +256,21 @@ class VerificationScheduler {
                 this.log('warn', `Student ${applnID}: Could not load existing results for recheck: ${e.message}`);
             }
 
-            // Verify documents that are either pending (verify_status 0/null) OR have no ai_status yet
+            // Verify documents that need AI verification:
+            // 1. verify_status is pending (0/null) — always verify
+            // 2. verify_status is set but doc has no ai_status in local DB — needs first AI check
+            // 3. verify_status is set and doc has ai_status but was from a previous run — re-verify
             // When forceRecheck is true, re-verify only rejected/error/empty docs - skip already Verified
             if (!forceRecheck) {
                 uploadedDocs = uploadedDocs.filter(doc => {
                     const vs = doc.verify_status;
                     const isPending = !vs || vs === '0' || vs === 'null' || vs === 'undefined';
-                    // Also include docs that have no AI verification yet
+                    if (isPending) return true;
+                    // For non-pending docs (verify_status=1), verify if no ai_status in local cache
                     const prev = existingDocsMap[String(doc.document_type_id)];
-                    const hasNoAiStatus = !prev || !prev.ai_status;
-                    return isPending || hasNoAiStatus;
+                    if (!prev || !prev.ai_status) return true;
+                    // Skip only if already AI-verified as 'Verified' — re-verify rejected/error
+                    return prev.ai_status !== 'Verified';
                 });
             } else {
                 // Only recheck docs with empty/null ai_status - preserve all others (Verified, reject, error)
