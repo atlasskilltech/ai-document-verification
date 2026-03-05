@@ -218,23 +218,27 @@ class VerificationScheduler {
             if (!forceRecheck) {
                 uploadedDocs = uploadedDocs.filter(doc => !doc.verify_status || doc.verify_status === '0');
             } else {
-                // Filter out already-Verified documents - only recheck rejected, error, or not-yet-verified
+                // Only recheck docs with empty/null ai_status - preserve all others (Verified, reject, error)
                 const beforeCount = uploadedDocs.length;
                 uploadedDocs = uploadedDocs.filter(doc => {
                     const prev = existingDocsMap[String(doc.document_type_id)];
-                    if (prev && prev.ai_status === 'Verified') {
-                        return false; // Skip already verified docs
+                    if (prev && prev.ai_status) {
+                        return false; // Skip docs that already have an ai_status (Verified, reject, error)
                     }
-                    return true; // Recheck rejected, error, or empty ai_status
+                    return true; // Only recheck docs with empty/null ai_status
                 });
 
-                // Preserve already-verified docs in the student result
+                // Preserve docs that already have ai_status in the student result
                 Object.values(existingDocsMap).forEach(prev => {
-                    if (prev.ai_status === 'Verified') {
+                    if (prev.ai_status) {
                         studentResult.documents.push(prev);
-                        studentResult.approved++;
+                        if (prev.ai_status === 'Verified') {
+                            studentResult.approved++;
+                        } else {
+                            studentResult.rejected++;
+                        }
 
-                        // Update allDocuments with preserved verified data
+                        // Update allDocuments with preserved data
                         const allDocEntry = studentResult.allDocuments.find(
                             d => String(d.document_type_id) === String(prev.document_type_id)
                         );
@@ -248,7 +252,7 @@ class VerificationScheduler {
                     }
                 });
 
-                this.log('info', `Student ${applnID}: Recheck - ${uploadedDocs.length} docs to verify (${beforeCount - uploadedDocs.length} already verified, preserved)`);
+                this.log('info', `Student ${applnID}: Recheck - ${uploadedDocs.length} docs to verify (${beforeCount - uploadedDocs.length} already have ai_status, preserved)`);
             }
 
             studentResult.totalDocs = allDocs.length;
