@@ -200,17 +200,70 @@ class VerificationScheduler {
             let uploadedDocs = allDocs.filter(doc => doc.file_url && doc.file_url.trim() !== '');
             studentResult.uploaded = uploadedDocs.length;
 
+            // Load existing AI results to determine which docs need re-verification
+            let existingDocsMap = {};
+            if (forceRecheck) {
+                try {
+                    const existing = await AtlasVerificationModel.getStudentResult(String(applnID));
+                    if (existing && existing.documents) {
+                        existing.documents.forEach(d => { existingDocsMap[String(d.document_type_id)] = d; });
+                    }
+                } catch (e) {
+                    this.log('warn', `Student ${applnID}: Could not load existing results for smart recheck: ${e.message}`);
+                }
+            }
+
             // Only verify documents with pending status (verify_status 0 or null/empty)
-            // When forceRecheck is true, re-verify ALL uploaded docs regardless of verify_status
+            // When forceRecheck is true, re-verify only rejected/error/empty docs - skip already Verified
             if (!forceRecheck) {
                 uploadedDocs = uploadedDocs.filter(doc => !doc.verify_status || doc.verify_status === '0');
             } else {
-                this.log('info', `Student ${applnID}: Force recheck - verifying all ${uploadedDocs.length} uploaded docs`);
+                // Filter out already-Verified documents - only recheck rejected, error, or not-yet-verified
+                const beforeCount = uploadedDocs.length;
+                uploadedDocs = uploadedDocs.filter(doc => {
+                    const prev = existingDocsMap[String(doc.document_type_id)];
+                    if (prev && prev.ai_status === 'Verified') {
+                        return false; // Skip already verified docs
+                    }
+                    return true; // Recheck rejected, error, or empty ai_status
+                });
+
+                // Preserve already-verified docs in the student result
+                Object.values(existingDocsMap).forEach(prev => {
+                    if (prev.ai_status === 'Verified') {
+                        studentResult.documents.push(prev);
+                        studentResult.approved++;
+
+                        // Update allDocuments with preserved verified data
+                        const allDocEntry = studentResult.allDocuments.find(
+                            d => String(d.document_type_id) === String(prev.document_type_id)
+                        );
+                        if (allDocEntry) {
+                            allDocEntry.ai_status = prev.ai_status;
+                            allDocEntry.confidence = prev.confidence;
+                            allDocEntry.remark = prev.remark;
+                            allDocEntry.issues = prev.issues;
+                            allDocEntry.extracted_data = prev.extracted_data;
+                        }
+                    }
+                });
+
+                this.log('info', `Student ${applnID}: Recheck - ${uploadedDocs.length} docs to verify (${beforeCount - uploadedDocs.length} already verified, preserved)`);
             }
 
             studentResult.totalDocs = allDocs.length;
 
             if (uploadedDocs.length === 0) {
+                // If we already preserved verified docs during smart recheck, mark as completed
+                if (forceRecheck && studentResult.documents.length > 0) {
+                    studentResult.status = studentResult.errors > 0 ? 'partial' : 'completed';
+                    studentResult.endTime = new Date().toISOString();
+                    this.log('info', `Student ${applnID}: All docs already verified, nothing to recheck`);
+                    this.studentResults.set(String(applnID), studentResult);
+                    try { await AtlasVerificationModel.upsertStudentResult(studentResult); } catch (e) {}
+                    return studentResult;
+                }
+
                 studentResult.status = 'pending';
                 studentResult.endTime = new Date().toISOString();
                 this.log('info', `Student ${applnID}: No documents to verify`);

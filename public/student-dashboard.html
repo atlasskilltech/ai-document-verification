@@ -1058,9 +1058,10 @@ function buildDocCard(doc) {
     // Action buttons for uploaded documents
     if (doc.is_uploaded && selectedStudentId) {
         const safeLabel = esc(doc.document_label).replace(/'/g, "\\'");
+        const showRecheck = doc.ai_status !== 'Verified';
         card += `<div class="mt-2 pt-2 border-t border-gray-700/30 flex justify-between items-center">
             <button onclick="viewDocument('${selectedStudentId}', '${docTypeId}', '${safeLabel}')" class="text-[#16A085] hover:text-[#76D7C4] text-xs font-medium transition"><i class="fas fa-eye mr-1"></i>View Document</button>
-            <button onclick="recheckDoc('${selectedStudentId}', '${docTypeId}', '${safeLabel}', this)" class="text-yellow-400 hover:text-yellow-300 text-xs font-medium transition"><i class="fas fa-redo mr-1"></i>Recheck</button>
+            ${showRecheck ? `<button onclick="recheckDoc('${selectedStudentId}', '${docTypeId}', '${safeLabel}', this)" class="text-yellow-400 hover:text-yellow-300 text-xs font-medium transition"><i class="fas fa-redo mr-1"></i>Recheck</button>` : ''}
         </div>`;
     }
 
