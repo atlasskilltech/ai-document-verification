@@ -1184,6 +1184,15 @@ class VerificationScheduler {
             }
 
             this.log('info', `Auto-watch: cycle complete, verified ${needsVerification.length} student(s) — approved: ${this.currentRun.totalApproved}, rejected: ${this.currentRun.totalRejected}`);
+
+            // Call cronUpdate endpoint to sync mandatory document status
+            try {
+                const axios = require('axios');
+                await axios.get('https://www.atlasskilltech.app/erp/cronUpdate/mandatoryDocumentDocStatus');
+                this.log('info', 'Auto-watch: mandatoryDocumentDocStatus cron update called successfully');
+            } catch (cronErr) {
+                this.log('warn', `Auto-watch: mandatoryDocumentDocStatus cron update failed: ${cronErr.message}`);
+            }
         } catch (err) {
             this.log('error', `Auto-watch cycle error: ${err.message}`);
         } finally {
