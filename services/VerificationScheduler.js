@@ -540,12 +540,13 @@ class VerificationScheduler {
                     this.log('warn', `Could not check existing status for ${applnID}: ${e.message}`);
                 }
 
-                // For partial/error students, use smart recheck (preserve verified docs, only recheck rejected/error/empty)
-                const useSmartRecheck = existingStatus === 'partial' || existingStatus === 'error';
+                // For partial/error students, use smart recheck (preserve docs that already have ai_status)
+                // For all students in batch, use forceRecheck to bypass verify_status filter and check all uploaded docs
+                const useForceRecheck = true;
 
-                this.log('info', `Processing student ${this.currentRun.processed + 1}/${students.length}: ${applnID} (${studentName})${useSmartRecheck ? ' [smart recheck]' : ''}`);
+                this.log('info', `Processing student ${this.currentRun.processed + 1}/${students.length}: ${applnID} (${studentName})${existingStatus ? ' [existing: ' + existingStatus + ']' : ''}`);
 
-                const result = await this.processStudent(applnID, studentName, { forceRecheck: useSmartRecheck });
+                const result = await this.processStudent(applnID, studentName, { forceRecheck: useForceRecheck });
                 this.currentRun.students.push(result);
                 this.currentRun.processed++;
 
