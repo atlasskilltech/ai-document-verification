@@ -518,24 +518,30 @@ class VerificationScheduler {
                     || [student.first_name, student.last_name].filter(Boolean).join(' ')
                     || student.name || applnID;
 
-                // Skip students already fully verified in DB
-                if (this.config.skipAlreadyVerified) {
-                    try {
-                        const existing = await AtlasVerificationModel.getStudentResult(String(applnID));
-                        if (existing && existing.status === 'completed') {
+                // Check existing verification status in DB
+                let existingStatus = null;
+                try {
+                    const existing = await AtlasVerificationModel.getStudentResult(String(applnID));
+                    if (existing) {
+                        existingStatus = existing.status;
+                        // Skip fully completed students
+                        if (this.config.skipAlreadyVerified && existing.status === 'completed') {
                             this.log('info', `Student ${applnID} (${studentName}): already verified`);
                             this.currentRun.processed++;
                             this.currentRun.completed++;
                             continue;
                         }
-                    } catch (e) {
-                        this.log('warn', `Could not check existing status for ${applnID}: ${e.message}`);
                     }
+                } catch (e) {
+                    this.log('warn', `Could not check existing status for ${applnID}: ${e.message}`);
                 }
 
-                this.log('info', `Processing student ${this.currentRun.processed + 1}/${students.length}: ${applnID} (${studentName})`);
+                // For partial/error students, use smart recheck (preserve verified docs, only recheck rejected/error/empty)
+                const useSmartRecheck = existingStatus === 'partial' || existingStatus === 'error';
 
-                const result = await this.processStudent(applnID, studentName);
+                this.log('info', `Processing student ${this.currentRun.processed + 1}/${students.length}: ${applnID} (${studentName})${useSmartRecheck ? ' [smart recheck]' : ''}`);
+
+                const result = await this.processStudent(applnID, studentName, { forceRecheck: useSmartRecheck });
                 this.currentRun.students.push(result);
                 this.currentRun.processed++;
 
