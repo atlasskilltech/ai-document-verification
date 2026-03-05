@@ -38,106 +38,111 @@ app.use('/api/verification', require('./routes/verificationRoutes'));
 app.use('/api/student-dashboard', require('./routes/studentDashboardRoutes'));
 
 // ===================== V1 API ROUTES (Document Verification Platform) =====================
-app.use('/v1/auth', require('./routes/v1/authRoutes'));
-app.use('/v1/admin', require('./routes/v1/adminRoutes'));
-app.use('/v1/verify', require('./routes/v1/verifyRoutes'));
-app.use('/v1/webhook', require('./routes/v1/webhookRoutes'));
-app.use('/v1/dashboard', require('./routes/v1/dashboardRoutes'));
+// V1 routes are loaded only when ENABLE_V1 is explicitly set to 'true'
+const enableV1 = process.env.ENABLE_V1 === 'true';
 
-// V1 convenience aliases (status, result, rate-limit at top level)
-const { apiKeyAuth } = require('./middleware/v1/apiKeyAuth');
-const V1VerificationRequestModel = require('./models/v1/V1VerificationRequestModel');
-const V1ApiKeyModel = require('./models/v1/V1ApiKeyModel');
+if (enableV1) {
+    app.use('/v1/auth', require('./routes/v1/authRoutes'));
+    app.use('/v1/admin', require('./routes/v1/adminRoutes'));
+    app.use('/v1/verify', require('./routes/v1/verifyRoutes'));
+    app.use('/v1/webhook', require('./routes/v1/webhookRoutes'));
+    app.use('/v1/dashboard', require('./routes/v1/dashboardRoutes'));
 
-// GET /v1/rate-limit - Check current rate limit usage (does not count against limits)
-app.get('/v1/rate-limit', apiKeyAuth, async (req, res) => {
-    try {
-        const keyData = await V1ApiKeyModel.findByKey(req.headers.authorization.split(' ')[1]);
-        if (!keyData) {
-            return res.status(401).json({ error: 'Unauthorized', message: 'Invalid API key' });
+    // V1 convenience aliases (status, result, rate-limit at top level)
+    const { apiKeyAuth } = require('./middleware/v1/apiKeyAuth');
+    const V1VerificationRequestModel = require('./models/v1/V1VerificationRequestModel');
+    const V1ApiKeyModel = require('./models/v1/V1ApiKeyModel');
+
+    // GET /v1/rate-limit - Check current rate limit usage (does not count against limits)
+    app.get('/v1/rate-limit', apiKeyAuth, async (req, res) => {
+        try {
+            const keyData = await V1ApiKeyModel.findByKey(req.headers.authorization.split(' ')[1]);
+            if (!keyData) {
+                return res.status(401).json({ error: 'Unauthorized', message: 'Invalid API key' });
+            }
+
+            const status = await V1ApiKeyModel.getRateLimitStatus(
+                keyData.id,
+                keyData.rate_limit,
+                keyData.burst_limit
+            );
+
+            res.json({
+                api_key_name: keyData.name,
+                hourly: status.hourly,
+                burst: status.burst
+            });
+        } catch (error) {
+            console.error('Rate limit check error:', error);
+            res.status(500).json({ error: 'Internal server error', message: 'Failed to check rate limit status' });
         }
+    });
 
-        const status = await V1ApiKeyModel.getRateLimitStatus(
-            keyData.id,
-            keyData.rate_limit,
-            keyData.burst_limit
-        );
+    app.get('/v1/status/:system_reference_id', apiKeyAuth, async (req, res) => {
+        try {
+            const request = await V1VerificationRequestModel.findBySystemRefId(req.params.system_reference_id);
+            if (!request) return res.status(404).json({ error: 'Not found', message: 'Verification request not found' });
+            if (request.user_id !== req.apiUser.userId && req.apiUser.role !== 'admin') {
+                return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+            }
+            res.json({
+                system_reference_id: request.system_reference_id,
+                client_reference_id: request.client_reference_id,
+                status: request.status,
+                confidence: request.confidence,
+                created_at: request.created_at,
+                processed_at: request.processed_at
+            });
+        } catch (error) {
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    });
 
-        res.json({
-            api_key_name: keyData.name,
-            hourly: status.hourly,
-            burst: status.burst
-        });
-    } catch (error) {
-        console.error('Rate limit check error:', error);
-        res.status(500).json({ error: 'Internal server error', message: 'Failed to check rate limit status' });
-    }
-});
-
-app.get('/v1/status/:system_reference_id', apiKeyAuth, async (req, res) => {
-    try {
-        const request = await V1VerificationRequestModel.findBySystemRefId(req.params.system_reference_id);
-        if (!request) return res.status(404).json({ error: 'Not found', message: 'Verification request not found' });
-        if (request.user_id !== req.apiUser.userId && req.apiUser.role !== 'admin') {
-            return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+    app.get('/v1/result/:system_reference_id', apiKeyAuth, async (req, res) => {
+        try {
+            const request = await V1VerificationRequestModel.findBySystemRefId(req.params.system_reference_id);
+            if (!request) return res.status(404).json({ error: 'Not found', message: 'Verification request not found' });
+            if (request.user_id !== req.apiUser.userId && req.apiUser.role !== 'admin') {
+                return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
+            }
+            if (['accepted', 'processing'].includes(request.status)) {
+                return res.json({ system_reference_id: request.system_reference_id, status: request.status, message: 'Document is still being processed.' });
+            }
+            const aiResponse = request.ai_response || {};
+            const wrongDocument = aiResponse.document_type_match === false;
+            const result = {
+                system_reference_id: request.system_reference_id,
+                client_reference_id: request.client_reference_id,
+                document_type: request.document_type,
+                status: request.status,
+                confidence: request.confidence,
+                risk_score: request.risk_score,
+                extracted_data: request.extracted_data,
+                issues: request.issues,
+                created_at: request.created_at,
+                processed_at: request.processed_at
+            };
+            if (wrongDocument) {
+                result.wrong_document = true;
+                result.detected_document_type = aiResponse.detected_document_type || 'Unknown';
+                result.expected_document_type = aiResponse.expected_document_type || request.document_type;
+            }
+            result.is_genuine = aiResponse.is_genuine !== false;
+            result.authenticity_checks = aiResponse.authenticity_checks || {};
+            result.fraud_indicators = aiResponse.fraud_indicators || [];
+            result.data_consistency = aiResponse.data_consistency || {};
+            result.data_validation = {
+                dates_valid: (aiResponse.data_consistency || {}).dates_valid !== false,
+                id_format_valid: (aiResponse.data_consistency || {}).id_format_valid !== false,
+                logical_checks_passed: (aiResponse.data_consistency || {}).logical_checks_passed !== false,
+                details: (aiResponse.data_consistency || {}).details || null
+            };
+            res.json(result);
+        } catch (error) {
+            res.status(500).json({ error: 'Internal server error' });
         }
-        res.json({
-            system_reference_id: request.system_reference_id,
-            client_reference_id: request.client_reference_id,
-            status: request.status,
-            confidence: request.confidence,
-            created_at: request.created_at,
-            processed_at: request.processed_at
-        });
-    } catch (error) {
-        res.status(500).json({ error: 'Internal server error' });
-    }
-});
-
-app.get('/v1/result/:system_reference_id', apiKeyAuth, async (req, res) => {
-    try {
-        const request = await V1VerificationRequestModel.findBySystemRefId(req.params.system_reference_id);
-        if (!request) return res.status(404).json({ error: 'Not found', message: 'Verification request not found' });
-        if (request.user_id !== req.apiUser.userId && req.apiUser.role !== 'admin') {
-            return res.status(403).json({ error: 'Forbidden', message: 'Access denied' });
-        }
-        if (['accepted', 'processing'].includes(request.status)) {
-            return res.json({ system_reference_id: request.system_reference_id, status: request.status, message: 'Document is still being processed.' });
-        }
-        const aiResponse = request.ai_response || {};
-        const wrongDocument = aiResponse.document_type_match === false;
-        const result = {
-            system_reference_id: request.system_reference_id,
-            client_reference_id: request.client_reference_id,
-            document_type: request.document_type,
-            status: request.status,
-            confidence: request.confidence,
-            risk_score: request.risk_score,
-            extracted_data: request.extracted_data,
-            issues: request.issues,
-            created_at: request.created_at,
-            processed_at: request.processed_at
-        };
-        if (wrongDocument) {
-            result.wrong_document = true;
-            result.detected_document_type = aiResponse.detected_document_type || 'Unknown';
-            result.expected_document_type = aiResponse.expected_document_type || request.document_type;
-        }
-        result.is_genuine = aiResponse.is_genuine !== false;
-        result.authenticity_checks = aiResponse.authenticity_checks || {};
-        result.fraud_indicators = aiResponse.fraud_indicators || [];
-        result.data_consistency = aiResponse.data_consistency || {};
-        result.data_validation = {
-            dates_valid: (aiResponse.data_consistency || {}).dates_valid !== false,
-            id_format_valid: (aiResponse.data_consistency || {}).id_format_valid !== false,
-            logical_checks_passed: (aiResponse.data_consistency || {}).logical_checks_passed !== false,
-            details: (aiResponse.data_consistency || {}).details || null
-        };
-        res.json(result);
-    } catch (error) {
-        res.status(500).json({ error: 'Internal server error' });
-    }
-});
+    });
+}
 
 // ===================== WEB VIEWS =====================
 app.get('/', (req, res) => {
@@ -156,22 +161,24 @@ app.get('/student-dashboard', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'student-dashboard.html'));
 });
 
-// V1 Platform Web Views
-app.get('/v1/login', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'v1-login.html'));
-});
+// V1 Platform Web Views (only when V1 is enabled)
+if (enableV1) {
+    app.get('/v1/login', (req, res) => {
+        res.sendFile(path.join(__dirname, 'public', 'v1-login.html'));
+    });
 
-app.get('/v1/admin-dashboard', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'v1-admin.html'));
-});
+    app.get('/v1/admin-dashboard', (req, res) => {
+        res.sendFile(path.join(__dirname, 'public', 'v1-admin.html'));
+    });
 
-app.get('/v1/user-dashboard', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'v1-user.html'));
-});
+    app.get('/v1/user-dashboard', (req, res) => {
+        res.sendFile(path.join(__dirname, 'public', 'v1-user.html'));
+    });
 
-app.get('/v1/api-docs', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'v1-api-docs.html'));
-});
+    app.get('/v1/api-docs', (req, res) => {
+        res.sendFile(path.join(__dirname, 'public', 'v1-api-docs.html'));
+    });
+}
 
 // ===================== ERROR HANDLING =====================
 app.use((err, req, res, next) => {
@@ -198,14 +205,16 @@ app.listen(PORT, () => {
     const scheduler = require('./services/VerificationScheduler');
     scheduler.init();
 
-    // Initialize V1 Document Verification Queue
-    const QueueService = require('./services/v1/QueueService');
-    const VerificationProcessor = require('./services/v1/VerificationProcessor');
-    QueueService.onJob('verify_document', async (data) => {
-        await VerificationProcessor.process(data.requestId);
-    });
-    QueueService.startPolling();
-    console.log('  V1 API: http://localhost:' + PORT + '/v1');
+    // Initialize V1 Document Verification Queue (only when V1 is enabled)
+    if (enableV1) {
+        const QueueService = require('./services/v1/QueueService');
+        const VerificationProcessor = require('./services/v1/VerificationProcessor');
+        QueueService.onJob('verify_document', async (data) => {
+            await VerificationProcessor.process(data.requestId);
+        });
+        QueueService.startPolling();
+        console.log('  V1 API: http://localhost:' + PORT + '/v1');
+    }
 });
 
 module.exports = app;
