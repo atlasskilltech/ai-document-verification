@@ -53,6 +53,8 @@
                     <i class="fas fa-chart-pie w-5 text-center"></i> Dashboard</a></li>
                 <li><a href="#" onclick="showSection('verify')" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm" id="nav-verify">
                     <i class="fas fa-file-circle-check w-5 text-center"></i> Verify Document</a></li>
+                <li><a href="#" onclick="showSection('instant')" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm" id="nav-instant">
+                    <i class="fas fa-bolt w-5 text-center"></i> Instant Verify</a></li>
                 <li><a href="#" onclick="showSection('bulk')" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm" id="nav-bulk">
                     <i class="fas fa-layer-group w-5 text-center"></i> Bulk Verify</a></li>
                 <li><a href="#" onclick="showSection('requests')" class="sidebar-link flex items-center gap-3 px-3 py-2 rounded-lg text-sm" id="nav-requests">
@@ -160,6 +162,55 @@
                     <div class="glass rounded-xl p-6">
                         <h3 class="font-semibold text-gray-800 mb-4"><i class="fas fa-list mr-2 text-purple-400"></i>Available Document Types</h3>
                         <div id="docTypeList" class="space-y-2"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Instant Verify Section -->
+        <div id="sec-instant" class="hidden slide-in">
+            <h2 class="text-xl font-bold text-gray-800 mb-6"><i class="fas fa-bolt mr-2 text-[#16A085]"></i>Instant Verify</h2>
+            <p class="text-sm text-gray-500 mb-6">Submit a document and get the <strong class="text-gray-600">full verification result immediately</strong> in the same request. No polling required.</p>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Submit Form -->
+                <div class="glass rounded-xl p-6">
+                    <h3 class="font-semibold text-gray-800 mb-4"><i class="fas fa-bolt mr-2 text-[#16A085]"></i>Push Document for Instant Verification</h3>
+                    <div id="instantError" class="hidden mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm"></div>
+                    <div id="instantSuccess" class="hidden mb-4 p-3 rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 text-sm"></div>
+                    <form onsubmit="submitInstantVerification(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600 mb-1">Document Type</label>
+                            <select id="instantDocType" required class="w-full px-3 py-2 rounded-lg input-dark text-sm">
+                                <option value="">Select document type...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600 mb-1">File URL</label>
+                            <input type="url" id="instantFileUrl" required placeholder="https://s3.amazonaws.com/bucket/document.jpg"
+                                class="w-full px-3 py-2 rounded-lg input-dark text-sm">
+                            <p class="text-[10px] text-gray-500 mt-1">Public URL to your document (S3, CDN, etc.)</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600 mb-1">Reference ID (optional)</label>
+                            <input type="text" id="instantRefId" placeholder="TXN12345"
+                                class="w-full px-3 py-2 rounded-lg input-dark text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600 mb-1">Metadata (JSON, optional)</label>
+                            <textarea id="instantMetadata" rows="3" class="w-full px-3 py-2 rounded-lg input-dark text-sm font-mono"
+                                placeholder='{"name": "Rahul Sharma"}'></textarea>
+                        </div>
+                        <button type="submit" id="instantBtn" class="w-full py-2.5 rounded-lg btn-primary text-white font-medium text-sm">
+                            <i class="fas fa-bolt mr-2"></i>Verify Instantly
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Instant Result -->
+                <div>
+                    <div class="glass rounded-xl p-6">
+                        <h3 class="font-semibold text-gray-800 mb-4"><i class="fas fa-clipboard-check mr-2 text-green-400"></i>Verification Result</h3>
+                        <div id="instantResult" class="text-sm text-gray-500">Submit a document to see the full result here instantly.</div>
                     </div>
                 </div>
             </div>
@@ -479,12 +530,13 @@
         }
 
         function showSection(name) {
-            ['dashboard', 'verify', 'bulk', 'requests', 'doctypes', 'apikeys', 'webhooks'].forEach(s => {
+            ['dashboard', 'verify', 'instant', 'bulk', 'requests', 'doctypes', 'apikeys', 'webhooks'].forEach(s => {
                 document.getElementById('sec-' + s).classList.toggle('hidden', s !== name);
                 document.getElementById('nav-' + s).classList.toggle('active', s === name);
             });
             if (name === 'dashboard') loadUserDashboard();
             if (name === 'verify') loadDocTypes();
+            if (name === 'instant') loadInstantDocTypes();
             if (name === 'bulk') { loadBulkDocTypes(); loadBulkJobs(); }
             if (name === 'requests') loadMyRequests();
             if (name === 'doctypes') loadDocSetup();
@@ -597,6 +649,117 @@
             } else {
                 errDiv.textContent = data?.message || 'Submission failed';
                 errDiv.classList.remove('hidden');
+            }
+        }
+
+        // ========== INSTANT VERIFY ==========
+        async function loadInstantDocTypes() {
+            if (!apiKey) return;
+            const data = await apiFetch('/v1/verify/document-types');
+            if (!data?.success) return;
+            const select = document.getElementById('instantDocType');
+            const globalTypes = data.data.filter(d => d.is_global);
+            const myTypes = data.data.filter(d => d.is_own);
+            let optionsHtml = '<option value="">Select document type...</option>';
+            if (myTypes.length) {
+                optionsHtml += '<optgroup label="My Custom Types">' + myTypes.map(d => `<option value="${d.code}">${d.name} (${d.code})</option>`).join('') + '</optgroup>';
+            }
+            optionsHtml += '<optgroup label="System Types">' + globalTypes.map(d => `<option value="${d.code}">${d.name} (${d.code})</option>`).join('') + '</optgroup>';
+            select.innerHTML = optionsHtml;
+        }
+
+        async function submitInstantVerification(e) {
+            e.preventDefault();
+            const errDiv = document.getElementById('instantError');
+            const sucDiv = document.getElementById('instantSuccess');
+            const resultDiv = document.getElementById('instantResult');
+            errDiv.classList.add('hidden');
+            sucDiv.classList.add('hidden');
+
+            const btn = document.getElementById('instantBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processing... (this may take a few seconds)';
+            resultDiv.innerHTML = '<p class="text-gray-500 text-sm"><i class="fas fa-spinner fa-spin mr-2"></i>AI is analyzing your document...</p>';
+
+            let metadata = {};
+            try {
+                const metaStr = document.getElementById('instantMetadata').value.trim();
+                if (metaStr) metadata = JSON.parse(metaStr);
+            } catch (err) {
+                errDiv.textContent = 'Invalid metadata JSON';
+                errDiv.classList.remove('hidden');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-bolt mr-2"></i>Verify Instantly';
+                resultDiv.innerHTML = 'Submit a document to see the full result here instantly.';
+                return;
+            }
+
+            const body = {
+                document_type: document.getElementById('instantDocType').value,
+                file_url: document.getElementById('instantFileUrl').value,
+                reference_id: document.getElementById('instantRefId').value || undefined,
+                metadata: Object.keys(metadata).length ? metadata : undefined
+            };
+
+            const data = await apiFetch('/v1/verify/instant', { method: 'POST', body: JSON.stringify(body) });
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-bolt mr-2"></i>Verify Instantly';
+
+            if (data?.system_reference_id && data?.status) {
+                sucDiv.innerHTML = `Verification complete! Reference: <code class="bg-gray-100 px-2 py-0.5 rounded text-[#76D7C4] font-mono">${data.system_reference_id}</code> — Status: ${statusBadge(data.status)}`;
+                sucDiv.classList.remove('hidden');
+
+                // Render the full result
+                const isVerified = data.status === 'verified';
+                const wrongDoc = data.wrong_document;
+                resultDiv.innerHTML = `
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-3 mb-2">
+                            ${statusBadge(data.status)}
+                            <span class="font-mono text-xs text-gray-500">${data.system_reference_id}</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="bg-gray-50 rounded-lg p-3"><p class="text-[10px] text-gray-500">Document Type</p><p class="text-sm text-gray-800 capitalize">${data.document_type}</p></div>
+                            <div class="bg-gray-50 rounded-lg p-3"><p class="text-[10px] text-gray-500">Client Ref</p><p class="text-sm text-gray-800 font-mono">${data.client_reference_id || '-'}</p></div>
+                            <div class="bg-gray-50 rounded-lg p-3"><p class="text-[10px] text-gray-500">Confidence</p><p class="text-sm font-bold ${isVerified ? 'text-green-500' : 'text-red-400'}">${data.confidence != null ? data.confidence + '%' : '-'}</p></div>
+                            <div class="bg-gray-50 rounded-lg p-3"><p class="text-[10px] text-gray-500">Risk Score</p><p class="text-sm">${riskBadge(data.risk_score)}</p></div>
+                        </div>
+                        ${wrongDoc ? `<div class="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
+                            <i class="fas fa-exclamation-triangle mr-1"></i> <strong>Wrong document detected!</strong>
+                            <p class="mt-1">Expected: <strong>${data.expected_document_type || data.document_type}</strong> | Detected: <strong>${data.detected_document_type || 'Unknown'}</strong></p>
+                        </div>` : ''}
+                        ${data.extracted_data && Object.keys(data.extracted_data).length ? `
+                        <div>
+                            <p class="text-xs font-semibold text-gray-600 mb-2">Extracted Data</p>
+                            <div class="bg-gray-50 rounded-lg p-3 space-y-1">
+                                ${Object.entries(data.extracted_data).map(([k, v]) => `<div class="flex justify-between"><span class="text-xs text-gray-500 capitalize">${k.replace(/_/g, ' ')}</span><span class="text-xs text-gray-800 font-medium">${v}</span></div>`).join('')}
+                            </div>
+                        </div>` : ''}
+                        ${data.issues && data.issues.length ? `
+                        <div>
+                            <p class="text-xs font-semibold text-red-400 mb-2">Issues Found</p>
+                            <ul class="space-y-1">${data.issues.map(i => `<li class="text-xs text-red-400"><i class="fas fa-circle-xmark mr-1"></i>${i}</li>`).join('')}</ul>
+                        </div>` : ''}
+                        ${data.authenticity_checks && Object.keys(data.authenticity_checks).length ? `
+                        <div>
+                            <p class="text-xs font-semibold text-gray-600 mb-2">Authenticity Checks</p>
+                            <div class="bg-gray-50 rounded-lg p-3 space-y-1">
+                                ${Object.entries(data.authenticity_checks).filter(([k]) => k !== 'details').map(([k, v]) => `<div class="flex justify-between"><span class="text-xs text-gray-500 capitalize">${k.replace(/_/g, ' ')}</span><span class="text-xs ${v === true ? 'text-green-500' : v === false ? 'text-red-400' : 'text-gray-800'} font-medium">${v === true ? 'Yes' : v === false ? 'No' : v}</span></div>`).join('')}
+                            </div>
+                        </div>` : ''}
+                        ${data.fraud_indicators && data.fraud_indicators.length ? `
+                        <div>
+                            <p class="text-xs font-semibold text-red-400 mb-2">Fraud Indicators</p>
+                            <ul class="space-y-1">${data.fraud_indicators.map(f => `<li class="text-xs text-red-400"><i class="fas fa-skull-crossbones mr-1"></i>${f}</li>`).join('')}</ul>
+                        </div>` : ''}
+                        <div class="text-[10px] text-gray-400 pt-2 border-t border-gray-200">
+                            Created: ${fmtDate(data.created_at)} | Processed: ${fmtDate(data.processed_at)}
+                        </div>
+                    </div>`;
+            } else {
+                errDiv.textContent = data?.message || 'Instant verification failed';
+                errDiv.classList.remove('hidden');
+                resultDiv.innerHTML = 'Submit a document to see the full result here instantly.';
             }
         }
 
