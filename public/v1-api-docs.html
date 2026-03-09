@@ -77,6 +77,8 @@
                 <ul class="space-y-0.5 mb-4">
                     <li><a href="#verify-single" class="sidebar-link flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" onclick="scrollToSection('verify-single')">
                         <span class="px-1 rounded text-[9px] font-bold method-post">POST</span> Verify Document</a></li>
+                    <li><a href="#verify-instant" class="sidebar-link flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" onclick="scrollToSection('verify-instant')">
+                        <span class="px-1 rounded text-[9px] font-bold method-post">POST</span> Instant Verify</a></li>
                     <li><a href="#verify-bulk" class="sidebar-link flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" onclick="scrollToSection('verify-bulk')">
                         <span class="px-1 rounded text-[9px] font-bold method-post">POST</span> Bulk Verify</a></li>
                     <li><a href="#verify-status" class="sidebar-link flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs" onclick="scrollToSection('verify-status')">
@@ -457,6 +459,69 @@
                         <span class="px-2 py-1 rounded bg-gray-200 text-xs text-gray-600">marksheet_12</span>
                         <span class="px-2 py-1 rounded bg-gray-200 text-xs text-gray-600">graduation_cert</span>
                         <span class="px-2 py-1 rounded bg-gray-200 text-xs text-gray-600 italic">+ your custom types</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Instant Verify -->
+            <section id="verify-instant" class="mb-8">
+                <div class="glass rounded-xl p-6 endpoint-card border-[#16A085]/30">
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="px-2 py-1 rounded text-xs font-bold method-post">POST</span>
+                        <code class="text-gray-800 text-sm">/v1/verify/instant</code>
+                        <span class="px-2 py-0.5 rounded bg-[#16A085]/20 text-[#16A085] text-[10px] font-medium ml-2">INSTANT</span>
+                    </div>
+                    <p class="text-xs text-gray-500 mb-3">Submit a document and get the <strong>full verification result in the same API response</strong>. No polling required. Same request body as <code>/v1/verify</code> but processes synchronously.</p>
+                    <h4 class="text-xs font-semibold text-gray-600 mb-2">Request Body</h4>
+                    <div class="code-block rounded-lg p-3 mb-3">
+<pre class="text-xs text-gray-300">{
+  "document_type": "string (required) - e.g. 'aadhaar', 'pan', 'passport'",
+  "file_url": "string (required) - Public URL to the document image/PDF",
+  "reference_id": "string (optional) - Your own tracking ID",
+  "metadata": {
+    "key": "value (optional) - Cross-verification data e.g. applicant name"
+  }
+}</pre>
+                    </div>
+                    <h4 class="text-xs font-semibold text-gray-600 mb-2">Response <span class="text-green-400">200 OK</span></h4>
+                    <div class="code-block rounded-lg p-3 mb-3">
+<pre class="text-xs text-gray-300">{
+  "system_reference_id": "DOCLXYZ12345ABC",
+  "client_reference_id": "APP_001",
+  "document_type": "aadhaar",
+  "status": "verified",
+  "confidence": 95.50,
+  "risk_score": 0.0234,
+  "extracted_data": {
+    "name": "RAHUL SHARMA",
+    "dob": "15/03/1995",
+    "id_number": "1234 5678 9012"
+  },
+  "issues": [],
+  "is_genuine": true,
+  "authenticity_checks": {
+    "is_original_document": true,
+    "has_security_features": true,
+    "tampering_detected": false,
+    "image_quality": "good",
+    "font_consistency": true,
+    "layout_matches_official": true,
+    "photo_integrity": true,
+    "details": "Document appears authentic"
+  },
+  "fraud_indicators": [],
+  "data_consistency": {
+    "dates_valid": true,
+    "id_format_valid": true,
+    "logical_checks_passed": true,
+    "details": "All checks passed"
+  },
+  "created_at": "2025-01-15T10:30:00Z",
+  "processed_at": "2025-01-15T10:30:45Z"
+}</pre>
+                    </div>
+                    <div class="mt-3 p-3 rounded-lg bg-[#16A085]/10 border border-[#16A085]/20 text-xs text-[#16A085]">
+                        <i class="fas fa-bolt mr-1"></i> <strong>Instant mode</strong> processes the document synchronously. The response may take longer (typically 5-30 seconds) since AI verification runs inline. Use this when you need results immediately without polling.
                     </div>
                 </div>
             </section>
