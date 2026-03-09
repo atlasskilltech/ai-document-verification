@@ -678,8 +678,19 @@
 
             const btn = document.getElementById('instantBtn');
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processing... (this may take a few seconds)';
-            resultDiv.innerHTML = '<p class="text-gray-500 text-sm"><i class="fas fa-spinner fa-spin mr-2"></i>AI is analyzing your document...</p>';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processing...';
+            resultDiv.innerHTML = `<div class="text-center py-6">
+                <i class="fas fa-spinner fa-spin text-2xl text-[#16A085] mb-3"></i>
+                <p class="text-gray-500 text-sm mb-2">AI is analyzing your document...</p>
+                <p class="text-2xl font-bold text-[#16A085] font-mono" id="instantTimer">0.0s</p>
+                <p class="text-[10px] text-gray-400 mt-1">Elapsed time</p>
+            </div>`;
+            const timerStart = Date.now();
+            const timerInterval = setInterval(() => {
+                const elapsed = ((Date.now() - timerStart) / 1000).toFixed(1);
+                const el = document.getElementById('instantTimer');
+                if (el) el.textContent = elapsed + 's';
+            }, 100);
 
             let metadata = {};
             try {
@@ -688,6 +699,7 @@
             } catch (err) {
                 errDiv.textContent = 'Invalid metadata JSON';
                 errDiv.classList.remove('hidden');
+                clearInterval(timerInterval);
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-bolt mr-2"></i>Verify Instantly';
                 resultDiv.innerHTML = 'Submit a document to see the full result here instantly.';
@@ -702,11 +714,12 @@
             };
 
             const data = await apiFetch('/v1/verify/instant', { method: 'POST', body: JSON.stringify(body) });
+            clearInterval(timerInterval);
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-bolt mr-2"></i>Verify Instantly';
 
             if (data?.system_reference_id && data?.status) {
-                sucDiv.innerHTML = `Verification complete! Reference: <code class="bg-gray-100 px-2 py-0.5 rounded text-[#76D7C4] font-mono">${data.system_reference_id}</code> — Status: ${statusBadge(data.status)}`;
+                sucDiv.innerHTML = `Verification complete in <strong>${data.response_time || ((Date.now() - timerStart) / 1000).toFixed(2) + 's'}</strong>! Reference: <code class="bg-gray-100 px-2 py-0.5 rounded text-[#76D7C4] font-mono">${data.system_reference_id}</code> — Status: ${statusBadge(data.status)}`;
                 sucDiv.classList.remove('hidden');
 
                 // Render the full result
@@ -723,6 +736,10 @@
                             <div class="bg-gray-50 rounded-lg p-3"><p class="text-[10px] text-gray-500">Client Ref</p><p class="text-sm text-gray-800 font-mono">${data.client_reference_id || '-'}</p></div>
                             <div class="bg-gray-50 rounded-lg p-3"><p class="text-[10px] text-gray-500">Confidence</p><p class="text-sm font-bold ${isVerified ? 'text-green-500' : 'text-red-400'}">${data.confidence != null ? data.confidence + '%' : '-'}</p></div>
                             <div class="bg-gray-50 rounded-lg p-3"><p class="text-[10px] text-gray-500">Risk Score</p><p class="text-sm">${riskBadge(data.risk_score)}</p></div>
+                        </div>
+                        <div class="bg-[#16A085]/10 border border-[#16A085]/20 rounded-lg p-3 flex items-center justify-between">
+                            <div><p class="text-[10px] text-[#16A085]">Response Time</p><p class="text-lg font-bold text-[#16A085] font-mono">${data.response_time || '-'}</p></div>
+                            <div class="text-right"><p class="text-[10px] text-gray-400">${data.response_time_ms ? data.response_time_ms.toLocaleString() + ' ms' : ''}</p><i class="fas fa-stopwatch text-[#16A085] text-lg"></i></div>
                         </div>
                         ${wrongDoc ? `<div class="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs">
                             <i class="fas fa-exclamation-triangle mr-1"></i> <strong>Wrong document detected!</strong>

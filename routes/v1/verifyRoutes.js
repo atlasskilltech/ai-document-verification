@@ -83,6 +83,7 @@ router.post('/', ssrfProtectionMiddleware, async (req, res) => {
 // POST /v1/verify/instant - Submit document and get full verification result in same response
 // ==========================================
 router.post('/instant', ssrfProtectionMiddleware, async (req, res) => {
+    const startTime = Date.now();
     try {
         const { reference_id, document_type, file_url, metadata } = req.body;
 
@@ -134,6 +135,13 @@ router.post('/instant', ssrfProtectionMiddleware, async (req, res) => {
 
         // Process synchronously and return full result
         const result = await VerificationProcessor.processAndReturn(created.id);
+
+        // Add response time metrics
+        const responseTimeMs = Date.now() - startTime;
+        result.response_time_ms = responseTimeMs;
+        result.response_time = responseTimeMs < 1000
+            ? `${responseTimeMs}ms`
+            : `${(responseTimeMs / 1000).toFixed(2)}s`;
 
         res.status(200).json(result);
     } catch (error) {
