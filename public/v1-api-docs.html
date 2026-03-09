@@ -517,11 +517,13 @@
     "details": "All checks passed"
   },
   "created_at": "2025-01-15T10:30:00Z",
-  "processed_at": "2025-01-15T10:30:45Z"
+  "processed_at": "2025-01-15T10:30:45Z",
+  "response_time_ms": 12450,
+  "response_time": "12.45s"
 }</pre>
                     </div>
                     <div class="mt-3 p-3 rounded-lg bg-[#16A085]/10 border border-[#16A085]/20 text-xs text-[#16A085]">
-                        <i class="fas fa-bolt mr-1"></i> <strong>Instant mode</strong> processes the document synchronously. The response may take longer (typically 5-30 seconds) since AI verification runs inline. Use this when you need results immediately without polling.
+                        <i class="fas fa-bolt mr-1"></i> <strong>Instant mode</strong> processes the document synchronously. The response includes <code>response_time_ms</code> (milliseconds) and <code>response_time</code> (human-readable). Typically takes 5-30 seconds since AI verification runs inline.
                     </div>
                 </div>
             </section>
