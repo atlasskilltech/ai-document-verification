@@ -7,6 +7,7 @@ const V1DocumentMasterModel = require('../../models/v1/V1DocumentMasterModel');
 const V1BulkJobModel = require('../../models/v1/V1BulkJobModel');
 const V1AuditModel = require('../../models/v1/V1AuditModel');
 const QueueService = require('../../services/v1/QueueService');
+const VerificationProcessor = require('../../services/v1/VerificationProcessor');
 
 // All routes require API key authentication
 router.use(apiKeyAuth);
@@ -75,6 +76,69 @@ router.post('/', ssrfProtectionMiddleware, async (req, res) => {
     } catch (error) {
         console.error('Verify endpoint error:', error);
         res.status(500).json({ error: 'Internal server error', message: 'Failed to submit verification request' });
+    }
+});
+
+// ==========================================
+// POST /v1/verify/instant - Submit document and get full verification result in same response
+// ==========================================
+router.post('/instant', ssrfProtectionMiddleware, async (req, res) => {
+    try {
+        const { reference_id, document_type, file_url, metadata } = req.body;
+
+        // Validate required fields
+        if (!document_type || !file_url) {
+            return res.status(400).json({
+                error: 'Bad request',
+                message: 'document_type and file_url are required'
+            });
+        }
+
+        // Validate document type exists (check user-specific first, then global)
+        const docMaster = await V1DocumentMasterModel.findByCodeForUser(document_type, req.apiUser.userId);
+        if (!docMaster) {
+            return res.status(400).json({
+                error: 'Bad request',
+                message: `Unknown document_type: '${document_type}'. Use GET /v1/verify/document-types for valid types.`
+            });
+        }
+
+        // Validate file URL format (basic check)
+        const urlExtension = file_url.split('.').pop().split('?')[0].toLowerCase();
+        const allowedFormats = docMaster.allowed_formats || ['jpg', 'png', 'pdf'];
+        if (!allowedFormats.includes(urlExtension) && !allowedFormats.includes('*')) {
+            return res.status(400).json({
+                error: 'Bad request',
+                message: `File format '${urlExtension}' not allowed for ${document_type}. Allowed: ${allowedFormats.join(', ')}`
+            });
+        }
+
+        // Create verification request
+        const created = await V1VerificationRequestModel.create({
+            userId: req.apiUser.userId,
+            referenceId: reference_id || null,
+            documentType: document_type,
+            fileUrl: file_url,
+            metadata
+        });
+
+        // Audit log - submission
+        await V1AuditModel.log({
+            userId: req.apiUser.userId,
+            action: 'verification.instant_submitted',
+            resourceType: 'verification_request',
+            resourceId: created.system_reference_id,
+            details: { document_type, reference_id },
+            ipAddress: req.ip
+        });
+
+        // Process synchronously and return full result
+        const result = await VerificationProcessor.processAndReturn(created.id);
+
+        res.status(200).json(result);
+    } catch (error) {
+        console.error('Instant verify endpoint error:', error);
+        res.status(500).json({ error: 'Internal server error', message: 'Failed to process instant verification' });
     }
 });
 

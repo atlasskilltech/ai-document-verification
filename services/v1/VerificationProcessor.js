@@ -198,6 +198,205 @@ class VerificationProcessor {
     }
 
     /**
+     * Process a verification request synchronously and return the full result.
+     * Used by the instant verify endpoint to return results in the same API call.
+     */
+    static async processAndReturn(requestId) {
+        let request;
+        try {
+            // 1. Fetch request
+            request = await V1VerificationRequestModel.findById(requestId);
+            if (!request) {
+                throw new Error(`Request ${requestId} not found`);
+            }
+
+            // 2. Mark as processing
+            await V1VerificationRequestModel.updateStatus(requestId, { status: 'processing' });
+
+            // 3. Get document master config (user-specific first, then global)
+            const docMaster = await V1DocumentMasterModel.findByCodeForUser(request.document_type, request.user_id);
+            const requiredFields = docMaster?.required_fields || [];
+            const validationRules = docMaster?.validation_rules || {};
+
+            // 4. Process with AI
+            const metadata = typeof request.metadata === 'string'
+                ? JSON.parse(request.metadata)
+                : (request.metadata || {});
+
+            const aiResult = await AIProcessingService.verify({
+                fileUrl: request.file_url,
+                documentType: request.document_type,
+                requiredFields,
+                validationRules,
+                metadata
+            });
+
+            // 5. Server-side data validation (dates, ID formats, logical checks)
+            const dataValidation = DataValidationService.validate(
+                request.document_type,
+                aiResult.extracted_data,
+                metadata
+            );
+
+            // Merge data validation results into AI result for the rule engine
+            if (!dataValidation.passed) {
+                aiResult.issues = [...(aiResult.issues || []), ...dataValidation.issues];
+                aiResult.data_consistency = {
+                    ...aiResult.data_consistency,
+                    dates_valid: dataValidation.summary.dates_valid,
+                    id_format_valid: dataValidation.summary.id_format_valid,
+                    logical_checks_passed: dataValidation.summary.logical_checks_passed,
+                    details: dataValidation.summary.details
+                };
+            }
+
+            // 6. Apply rule engine (pass userId for user-scoped doc type lookup)
+            const ruleResult = await RuleEngineService.validate(
+                request.document_type,
+                aiResult.extracted_data,
+                aiResult,
+                request.user_id
+            );
+
+            ruleResult.data_validation = dataValidation;
+
+            // 7. Update request with results
+            const finalStatus = ruleResult.status === 'verified' ? 'verified' : 'rejected';
+
+            const enrichedAiResponse = {
+                ...aiResult,
+                document_type_match: aiResult.document_type_match,
+                detected_document_type: aiResult.detected_document_type,
+                expected_document_type: aiResult.expected_document_type
+            };
+
+            await V1VerificationRequestModel.updateStatus(requestId, {
+                status: finalStatus,
+                confidence: ruleResult.confidence,
+                riskScore: ruleResult.risk_score,
+                extractedData: ruleResult.wrong_document ? {} : aiResult.extracted_data,
+                aiResponse: enrichedAiResponse,
+                issues: ruleResult.issues
+            });
+
+            // 8. Audit log
+            const auditDetails = {
+                status: finalStatus,
+                confidence: ruleResult.confidence,
+                risk_score: ruleResult.risk_score,
+                issues_count: ruleResult.issues.length,
+                is_genuine: ruleResult.is_genuine !== false,
+                instant_verify: true
+            };
+            if (ruleResult.wrong_document) {
+                auditDetails.wrong_document = true;
+                auditDetails.detected_type = ruleResult.detected_document_type;
+                auditDetails.expected_type = ruleResult.expected_document_type;
+            }
+            if (ruleResult.is_genuine === false) {
+                auditDetails.fake_document = true;
+                auditDetails.fraud_indicators = ruleResult.fraud_indicators;
+            }
+            if (ruleResult.authenticity_checks?.tampering_detected) {
+                auditDetails.tampering_detected = true;
+            }
+            if (!dataValidation.passed) {
+                auditDetails.data_validation_failed = true;
+                auditDetails.failed_checks = dataValidation.failedChecks;
+                auditDetails.validation_issues = dataValidation.issues;
+            }
+
+            let auditAction = 'document.processed';
+            if (ruleResult.wrong_document) auditAction = 'document.wrong_type';
+            else if (ruleResult.is_genuine === false) auditAction = 'document.fake_detected';
+            else if (ruleResult.authenticity_checks?.tampering_detected) auditAction = 'document.tampering_detected';
+            else if (!dataValidation.passed) auditAction = 'document.data_validation_failed';
+
+            await V1AuditModel.log({
+                userId: request.user_id,
+                action: auditAction,
+                resourceType: 'verification_request',
+                resourceId: request.system_reference_id,
+                details: auditDetails
+            });
+
+            // 9. Trigger webhooks (fire-and-forget)
+            const webhookEvent = finalStatus === 'verified' ? 'document.verified' : 'document.rejected';
+            const updatedRequest = await V1VerificationRequestModel.findBySystemRefId(request.system_reference_id);
+            WebhookService.trigger(request.user_id, webhookEvent, {
+                ...updatedRequest,
+                wrong_document: ruleResult.wrong_document || false,
+                detected_document_type: ruleResult.detected_document_type || null,
+                is_genuine: ruleResult.is_genuine !== false,
+                authenticity_checks: ruleResult.authenticity_checks || {},
+                fraud_indicators: ruleResult.fraud_indicators || []
+            }).catch(err => {
+                console.error('[VerificationProcessor] Webhook trigger error:', err.message);
+            });
+
+            console.log(`[VerificationProcessor] Instant verify ${request.system_reference_id} completed: ${finalStatus} (confidence: ${ruleResult.confidence}%)`);
+
+            // 10. Build and return the full response
+            const wrongDocument = enrichedAiResponse.document_type_match === false;
+            const result = {
+                system_reference_id: request.system_reference_id,
+                client_reference_id: request.client_reference_id,
+                document_type: request.document_type,
+                status: finalStatus,
+                confidence: ruleResult.confidence,
+                risk_score: ruleResult.risk_score,
+                extracted_data: ruleResult.wrong_document ? {} : aiResult.extracted_data,
+                issues: ruleResult.issues,
+                created_at: request.created_at,
+                processed_at: updatedRequest.processed_at
+            };
+
+            if (wrongDocument) {
+                result.wrong_document = true;
+                result.detected_document_type = enrichedAiResponse.detected_document_type || 'Unknown';
+                result.expected_document_type = enrichedAiResponse.expected_document_type || request.document_type;
+            }
+
+            result.is_genuine = enrichedAiResponse.is_genuine !== false;
+            result.authenticity_checks = enrichedAiResponse.authenticity_checks || {};
+            result.fraud_indicators = enrichedAiResponse.fraud_indicators || [];
+            result.data_consistency = enrichedAiResponse.data_consistency || {};
+
+            return result;
+
+        } catch (error) {
+            console.error(`[VerificationProcessor] Error in instant verify for request ${requestId}:`, error.message);
+
+            // Update status to failed
+            try {
+                await V1VerificationRequestModel.updateStatus(requestId, {
+                    status: 'failed',
+                    issues: [error.message]
+                });
+
+                if (request) {
+                    WebhookService.trigger(request.user_id, 'document.failed', {
+                        system_reference_id: request.system_reference_id,
+                        status: 'failed'
+                    }).catch(() => {});
+
+                    await V1AuditModel.log({
+                        userId: request.user_id,
+                        action: 'document.failed',
+                        resourceType: 'verification_request',
+                        resourceId: request.system_reference_id,
+                        details: { error: error.message, instant_verify: true }
+                    });
+                }
+            } catch (updateErr) {
+                console.error('[VerificationProcessor] Failed to update error status:', updateErr.message);
+            }
+
+            throw error;
+        }
+    }
+
+    /**
      * Check if this request is part of a bulk job and update its progress
      */
     static async _updateBulkProgress(requestId) {
